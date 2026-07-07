@@ -8,10 +8,10 @@
 # flagged a RabbitMQ health-ping `curl -u "$USER:$PASS"` whose password DEFAULTS to
 # the local-dev value `dev-secret` for a localhost broker. Not a credential to any
 # real system — a dev fallback overridden by env in every real deployment.
-627f8815bd37b0f0aa1f2413764bf21826e9238a:Makefile:curl-auth-user:180
+af87b6868ae584c00143174d80ef550b55ace4a4:Makefile:curl-auth-user:180
 
 # tools/wallabag-token.sh — OAUTH_CLIENT_RESOURCE is a Passbolt *resource UUID*
 # (an identifier that points to a secret stored in Passbolt), NOT the secret itself.
 # Retrieving the actual value still requires authenticated Passbolt access; the UUID
 # alone is inert. See docs/runbooks/test-services.md § Secrets.
-500e679ffc75237c4ecb466eb70949960d90f9ef:tools/wallabag-token.sh:generic-api-key:25
+84474c3a5be88e36ae7def4c9da4b1416abd7b77:tools/wallabag-token.sh:generic-api-key:25
