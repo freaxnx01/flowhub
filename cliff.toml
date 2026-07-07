@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 """
 body = """
 {%- macro remote_url() -%}
-  https://github.com/freaxnx01/FlowHub-CAS-AISE
+  https://github.com/freaxnx01/flowhub
 {%- endmacro -%}
 
 {% if version -%}

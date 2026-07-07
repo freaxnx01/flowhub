@@ -12,7 +12,7 @@ the FlowHub repo to be checked out on Win11 in full — just this folder.
 Install Node.js 20+ (https://nodejs.org), then in PowerShell:
 
 ```powershell
-cd path\to\FlowHub-CAS-AISE\tests\e2e-demo
+cd path\to\flowhub\tests\e2e-demo
 npm install
 npx playwright install chromium
 ```

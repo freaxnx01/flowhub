@@ -1,6 +1,6 @@
 # FlowHub Architecture — Three Perspectives
 
-This document maps FlowHub's architecture to the three classical perspectives required by the CAS AISE rubric (*Struktur · Verhalten · Interaktion*) and points to the canonical artefact for each.
+This document maps FlowHub's architecture to three classical perspectives (*Struktur · Verhalten · Interaktion*) and points to the canonical artefact for each.
 
 | Perspective | Question it answers | Canonical artefacts |
 |---|---|---|

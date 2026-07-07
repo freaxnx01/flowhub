@@ -10,18 +10,13 @@
 default_language_version:
   python: python3
 
-# These trees are German academic deliverables, archives, and the Obsidian
-# vault — not maintained source. Exclude them from all hooks so the gate lints
-# code (source/ tests/ tools/ scripts/ .github/ + root configs), not submission
-# prose. markdownlint and typos would otherwise flood on German text.
+# These trees are prose docs, generated assets, and standalone POCs — not
+# maintained source. Exclude them from all hooks so the gate lints code
+# (source/ tests/ tools/ scripts/ .github/ + root configs), not docs prose.
 exclude: |
   (?x)^(
     docs/|
-    nachbereitung/|
-    vorbereitung/|
     video/|
-    vault/|
-    upload/|
     bruno/|
     poc/
   )

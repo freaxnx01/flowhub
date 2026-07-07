@@ -86,7 +86,7 @@ Two ways to interact with the AI, distinguished by **who decomposes the problem*
 
 ## Observed problems with AI-generated code
 
-Concrete issues while scaffolding this POC — useful data points for the Moodle Leitfrage *"Welche Probleme können bei KI-generiertem Code entstehen, und wie vermeidet man sie?"*.
+Concrete issues while scaffolding this POC — useful data points on *what problems arise with AI-generated code, and how to avoid them*.
 
 - **CentralPackageManagement collision.** The root repo pins package versions in `Directory.Packages.props`. The AI's initial `dotnet new` scaffold added `<PackageReference Version="…" />` attributes in the playground's `.csproj` files, which triggers `NU1008` under Central Package Management. Fix: the playground got its own `Directory.Packages.props` so it can diverge from the root pinning, and `<PackageVersion>` entries were moved there. Root cause: the AI did not read the surrounding `Directory.Build.props` / `Directory.Packages.props` before generating the new project. Prevention: either share the repo conventions explicitly in the prompt, or review the generated `.csproj` diff before `dotnet build`.
 
@@ -110,7 +110,7 @@ A short decision tree for which transport fits which call.
 
 **Heuristic.** If the caller would block waiting for the answer anyway, use sync (REST to the outside, gRPC internally). If the caller only needs to say *"this happened, someone please deal with it"*, use a broker — and accept eventual consistency in exchange for decoupling and resilience.
 
-This answers the Moodle Leitfrage *"Was sind Vor- und Nachteile asynchroner Kommunikation?"* from the concrete perspective of the POC and of FlowHub's planned event pipeline (see ADR 0002).
+This captures the *trade-offs of asynchronous communication* from the concrete perspective of the POC and of FlowHub's event pipeline (see ADR 0002).
 
 ## AI-Assistant Notes (Claude Code)
 

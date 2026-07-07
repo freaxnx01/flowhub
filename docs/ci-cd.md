@@ -2,7 +2,7 @@
 
 FlowHub uses three core GitHub Actions workflows.
 
-> **Platform choice — GitHub (not GitLab).** The Block 5 Lernziel names GitHub and the GitLab Agent Platform as the (alternative) hosted CI/CD platforms — it's a GitHub *or* GitLab choice, not both. FlowHub's repository is GitHub-hosted (`github.com/freaxnx01/FlowHub-CAS-AISE`), so CI/CD runs on **GitHub Actions** with GitHub-hosted runners, and **GitHub Copilot** provides inline assistance (see [`ai-usage.md`](ai-usage.md)). The GitLab Agent Platform is GitLab's equivalent of the same capability and is therefore not used.
+> **Platform choice — GitHub (not GitLab).** The Block 5 Lernziel names GitHub and the GitLab Agent Platform as the (alternative) hosted CI/CD platforms — it's a GitHub *or* GitLab choice, not both. FlowHub's repository is GitHub-hosted (`github.com/freaxnx01/flowhub`), so CI/CD runs on **GitHub Actions** with GitHub-hosted runners, and **GitHub Copilot** provides inline assistance (see [`ai-usage.md`](ai-usage.md)). The GitLab Agent Platform is GitLab's equivalent of the same capability and is therefore not used.
 
 ## Workflows
 
@@ -26,7 +26,7 @@ FlowHub uses three core GitHub Actions workflows.
 
 **How to trigger a release:**
 ```bash
-git tag v1.0.0 -m "release: v1.0.0 — CAS AISE Projektarbeit Abgabe"
+git tag v1.0.0 -m "release: v1.0.0"
 git push origin v1.0.0
 ```
 

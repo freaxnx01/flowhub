@@ -1,6 +1,6 @@
 # `capture-not-found` problem
 
-Type URI: `https://github.com/freaxnx01/FlowHub-CAS-AISE/blob/main/docs/problems/capture-not-found.md`
+Type URI: `https://github.com/freaxnx01/flowhub/blob/main/docs/problems/capture-not-found.md`
 
 Returned when a capture id is referenced but no capture exists with that id. Status code: `404 Not Found`.
 
@@ -8,7 +8,7 @@ Returned when a capture id is referenced but no capture exists with that id. Sta
 
 ```json
 {
-  "type": "https://github.com/freaxnx01/FlowHub-CAS-AISE/blob/main/docs/problems/capture-not-found.md",
+  "type": "https://github.com/freaxnx01/flowhub/blob/main/docs/problems/capture-not-found.md",
   "title": "Capture not found.",
   "status": 404,
   "detail": "No capture exists with id <guid>.",

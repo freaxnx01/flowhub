@@ -205,7 +205,7 @@ All failures return `application/problem+json` per RFC 9457.
 
 ```json
 {
-  "type": "https://github.com/freaxnx01/FlowHub-CAS-AISE/blob/main/docs/problems/validation.md",
+  "type": "https://github.com/freaxnx01/flowhub/blob/main/docs/problems/validation.md",
   "title": "One or more validation errors occurred.",
   "status": 400,
   "instance": "/api/v1/captures",
@@ -218,7 +218,7 @@ All failures return `application/problem+json` per RFC 9457.
 
 - `traceId` always included for correlation with server logs (OpenTelemetry).
 - FluentValidation failures flatten into the `errors` object keyed by field name.
-- Domain-specific problem types live under `https://github.com/freaxnx01/FlowHub-CAS-AISE/blob/main/docs/problems/<slug>.md` — real, resolvable URLs that point at human-readable problem docs in this repo (see D5). The `docs/problems/` catalogue is grown on demand as new problem types surface.
+- Domain-specific problem types live under `https://github.com/freaxnx01/flowhub/blob/main/docs/problems/<slug>.md` — real, resolvable URLs that point at human-readable problem docs in this repo (see D5). The `docs/problems/` catalogue is grown on demand as new problem types surface.
 
 ---
 
@@ -265,7 +265,7 @@ Bruno collections under `bruno/api/captures/`, `bruno/api/skills/`, `bruno/api/i
 
 - **D4 — Day-one list filters: `stage`, `source`, `limit`, `cursor`.** Enough to satisfy the Telegram bot (its own captures), operator dashboards (failed captures via `stage=Orphan,Unhandled`), and paginated crawls. Stretch filters deferred to when a concrete caller needs them: `createdAfter`, `createdBefore`, `q` (substring match). Each deferred filter adds a validator + at least one index concern in Block 4 Persistence.
 
-- **D5 — Error `type` URIs point at repo-hosted problem docs.** Base URL: `https://github.com/freaxnx01/FlowHub-CAS-AISE/blob/main/docs/problems/`. Per-problem files are created on demand (`docs/problems/validation.md`, `docs/problems/capture-not-retryable.md`, …). Real, resolvable URLs beat a fictional `flowhub.local` namespace; git history implicitly versions the semantics.
+- **D5 — Error `type` URIs point at repo-hosted problem docs.** Base URL: `https://github.com/freaxnx01/flowhub/blob/main/docs/problems/`. Per-problem files are created on demand (`docs/problems/validation.md`, `docs/problems/capture-not-retryable.md`, …). Real, resolvable URLs beat a fictional `flowhub.local` namespace; git history implicitly versions the semantics.
 
 - **D6 — No `DELETE /api/v1/captures/{id}` in v1.** Captures are append-only history per FlowHub's concept. The Blazor UI has no delete action. A redact-style `POST /api/v1/captures/{id}/redact` is a future, narrowly scoped option if sensitive content ever lands in a Capture body; not in Block 3 scope. Retention lives in a scheduled background job (Block 5 Deployment at earliest), not an operator-triggered endpoint.
 

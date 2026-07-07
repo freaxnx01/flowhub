@@ -5,56 +5,58 @@
 # FlowHub
 
 <p align="center">
-  <a href="https://github.com/freaxnx01/FlowHub-CAS-AISE/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/freaxnx01/FlowHub-CAS-AISE/ci.yml?branch=main&label=CI&logo=githubactions&logoColor=white&style=flat-square" alt="CI" /></a>
-  <a href="https://github.com/freaxnx01/FlowHub-CAS-AISE/releases/latest"><img src="https://img.shields.io/github/v/release/freaxnx01/FlowHub-CAS-AISE?label=release&logo=github&style=flat-square" alt="Latest release" /></a>
+  <a href="https://github.com/freaxnx01/flowhub/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/freaxnx01/flowhub/ci.yml?branch=main&label=CI&logo=githubactions&logoColor=white&style=flat-square" alt="CI" /></a>
   <a href="https://dotnet.microsoft.com/"><img src="https://img.shields.io/badge/.NET-10-512BD4?logo=dotnet&logoColor=white&style=flat-square" alt=".NET 10" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0-blue?style=flat-square" alt="License: AGPL-3.0" /></a>
   <a href="https://demo.flowhub.freaxnx01.ch"><img src="https://img.shields.io/badge/live-demo-2ea44f?logo=icloud&logoColor=white&style=flat-square" alt="Live demo" /></a>
-  <a href="https://github.com/freaxnx01/FlowHub-CAS-AISE/commits/main"><img src="https://img.shields.io/github/last-commit/freaxnx01/FlowHub-CAS-AISE?style=flat-square" alt="Last commit" /></a>
-  <img src="https://img.shields.io/badge/CAS-AI--Assisted%20SW%20Eng-blue?style=flat-square" alt="CAS AISE · FFHS" />
+  <a href="https://github.com/freaxnx01/flowhub/commits/main"><img src="https://img.shields.io/github/last-commit/freaxnx01/flowhub?style=flat-square" alt="Last commit" /></a>
 </p>
 
-**AI-assisted personal inbox** — captures everyday information snippets (movie tips, articles, receipts, bookmarks, notes), classifies them with a local/remote LLM, and routes them to the right self-hosted services in the user's homelab. Single user, modular monolith on .NET 10.
+> **Capture anything. Let AI file it for you.**
 
-Built as the project work for **CAS AI-Assisted Software Engineering (AISE)** at FFHS (FS26).
+**FlowHub is the inbox for your whole digital life.** Drop in a URL, a note, or a
+file from anywhere — FlowHub reads it, classifies it with an LLM, and routes it to
+the right self-hosted tool automatically: articles to your read-later app, tasks to
+your task manager, documents to your DMS. One capture box, zero filing.
+
+Single-user, self-hostable, modular monolith on **.NET 10**.
 
 - **Live demo:** <https://demo.flowhub.freaxnx01.ch> — public, rate-limited, self-resetting; see [`docs/runbooks/public-demo.md`](docs/runbooks/public-demo.md)
-- **Submission document:** [`SUBMISSION.md`](SUBMISSION.md) (the PDF rendered from it is the Moodle deliverable)
-- **Architecture:** [`docs/architektur/FlowHub_Arc42_v2.md`](docs/architektur/FlowHub_Arc42_v2.md) (as-built arc42) · [`docs/adr/`](docs/adr/) (ADRs) · [`docs/projektbeschreibung/`](docs/projektbeschreibung/)
-- **AI usage:** [`docs/ai-usage.md`](docs/ai-usage.md) · personal Lessons Learned in [`vault/Projektarbeit/Learnings.md`](vault/Projektarbeit/Learnings.md)
-- **Roadmap:** [`docs/project/ROADMAP.md`](docs/project/ROADMAP.md) — forward-looking ideas not yet scheduled into a Block
+- **Roadmap / backlog:** [`ROADMAP.md`](ROADMAP.md)
+- **Full feature list:** [`FEATURES.md`](FEATURES.md)
 
 ---
 
-## 🎧 Audio-Podcasts (Deutsch)
+## How it works
 
-> **🇩🇪 Diese drei Podcasts sind auf Deutsch.** — Three AI-generated audio deep-dives on FlowHub, produced with **Google NotebookLM** from this repository's own documents. The narration is **in German**.
+1. **Capture** — paste a link, type a note, or upload a file (app-bar quick-capture, REST API, more channels coming). Any text/URL/file becomes a *Capture*.
+2. **Classify** — an LLM tags it and decides where it belongs; a deterministic keyword/URL classifier is the always-on safety net, so it never just fails.
+3. **Route** — FlowHub hands it to the matching *Skill*, which writes it into the real service (Vikunja, Wallabag, paperless-ngx) — sending only a tag + link, never your content body.
+4. **Find it later** — semantic search (pgvector embeddings) over everything you've ever captured.
 
-| # | Episode | Basis | Länge | Anhören |
-|---|---------|-------|-------|---------|
-| 1 | **„FlowHub sortiert Zettelchaos automatisch per Telegram"** | [Projektbeschreibung](docs/projektbeschreibung/) | ~2 min | ▶️ [MP3](docs/assets/audio/flowhub-podcast-1-projektbeschreibung.mp3) |
-| 2 | **„FlowHub: Architektur zwischen Resilienz und Over-Engineering"** | [arc42](docs/architektur/FlowHub_Arc42_v2.md) | ~26 min | ▶️ [MP3](docs/assets/audio/flowhub-podcast-2-architektur-arc42.mp3) |
-| 3 | **„Architektur als neuer Engpass der KI-Softwareentwicklung"** | [Reflexion / Learnings](vault/Projektarbeit/Learnings.md) | ~27 min | ▶️ [MP3](docs/assets/audio/flowhub-podcast-3-reflexion.mp3) |
+## Why it's different
 
-Click a ▶️ **MP3** link to open GitHub's built-in audio player. The files also live in the repo under [`docs/assets/audio/`](docs/assets/audio/).
-
-<sub>**Provenance:** Generated with Google NotebookLM from FlowHub's own documentation (Projektbeschreibung · arc42 · Reflexion). As AI-generated output the audio carries no separate copyright claim; the underlying source documents are part of this repository. Sprache / language: **Deutsch**.</sub>
+- **AI does the filing, not you** — capture is one action; routing is automatic.
+- **Pluggable Skills** — every destination is a small `ISkillIntegration` adapter; add your own.
+- **Privacy by design** — single-user, self-hostable, local-LLM default; cloud AI is strictly opt-in, and outbound writes carry tag + URL only. Built to sit inside your own homelab trust boundary.
+- **Honest AI** — every AI-classified item is visibly marked (EU AI Act-aware).
+- **Degrades gracefully** — LLM down or out of quota? Keyword routing keeps it working.
 
 ---
 
 ## Features
 
-- **Capture** — app-bar quick-capture, REST API (`POST /api/v1/captures`), and file upload; any text/URL/file becomes a *Capture*.
+- **Capture** — app-bar quick-capture, REST API (`POST /api/v1/captures`), and file upload.
 - **AI classification** — LLM classifier (Anthropic / OpenRouter via Microsoft.Extensions.AI) with keyword + URL heuristics as a graceful fallback; produces tags + a title.
-- **Skill routing** — classified captures route to *Skills* → *Integrations* (Wallabag, Vikunja); outbound payloads carry tag + URL only.
-- **Async pipeline** — MassTransit + RabbitMQ consumers (classify, enrich, embed) with per-consumer retry + dead-lettering.
-- **Semantic search** — pgvector embeddings + `GET /api/v1/captures/search` (cosine). Provider-agnostic (OpenAI-compatible); disabled on the public demo (returns 503), demonstrated via integration tests + ADR 0006.
+- **Skill routing** — classified captures route to *Skills* → *Integrations* (Wallabag, Vikunja, paperless-ngx); outbound payloads carry tag + URL only.
+- **Async pipeline** — MassTransit consumers (classify, enrich, embed) with per-consumer retry. Runs on an in-memory bus by default; RabbitMQ is an opt-in overlay for durable, crash-safe redelivery.
+- **Semantic search** — pgvector embeddings + `GET /api/v1/captures/search` (cosine). Provider-agnostic (OpenAI-compatible); disabled on the public demo (returns 503).
 - **Web UI** — Blazor (MudBlazor, Interactive Server): Dashboard, Captures list/detail, New Capture, Skills, Integrations.
 - **Persistence** — PostgreSQL + EF Core 10; migrations run as a separate init container (12-Factor XII).
 - **Ops & security** — `/health/*`, `/metrics` (Prometheus) + Grafana, OpenTelemetry, Serilog → stdout; OIDC (Authentik) or dev/demo auth; AI-transparency posture (EU AI Act).
 - **Deployment** — multi-stage Docker, full Compose stack, GitHub Actions (CI + tagged release → GHCR).
 
-Full feature list — including **post-`v0.1.0`** product enhancements (citation enrichment, demo example chips, ntfy notifications): **[`FEATURES.md`](FEATURES.md)**.
+Full list — including config-gated and demo-disabled features — in **[`FEATURES.md`](FEATURES.md)**.
 
 ---
 
@@ -72,34 +74,35 @@ https://github.com/user-attachments/assets/c000f88a-d31f-4ef4-a5a8-3ad84d4f4828
 
 **See it in action — using the live demo** (~70s, no narration)
 
-Screenshot walkthrough of the [public demo](https://demo.flowhub.freaxnx01.ch): each sample captured → AI-classified → landing in its service (Vikunja / Zitate / Wallabag / paperless), with an animated cursor. Built via `just video-capture` + `just video-demo`.
+Screenshot walkthrough of the [public demo](https://demo.flowhub.freaxnx01.ch): each sample captured → AI-classified → landing in its service (Vikunja / Zitate / Wallabag / paperless), with an animated cursor.
 
 https://github.com/user-attachments/assets/4eeffe75-91c9-4144-bec6-03c6ec94e43c
 
 ---
 
-## For a CAS reviewer who just cloned the repo
-
-You probably don't need to run anything to grade this. The submission document and its links cover every rubric item. If you *want* to verify a claim live, the commands below are enough.
+## Quickstart
 
 ### Option A — see it running, zero install
 
-Open <https://demo.flowhub.freaxnx01.ch>. The demo is intentionally open (no login) and resets every 15 min. What it shows — and what's intentionally disabled in the demo (embeddings, external skill writes) — is documented in [`docs/project/DEMO.md`](docs/project/DEMO.md) and [`docs/runbooks/public-demo.md`](docs/runbooks/public-demo.md).
+Open <https://demo.flowhub.freaxnx01.ch>. The demo is intentionally open (no login) and resets every 15 min. What it shows — and what's intentionally disabled (embeddings, external skill writes) — is documented in [`DEMO.md`](DEMO.md) and [`docs/runbooks/public-demo.md`](docs/runbooks/public-demo.md).
 
 ### Option B — local stack via Docker
 
-Requires Docker (Compose v2). Boots Web + Postgres + RabbitMQ + Prometheus + Grafana.
+Requires Docker (Compose v2). Boots Web + Postgres + Prometheus + Grafana (in-memory bus).
 
 ```bash
-git clone https://github.com/freaxnx01/FlowHub-CAS-AISE.git
-cd FlowHub-CAS-AISE
-git checkout v0.3.1          # the submission tag
+git clone https://github.com/freaxnx01/flowhub.git
+cd flowhub
 cp .env.example .env         # fill in Postgres password, OIDC, AI keys
 docker compose up -d --wait
 # → http://localhost:5070  (health: /health/live · metrics: /metrics · API docs: /scalar)
 ```
 
-Detailed step-by-step including the demo overlay: [`docs/runbooks/v0.1.0-final-acceptance.md`](docs/runbooks/v0.1.0-final-acceptance.md).
+Want durable, broker-backed message delivery? Add the RabbitMQ overlay:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.rabbitmq.yml up -d --wait
+```
 
 ### Option C — build and test locally
 
@@ -107,12 +110,12 @@ Requires .NET 10 SDK (`global.json` pins the version). The `justfile` exposes ev
 
 ```bash
 just build       # build the full solution (warnings as errors)
-just test        # run the default suite — 540 tests (excludes live AI / BetaSmoke / E2E)
+just test        # run the default suite (excludes live AI / BetaSmoke / E2E)
 just run         # run FlowHub.Web on http://localhost:5070
 just watch       # same, with hot reload
 ```
 
-CI on `main`: [GitHub Actions runs](https://github.com/freaxnx01/FlowHub-CAS-AISE/actions/workflows/ci.yml?query=branch%3Amain).
+CI on `main`: [GitHub Actions runs](https://github.com/freaxnx01/flowhub/actions/workflows/ci.yml?query=branch%3Amain).
 
 ---
 
@@ -125,21 +128,16 @@ source/                 ← application code (one project per capability)
   FlowHub.Api/          ← Minimal API endpoints (registered into Web)
   FlowHub.AI/           ← LLM-backed classifier + embeddings (MEAI)
   FlowHub.Persistence/  ← EF Core + Npgsql + pgvector
-  FlowHub.Skills/       ← Wallabag + Vikunja ISkillIntegration adapters
-tests/                  ← 10 test projects (unit, component, integration, E2E)
-docs/                   ← architecture, specs, runbooks, insights
-  adr/                  ← 10 Architecture Decision Records
-  spec/                 ← use-cases, NfA (SMART), acceptance criteria, DB model, testing strategy
-  insights/             ← per-block lessons learned (Block 1–5)
+  FlowHub.Skills/       ← Wallabag + Vikunja + paperless ISkillIntegration adapters
+tests/                  ← test projects (unit, component, integration, E2E)
+docs/                   ← architecture, specs, runbooks, design notes
+  adr/                  ← Architecture Decision Records
+  spec/                 ← use-cases, NfA, acceptance criteria, DB model, testing strategy
+  design/               ← UI workflow output, API surface, data flow
   runbooks/             ← acceptance, demo, OIDC setup, test services
-  project/              ← roadmap, next steps, todos, demo + submission notes
-  ai-usage.md           ← consolidated AI tool usage (rubric item, 12 pts)
-vault/                  ← Obsidian vault — CAS coursework and project notes
-  Projektarbeit/        ← idea, dev notes, glossary, learnings
-  Blöcke/01..05/        ← per-block Vorbereitung / PVA / Nachbereitung
-  Organisation/         ← course-org notes (enrolment, dates, costs); rubric is FFHS IP, kept local only
-SUBMISSION.md           ← the Moodle submission document (rendered to PDF)
-docs/project/submission-notes.md  ← operator notes: how the submission PDF is produced
+  monitoring/           ← Grafana dashboards
+ROADMAP.md              ← forward-looking product backlog
+DEMO.md                 ← what the public demo shows (and what's disabled)
 ```
 
 ## justfile cheat sheet
@@ -164,7 +162,6 @@ docs/project/submission-notes.md  ← operator notes: how the submission PDF is 
 | `just test` | All non-live tests (skips AI, BetaSmoke, E2E categories) |
 | `just test-backend` | Backend unit + skill contract tests |
 | `just test-frontend` | Frontend (bUnit) component tests |
-| `just test-all` | Backend + frontend, then start Postgres + Web and open in browser |
 | `just test-ai` | Live integration tests against real AI providers (needs API keys) |
 | `just test-contract` | WireMock contract tests for Vikunja + Wallabag (offline) |
 | `just test-services` | Live skill-integration tests against `flowhub-test-services` |
@@ -193,16 +190,6 @@ docs/project/submission-notes.md  ← operator notes: how the submission PDF is 
 | `just smoke-prod` | Boot full prod compose stack and smoke health, `/metrics`, capture submit + embedding round-trip |
 | `just smoke-down` | Stop the prod stack (volumes preserved) |
 
-### Submission PDFs
-
-| Target | What it does |
-|---|---|
-| `just pdf-submission` | Render `SUBMISSION.md` → `FlowHub_Uebersicht.pdf` (the Moodle entry/overview PDF) |
-| `just pdf-eigenstaendigkeitserklaerung` | Render `docs/submission/eigenstaendigkeitserklaerung.md` → `Eigenständigkeitserklärung.pdf` (mandatory FFHS beilage) |
-| `just pdf-submission-bundle` | Build `SUBMISSION-bundle.pdf` — every referenced artefact inlined (offline safety net) |
-| `just pdf-projektbeschreibung` | Regenerate the project description PDF |
-| `just pdf … [OUT=…]` | Render any Markdown file to PDF via the puppeteer renderer |
-
 ## Configuration
 
 All config is environment-driven (12-Factor III). The main keys:
@@ -212,17 +199,17 @@ All config is environment-driven (12-Factor III). The main keys:
 | `ConnectionStrings__Default` | PostgreSQL connection string |
 | `Ai__Provider` | `Anthropic` or `OpenRouter` |
 | `Ai__Anthropic__ApiKey` / `Ai__OpenRouter__ApiKey` | LLM provider keys |
-| `Embeddings__ApiKey`, `Embeddings__Model` | Mistral embeddings (for semantic search) |
+| `Embeddings__ApiKey`, `Embeddings__Model` | Embeddings provider (for semantic search) |
 | `Skills__Wallabag__*`, `Skills__Vikunja__*` | Real integration endpoints + tokens |
 | `Auth__OIDC__*` | Authentik OIDC client (unset → `DemoAuthHandler` auto-signs all requests) |
-| `Bus__Transport` | `InMemory` or `RabbitMq` |
+| `Bus__Transport` | `InMemory` (default) or `RabbitMq` |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | Optional OpenTelemetry collector |
 
 Never commit secrets. See [`docs/runbooks/authentik-oidc-setup.md`](docs/runbooks/authentik-oidc-setup.md) for the OIDC client registration walkthrough.
 
 ## Versioning
 
-SemVer 2.0.0. Current release: **`v0.3.1`** (matches `<Version>0.3.1</Version>` in `Directory.Build.props`). See [`CHANGELOG.md`](CHANGELOG.md).
+SemVer 2.0.0. See [`CHANGELOG.md`](CHANGELOG.md) for the release history.
 
 ## License
 
@@ -232,11 +219,11 @@ Copyright © 2026 Andreas Imboden. AGPL-3.0 is a strong copyleft license: you ma
 
 ## Agent conventions
 
-This repository was developed with heavy AI-assisted engineering. Agent conventions, skills, and the mandatory UI workflow are documented in [`CLAUDE.md`](CLAUDE.md); AI usage per block is in [`docs/ai-usage.md`](docs/ai-usage.md); personal lessons learned in [`vault/Projektarbeit/Learnings.md`](vault/Projektarbeit/Learnings.md).
+This repository was developed with heavy AI-assisted engineering. Agent conventions, skills, and the mandatory UI workflow are documented in [`CLAUDE.md`](CLAUDE.md).
 
 ## Related repositories
 
 Part of the same AI-assisted engineering toolchain:
 
 - [`freaxnx01/ai-instructions`](https://github.com/freaxnx01/ai-instructions) — reusable AI-agent instruction templates (base conventions + per-stack overlays) that this repo's [`CLAUDE.md`](CLAUDE.md), Copilot instructions, and `.ai/` skills are synced from (via the `sync-ai-instructions` skill).
-- [`freaxnx01/agent-pipeline`](https://github.com/freaxnx01/agent-pipeline) — reusable GitHub Actions workflow for autonomous issue → implementation that this repo delegates to via [`.github/workflows/claude.yml`](.github/workflows/claude.yml) (see [`docs/AGENT-PIPELINE.md`](docs/AGENT-PIPELINE.md)).
+- [`freaxnx01/agent-pipeline`](https://github.com/freaxnx01/agent-pipeline) — reusable GitHub Actions workflow for autonomous issue → implementation that this repo delegates to via [`.github/workflows/claude.yml`](.github/workflows/claude.yml).

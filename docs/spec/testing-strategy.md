@@ -343,7 +343,7 @@ End-to-end tests cover the happy path for each major UI flow. Not yet automated 
 
 Test results from the `ci.yml` GitHub Actions workflow are uploaded as `.trx` artifacts on every run. Screenshot the latest passing run for inclusion in the submission PDF:
 
-1. Go to `github.com/freaxnx01/FlowHub-CAS-AISE/actions`.
+1. Go to `github.com/freaxnx01/flowhub/actions`.
 2. Open the latest `CI` run on `main`.
 3. Expand `Test` step to see test count and pass/fail breakdown.
 4. Download `test-results` artifact for `.trx` file with full details.

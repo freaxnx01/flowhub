@@ -66,8 +66,8 @@ A fully open, rate-limited, self-resetting FlowHub instance at <https://demo.flo
 On the VPS-DE host:
 
 ```bash
-git clone https://github.com/freaxnx01/FlowHub-CAS-AISE.git
-cd FlowHub-CAS-AISE
+git clone https://github.com/freaxnx01/flowhub.git
+cd flowhub
 cp demo/.env.example .env
 # Edit .env → set Ai__OpenRouter__ApiKey to the demo-only OpenRouter key
 # (the one with a $1/mo hard cap configured in the OpenRouter dashboard)

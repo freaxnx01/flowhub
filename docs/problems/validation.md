@@ -1,6 +1,6 @@
 # `validation` problem
 
-Type URI: `https://github.com/freaxnx01/FlowHub-CAS-AISE/blob/main/docs/problems/validation.md`
+Type URI: `https://github.com/freaxnx01/flowhub/blob/main/docs/problems/validation.md`
 
 Returned when one or more request fields fail validation. Status code: `400 Bad Request`.
 
@@ -8,7 +8,7 @@ Returned when one or more request fields fail validation. Status code: `400 Bad 
 
 ```json
 {
-  "type": "https://github.com/freaxnx01/FlowHub-CAS-AISE/blob/main/docs/problems/validation.md",
+  "type": "https://github.com/freaxnx01/flowhub/blob/main/docs/problems/validation.md",
   "title": "One or more validation errors occurred.",
   "status": 400,
   "instance": "/api/v1/captures",

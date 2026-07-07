@@ -9,43 +9,9 @@ Agent context for Claude Code. Read this before taking any action in this reposi
 ## Project Overview
 
 **Name:** FlowHub
-**Purpose:** Project work for CAS AISE — incremental full-stack .NET app built across 5 course blocks
+**Purpose:** AI-assisted personal capture hub — captures info snippets, classifies them with an LLM, and routes them to self-hosted services
 **Architecture:** Modular Monolith (Hexagonal within modules where needed)
 **Status:** Active development
-**Course context:** See [`.ai/cas-instructions.md`](.ai/cas-instructions.md) for block schedule, implementation rhythm, and grading criteria
-
----
-
-## Knowledge Base (Obsidian Vault)
-
-The CAS coursework, FlowHub concept, and project decisions live in an Obsidian vault that is now part of this repo (subtree-merged from the former `gitlab.freaxnx01.ch/freax/obsidian-cas-aise` repo, which has been retired). The vault is the source of truth for everything **except** code.
-
-- **Path:** `vault/` at the repo root.
-- **Mode:** Editable as part of this repo — same commit/push workflow as the rest of FlowHub. The vault keeps its own `CLAUDE.md` describing tagging and per-folder conventions.
-- **Back-link:** `vault/Projektarbeit/Repository.md` (kept as historical context; no longer required since the vault and code share a repo).
-
-**Primary focus paths** — grep/read these first when project background is needed:
-
-- `vault/Projektarbeit/` — thesis & FlowHub concept (`Idee FlowHub.md`, `Dev.md`, `Skills.md`, `External Services.md`)
-- `vault/Blöcke/` — course block notes that drive the incremental build
-
-**Secondary** (search on demand): `vault/Knowledge/`, `vault/Allgemein/`, `vault/Organisation/`, `vault/Notes.md`, `vault/TODO.md`.
-
-**Read trigger:** Before answering questions about CAS scope, modules, deadlines, project decisions, or the FlowHub concept, grep `vault/` first.
-
----
-
-## Grading — Bewertungskriterien Are Always In Scope
-
-The CAS project is graded against a fixed Moodle rubric (18 scored items, max 100 pts). The canonical source is **`vault/Organisation/Bewertungskriterien.md`** — every Block-Nachbereitung file mirrors the relevant subset as a checklist with point weights.
-
-**Rule:** When the current date falls in any Block-Nachbereitung phase (see `.ai/cas-instructions.md` → Block Schedule), the rubric is **active context**, not background. Specifically:
-
-- Before claiming a Block-Nachbereitung is "done", invoke the `cas-aise-grade-self-check` skill (from the `freax-claude-code-plugins` marketplace) — or manually walk every item in `vault/Organisation/Bewertungskriterien.md` — and verify each one has a deliverable.
-- The KI / Sub-Systeme / Reflexion bucket carries 30 of 100 points — the highest-weighted single item is "Wurden KI-unterstützende Werkzeuge verwendet und deren Nutzung beschrieben" (max 12 pts). Keep `docs/ai-usage.md` (or `docs/insights/block-N.md`) current as work happens — not as a one-shot at submission.
-- The Quarkus / Jakarta-EE programming criterion (max 10 pts) is **N/A for FlowHub's .NET stack** and is consciously skipped — note this in the submission PDF rather than stretching coverage.
-
-This applies to *every* Block, not only the final one — each block's work contributes to the final grade.
 
 ---
 
@@ -142,17 +108,17 @@ The repo follows a flat **`source/FlowHub.<Capability>/`** layout, not the Modul
 ├── source/
 │   ├── FlowHub.Core/                  ← domain types + driving ports (Capture, Skill, Health…)
 │   ├── FlowHub.Web/                   ← Blazor Web App, Interactive Server (per ADR 0001)
-│   │   ├── Auth/DevAuthHandler.cs     ← dev-only auth bypass (real OIDC in Block 5)
+│   │   ├── Auth/DevAuthHandler.cs     ← dev-only auth bypass (real OIDC via Authentik)
 │   │   ├── Components/
 │   │   │   ├── App.razor, Routes.razor, _Imports.razor
 │   │   │   ├── Layout/                ← MainLayout, QuickCaptureField
 │   │   │   ├── Pages/                 ← @page components (Dashboard.razor at /)
 │   │   │   ├── DashboardCards/        ← page-specific cards
 │   │   │   └── Shared/                ← reusable cross-page components (LifecycleBadge, HealthDot)
-│   │   ├── Stubs/                     ← Bogus-backed stub services for Block 2
+│   │   ├── Stubs/                     ← Bogus-backed stub services (early-development fallback)
 │   │   └── Program.cs
 │   ├── FlowHub.Api/                   ← REST endpoint definitions (in-process library, composed into Web)
-│   ├── FlowHub.AI/                    ← MEAI-backed classifier + embeddings (Block 3 Slice C, ADR 0004)
+│   ├── FlowHub.AI/                    ← MEAI-backed classifier + embeddings (ADR 0004)
 │   ├── FlowHub.Persistence/           ← EF Core + PostgreSQL + pgvector, 6 repositories (ADR 0005)
 │   └── FlowHub.Skills/                ← Wallabag + Vikunja ISkillIntegration impls
 │   (FlowHub.Telegram and a generic Integrations layer are planned — not yet scaffolded; adapters live in FlowHub.Skills)
@@ -161,18 +127,16 @@ The repo follows a flat **`source/FlowHub.<Capability>/`** layout, not the Modul
 │                                       Web.ComponentTests (bUnit), Web.E2ETests (Playwright)
 ├── poc/
 │   ├── FlowHub.AI.Classification/     ← standalone POC, has its own .sln
-│   └── FlowHub-CAS-AISE.sln           ← POC-only solution (not the root sln)
+│   └── FlowHub.Poc.sln                ← POC-only solution (not the root sln)
 ├── docs/
 │   ├── adr/                           ← Architecture Decision Records (ADR 0001 = Frontend)
 │   ├── design/<feature>/              ← UI workflow output
 │   │   ├── wireframe.md               ← Phase 1 output (/ui-brainstorm)
 │   │   └── flow.md                    ← Phase 2 output (/ui-flow)
-│   ├── superpowers/specs/             ← brainstorming design specs
-│   ├── superpowers/plans/             ← implementation plans
-│   └── from-ai/                       ← AI agent working notes
+│   ├── runbooks/                      ← acceptance, demo, OIDC setup
+│   └── spec/                          ← use-cases, NfA, acceptance criteria, DB model
 ├── .ai/
 │   ├── base-instructions.md           ← canonical conventions reference
-│   ├── cas-instructions.md            ← CAS course rhythm and grading
 │   └── skills/                        ← /commit, /push, /flowhub-*, /ui-*, /update-ai-instructions
 ├── .claude/commands/                   ← Claude Code slash command shims
 ├── .github/
@@ -540,58 +504,3 @@ bruno/
 - Keep requests in sync with endpoints — when adding/changing an API endpoint, update or add the corresponding Bruno request
 - Include example request bodies with realistic test data
 - Add assertions in Bruno where useful (status code, response shape)
-
-## Search discipline — runs on shared agent-dev, do NOT OOM the host
-
-This repo is worked on from the agent-dev LXC (201), which shares `<proxmox-host>`'s
-RAM with ~11 other guests. CT 201 has a 12 GB cgroup cap, but **filling that cap
-still swap-thrashes the whole node** — constant cgroup reclaim saturates host IO,
-drives load into the triple digits, and wedges SSH + `mosh-server` for every
-guest. On 2026-06-27 an unbounded `ugrep` in the `examiner-sim` slot hit ~9.8 GB
-RSS and took the node down twice (knocking out authentik, vaultwarden, git, …).
-So when searching repo / presentation / demo content:
-
-- Use `rg` (ripgrep), never bare `ugrep` / `grep -r`. rg respects `.gitignore`,
-  skips binaries, and is memory-bounded by default.
-- NEVER use open-ended `-o -E .{0,N}(…).{0,N}` context windows — they buffer
-  enormous match output. Use a small fixed context (`-C2`) instead.
-- Scope the path to what you need (`vault/`, `docs/`, `nachbereitung/`), never
-  the worktree root, `$HOME`, or `/tmp/wt-*`.
-- Exclude heavy trees: `.git`, `node_modules`, `.venv`, `.dotnet`, `bin/`,
-  `obj/`, `upload/`, and generated PDFs.
-- Cap it: add `--max-filesize=2M` and `-m <count>`.
-- Do not run a build (`just package-submission`, dotnet) and a broad search at
-  the same time — they compound memory pressure.
-
-Replacement for the search that caused the outage:
-
-    rg -n -C2 -g'!{node_modules,.venv,.dotnet,upload,bin,obj}' \
-       -e 'demo|reset|15\.?min|banner|wiped|sandbox' vault docs
-
-### Hard guard in place (2026-06-28) — `swap=0` OOM containment
-
-The rules above are advisory and were ignored on **two** consecutive runs
-(2026-06-27 and 2026-06-28). Root cause of the 2026-06-28 recurrence, confirmed
-from the workflow transcript: **Claude Code ≥ 2.1.19x ships a shell-snapshot
-function that silently rewrites `grep` to its own bundled ugrep engine** —
-
-    ( exec -a ugrep "$_cc_bin" -G --ignore-files --hidden -I \
-        --exclude-dir=.git --exclude-dir=.svn … ${1+"$@"} )
-
-So a subagent running a plain `grep` now actually runs ugrep (the process shows
-`comm=<claude-version>`), which buffered ~12 GB and filled the cgroup. The
-weeks-ago runs were fine only because the **older** Claude Code used the real
-memory-bounded `/usr/bin/grep`. The workflow did not change — Claude's `grep`
-behaviour did. Treat **`grep` itself as ugrep** under current Claude: the
-"use `rg`, scope the path, cap with `--max-filesize`/`-m`" rules apply to every
-`grep` invocation too, not just bare `ugrep`.
-
-Enforcement (so a runaway can no longer wedge the node): **CT 201 now runs with
-`swap: 0`** (`pct set 201 --swap 0` on <proxmox-host>, plus live
-`memory.swap.max=0`). ugrep's match buffers are anonymous memory that can only
-spill to swap; with swap=0 the cgroup OOM-killer kills the single runaway
-process at the 12 GB boundary in ~1 s instead of swap-thrashing the whole node.
-Verified 2026-06-28 with a controlled 300 MB/swap-0 scope (process got SIGKILL,
-host load/pressure stayed flat). A ballooning search now fails just that one
-tool call (`… Killed`) and the workflow continues — it can no longer take the
-node down.

@@ -31,7 +31,7 @@ Thresholds are **floors, not targets**. They guard against silent
 regression. Raise them upward as new tests land; the gate only fails
 when coverage drops *below* the listed value.
 
-Aspirational targets (per [#126](https://github.com/freaxnx01/FlowHub-CAS-AISE/issues/126)):
+Aspirational targets (per [#126](https://github.com/freaxnx01/flowhub/issues/126)):
 
 | Assembly | Line target | Why not 100 % |
 |---|---:|---|

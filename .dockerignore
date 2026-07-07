@@ -13,6 +13,3 @@ flowhub.db
 *.db-wal
 docker-compose.override.yml
 .env
-vault/
-docs/architektur/*.docx
-docs/architektur/*.pdf

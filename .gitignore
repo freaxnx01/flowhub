@@ -446,44 +446,9 @@ flowhub.db-wal
 # Claude Code scheduled-tasks lock (transient runtime lock)
 .claude/scheduled_tasks.lock
 
-# Moodle source content — copyright FFHS / third parties, never commit to public repo
-# (paraphrases/notes in vault/Blöcke, vault/Projektarbeit, etc. are fine)
-vault/_files/Moodle/
-**/Moodle/Modul/
-*_Moodle.pdf
-# Verbatim per-block Lernziele (FFHS course material) — local reference only
-lernziele.md
-# Verbatim Moodle Bewertungskriterien (instructor IP) — kept locally as the
-# grade-self-check source of truth, but not redistributed in the public repo.
-vault/Organisation/Bewertungskriterien.md
-nachbereitung/bewertungskriterien.md
-# FFHS course brochure (marketing PDF, FFHS copyright)
-vault/_files/weiterbildung-cas-ai-assisted-software-engineering-de.pdf
-# PVA (Präsenzveranstaltung) materials — instructor flipcharts/handouts/cheat-sheets
-# distributed in class (FFHS / instructor IP). Own notes belong in the Nachbereitung.
-**/PVA Materialien*/
-**/PVA-Materialien*/
-
-# Submission PDF build artefacts (regenerated from SUBMISSION.md on demand)
-SUBMISSION.pdf
-FlowHub_Uebersicht.pdf
-SUBMISSION-bundle.pdf
-tools/build/
-Eigenständigkeitserklärung.pdf
-
 # Capture attachment blobs (demo storage)
 source/FlowHub.Web/App_Data/uploads/
 
 # Windows / file-manager cruft (NTFS mark-of-the-web ADS, trashed files)
 *:Zone.Identifier
 .trashed-*
-
-# Numbered Moodle upload set (assembled on demand)
-upload/
-
-# pypdf venv for the outline-preserving upload merge (tools/pdf-merge/merge.py)
-tools/pdf-merge/.venv/
-
-# examiner-sim screenshots — only the curated ones already committed are kept;
-# new run captures (dated PNGs) stay local
-nachbereitung/examiner-sim/screenshots/

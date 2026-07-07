@@ -5,10 +5,7 @@
 > to the right downstream tool.
 
 **Status legend:** ✅ shipped · 🔌 shipped, config-gated (needs real keys/endpoints) ·
-🧪 shipped but disabled in the public demo by design · 🆕 shipped *after* the `v0.1.0` submission · 🗺️ planned / backlog
-
-> **Scope note:** the graded CAS submission is the **`v0.1.0`** tag. Items marked **🆕** landed on `main`
-> *after* that tag as ongoing product/demo work — they are **not** part of the graded scope.
+🧪 shipped but disabled in the public demo by design · 🗺️ planned / backlog
 
 ---
 
@@ -88,13 +85,14 @@
 
 ---
 
-## Backlog (post-CAS product)
+## Backlog
+
 🗺️ web-search tooling (Brave/Tavily) · additional AI providers
 (self-hosted Gemma, Apertus, HF router) · full paperless-ngx · Telegram / Signal / Email
-channels · multi-user / RBAC
+channels · multi-user / RBAC. See [`ROADMAP.md`](ROADMAP.md).
 
 ---
 
-*Scope note: this reflects the single-user CAS Projektarbeit scope; 🗺️ items are the
-product-spinout roadmap. 🔌/🧪 markers distinguish what runs out-of-the-box from what
-needs keys or is intentionally off in the public demo.*
+*Scope note: FlowHub is currently a single-user hub; 🗺️ items are the forward roadmap.
+🔌/🧪 markers distinguish what runs out-of-the-box from what needs keys or is
+intentionally off in the public demo.*

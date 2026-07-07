@@ -18,10 +18,10 @@ public class DemoBannerTests : TestContext
     {
         var cut = RenderComponent<DemoBanner>(p => p
             .Add(c => c.BannerText, "Public demo — try it")
-            .Add(c => c.RepoUrl, "https://github.com/freaxnx01/FlowHub-CAS-AISE"));
+            .Add(c => c.RepoUrl, "https://github.com/freaxnx01/flowhub"));
 
         cut.Markup.Should().Contain("Public demo — try it");
-        var link = cut.Find("a[href='https://github.com/freaxnx01/FlowHub-CAS-AISE']");
+        var link = cut.Find("a[href='https://github.com/freaxnx01/flowhub']");
         link.GetAttribute("target").Should().Be("_blank");
         link.TextContent.Should().Contain("Source");
     }
@@ -51,7 +51,7 @@ public class DemoBannerTests : TestContext
     {
         var cut = RenderComponent<DemoBanner>(p => p
             .Add(c => c.BannerText, "Public demo")
-            .Add(c => c.RepoUrl, "https://github.com/freaxnx01/FlowHub-CAS-AISE"));
+            .Add(c => c.RepoUrl, "https://github.com/freaxnx01/flowhub"));
 
         cut.Markup.Should().NotContain("Vikunja");
     }
@@ -121,9 +121,9 @@ public class DemoBannerTests : TestContext
     {
         var cut = RenderComponent<DemoBanner>(p => p
             .Add(c => c.BannerText, "Public demo")
-            .Add(c => c.WalkthroughUrl, "https://github.com/freaxnx01/FlowHub-CAS-AISE#explainer-videos"));
+            .Add(c => c.WalkthroughUrl, "https://github.com/freaxnx01/flowhub#explainer-videos"));
 
-        var link = cut.Find("a[href='https://github.com/freaxnx01/FlowHub-CAS-AISE#explainer-videos']");
+        var link = cut.Find("a[href='https://github.com/freaxnx01/flowhub#explainer-videos']");
         link.GetAttribute("target").Should().Be("_blank");
         link.TextContent.Should().Contain("Walkthrough");
     }
@@ -133,7 +133,7 @@ public class DemoBannerTests : TestContext
     {
         var cut = RenderComponent<DemoBanner>(p => p
             .Add(c => c.BannerText, "Public demo")
-            .Add(c => c.RepoUrl, "https://github.com/freaxnx01/FlowHub-CAS-AISE"));
+            .Add(c => c.RepoUrl, "https://github.com/freaxnx01/flowhub"));
 
         cut.Markup.Should().NotContain("Walkthrough");
     }
@@ -155,7 +155,7 @@ public class DemoBannerTests : TestContext
     {
         var cut = RenderComponent<DemoBanner>(p => p
             .Add(c => c.BannerText, "Public demo")
-            .Add(c => c.RepoUrl, "https://github.com/freaxnx01/FlowHub-CAS-AISE"));
+            .Add(c => c.RepoUrl, "https://github.com/freaxnx01/flowhub"));
 
         cut.Markup.Should().NotContain("Status");
     }

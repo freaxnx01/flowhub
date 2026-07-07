@@ -1,6 +1,6 @@
 # `capture-not-retryable` problem
 
-Type URI: `https://github.com/freaxnx01/FlowHub-CAS-AISE/blob/main/docs/problems/capture-not-retryable.md`
+Type URI: `https://github.com/freaxnx01/flowhub/blob/main/docs/problems/capture-not-retryable.md`
 
 Returned when `POST /api/v1/captures/{id}/retry` is called against a capture whose lifecycle stage is not retryable. Status code: `409 Conflict`.
 
@@ -10,7 +10,7 @@ Only captures in `Orphan` or `Unhandled` are retryable. Captures in `Raw`, `Clas
 
 ```json
 {
-  "type": "https://github.com/freaxnx01/FlowHub-CAS-AISE/blob/main/docs/problems/capture-not-retryable.md",
+  "type": "https://github.com/freaxnx01/flowhub/blob/main/docs/problems/capture-not-retryable.md",
   "title": "Capture stage is not retryable.",
   "status": 409,
   "detail": "Captures may only be retried from Orphan or Unhandled. Current stage: Completed.",
