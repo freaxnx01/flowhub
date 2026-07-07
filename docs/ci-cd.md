@@ -20,7 +20,7 @@ FlowHub uses three core GitHub Actions workflows.
 
 **Steps:**
 1. Builds the `flowhub.web` Docker image from `source/FlowHub.Web/Dockerfile`.
-2. Pushes to GHCR: `ghcr.io/freaxnx01/flowhub-web:vX.Y.Z` and `:latest`.
+2. Pushes to GHCR: `ghcr.io/freaxnx01/flowhub:vX.Y.Z` and `:latest`.
 3. Generates release notes via `git-cliff` from Conventional Commits.
 4. Creates a GitHub Release with the changelog section.
 

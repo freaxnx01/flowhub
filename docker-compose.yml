@@ -6,7 +6,7 @@ services:
     build:
       context: .
       dockerfile: source/FlowHub.Web/Dockerfile
-    image: flowhub-web:local
+    image: flowhub:local
     environment:
       ASPNETCORE_URLS: "http://+:5070"
       ConnectionStrings__Default: "Host=postgres;Port=5432;Database=flowhub;Username=flowhub;Password=${POSTGRES_PASSWORD:-dev-secret}"

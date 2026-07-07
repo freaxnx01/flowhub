@@ -85,8 +85,8 @@ each carries an unambiguous target and a stated way to verify it.
 ## NfA-D2: Image Size
 
 **Category:** Deployment  
-**Specific:** The published `flowhub-web` Docker image MUST be under 200 MB compressed.  
-**Measurable:** `docker image inspect ghcr.io/freaxnx01/flowhub-web:<version> --format='{{.Size}}'` (uncompressed) and GHCR layer sizes (compressed); target ≤ 200 MB compressed (≤ 400 MB uncompressed).  
+**Specific:** The published `flowhub` Docker image MUST be under 200 MB compressed.  
+**Measurable:** `docker image inspect ghcr.io/freaxnx01/flowhub:<version> --format='{{.Size}}'` (uncompressed) and GHCR layer sizes (compressed); target ≤ 200 MB compressed (≤ 400 MB uncompressed).  
 **Achievable:** `aspnet:10.0-alpine` runtime base plus a self-contained trimmed publish keep the image small.  
 **Relevant:** Small images cut pull time and registry/storage cost on the VPS.  
 **Time-bound:** Checked on each published image from Block 5 onward.
