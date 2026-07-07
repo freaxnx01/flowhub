@@ -1,0 +1,42 @@
+# Opt-in RabbitMQ overlay.
+#
+# FlowHub's async pipeline runs on an in-memory bus by default (single-process,
+# no broker). Add this overlay to route the pipeline through RabbitMQ instead,
+# giving durable, crash-safe message redelivery across restarts:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.rabbitmq.yml up -d --wait
+#
+# Combine with docker-compose.override.yml (dev ports) as usual:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.override.yml \
+#                  -f docker-compose.rabbitmq.yml up -d
+services:
+  flowhub.web:
+    environment:
+      Bus__Transport: RabbitMq
+      Bus__RabbitMq__Host: rabbitmq
+      Bus__RabbitMq__Username: ${RABBITMQ_USER:-flowhub}
+      Bus__RabbitMq__Password: ${RABBITMQ_PASSWORD:-dev-secret}
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-flowhub}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-dev-secret}
+    ports:
+      - "15672:15672"
+      - "5672:5672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  rabbitmq_data:
