@@ -227,13 +227,13 @@ For each image attachment on the source task:
    ```json
    [
      {"kind":"email","text":"jane.doe@example.com","x1":114,"y1":244,"x2":410,"y2":280},
-     {"kind":"name","text":"Andreas Imboden","x1":188,"y1":190,"x2":530,"y2":240},
+     {"kind":"name","text":"Jane Doe","x1":188,"y1":190,"x2":530,"y2":240},
      {"kind":"address","text":"123 Example Street, 0000 Sampletown","x1":75,"y1":530,"x2":505,"y2":635},
      {"kind":"dob","text":"01.01.1990","x1":75,"y1":700,"x2":260,"y2":745},
-     {"kind":"host","text":"home.freaxnx01.ch","x1":0,"y1":0,"x2":0,"y2":0}
+     {"kind":"host","text":"internal.example.com","x1":0,"y1":0,"x2":0,"y2":0}
    ]
    ```
-   Minimum default categories to scan for: names (proper nouns in personal-data context), email addresses, Swiss postal addresses, dates of birth, phone numbers, IBANs (`CH\d{19}`), credit-card runs, internal hostnames (`*.home.freaxnx01.ch`, `*.freaxnx01.ch`), API tokens / long base64-ish blobs, visible faces (crude skin-tone region for photos; skip for screenshots).
+   Minimum default categories to scan for: names (proper nouns in personal-data context), email addresses, Swiss postal addresses, dates of birth, phone numbers, IBANs (`CH\d{19}`), credit-card runs, internal hostnames (`*.home.example.com`, your own domains), API tokens / long base64-ish blobs, visible faces (crude skin-tone region for photos; skip for screenshots).
 
 2. **Present the plan** — print the list with row numbers and ask:
    ```

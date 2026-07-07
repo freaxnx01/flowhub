@@ -512,7 +512,7 @@ for continuity.
 - close the last 5 Block-4 Nachbereitung items (49/49)
 - **vault:** close Block-5 Nachbereitung, clean 1-PVA, add model inventory
 - **vault:** tick Quarkus chapters as N/A in Block-4/5 Vorbereitung
-- **runbooks:** add test-services runbook for <proxmox-host> CT 128
+- **runbooks:** add test-services runbook for the test-services container
 - add DEMO.md — top-level recap of the public demo posture
 - **journeys:** refresh status snapshot — 23/29 green
 - **submission:** operator tooling for the CAS AISE submission

@@ -212,7 +212,7 @@ Cache all enrichment results in memory for use during classification — never r
 Load the repo catalogue (local + remote, all forges) for issue candidates — this is the only universe of legal issue targets:
 
 ```bash
-source $HOME/projects/repos/github/freaxnx01/public/config/shell/clrepo.sh
+source "$HOME/.config/flowhub/clrepo.sh"   # your repo-catalogue helper
 _clrepo_remote_list 0 > /tmp/flowhub-repos.list
 ```
 
