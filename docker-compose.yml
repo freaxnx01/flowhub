@@ -42,7 +42,7 @@ services:
     build:
       context: .
       dockerfile: docker/migrations/Dockerfile
-    image: flowhub-migrations:local
+    image: flowhub-db-migrations:local
     environment:
       ConnectionStrings__Default: "Host=postgres;Port=5432;Database=flowhub;Username=flowhub;Password=${POSTGRES_PASSWORD:-dev-secret}"
     depends_on:

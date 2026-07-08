@@ -48,17 +48,17 @@ jobs:
           tags: ${{ steps.meta-web.outputs.tags }}
           labels: ${{ steps.meta-web.outputs.labels }}
 
-      - name: Extract metadata — flowhub-migrations
+      - name: Extract metadata — flowhub-db-migrations
         id: meta-migrations
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/${{ github.repository_owner }}/flowhub-migrations
+          images: ghcr.io/${{ github.repository_owner }}/flowhub-db-migrations
           tags: |
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=raw,value=latest
 
-      - name: Build and push — flowhub-migrations
+      - name: Build and push — flowhub-db-migrations
         uses: docker/build-push-action@v5
         with:
           context: .
