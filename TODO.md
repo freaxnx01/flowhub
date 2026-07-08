@@ -22,7 +22,8 @@ Open operational items for the freshly-split `flowhub` product repo.
 - Migrations image renamed `flowhub-migrations` → `flowhub-db-migrations` (fresh package
   the repo owns; the old name is held by the CAS archive).
 - CI `build-and-test` green on `main`.
-- Branch protection on `main` (require `build-and-test`, no force-push/deletions).
+- Branch protection on `main` (require `build-and-test` for collaborators/bots, no
+  force-push/deletions; `enforce_admins: false`, so the owner can push docs directly).
 - **Release green**: `v0.1.0` tag → `ghcr.io/freaxnx01/flowhub` + `ghcr.io/freaxnx01/flowhub-db-migrations`
   published, and the `v0.1.0` GitHub Release created.
 - Roadmap issues #1–#4 opened.
