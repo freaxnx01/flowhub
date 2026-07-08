@@ -13,6 +13,13 @@ Open operational items for the freshly-split `flowhub` product repo.
       repo owns). Web image is `ghcr.io/freaxnx01/flowhub`.
       Note: `NU1903` (Microsoft.OpenApi) was a red herring — it only failed the *first*
       run, which built the inherited-CAS `v0.1.0` commit predating the 2.7.5 pin.
+- [ ] **Release workflow fails on `NU1903` for tag `v0.1.0`.** `.github/workflows/release.yml`
+      triggers on `v*`; the only tag, `v0.1.0`, points at the inherited-CAS commit that
+      **predates** the `Microsoft.OpenApi` 2.7.5 pin (the pin *is* present at HEAD —
+      `Directory.Packages.props:109`), so `dotnet` NuGetAudit fails that build. Every
+      `v0.1.0` Release run has failed for this reason. Fix by cutting a fresh product tag
+      (e.g. `v0.2.0`) from a HEAD that carries the pin — and stop re-pushing `v0.1.0`, or
+      retag it onto a pinned commit. A tag built from current `main` builds clean.
 - [ ] (Optional) Deep de-CAS pass of the ADRs + `docs/spec/*` — strip "Block N /
       Nachbereitung" provenance and dead `vault/`/`docs/insights/` links, if you don't
       want them kept as historical record.
