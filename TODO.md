@@ -14,6 +14,7 @@ Open operational items for the freshly-split `flowhub` product repo.
       docker/*@v3–5, action-gh-release@v2) when convenient — deprecation warning only.
 - [ ] **Make the UI nicer with Claude Design** — polish the Blazor dashboard's visual
       design (typography, layout, cards) via the `frontend-design` skill.
+      Take design inspiration from the Moon Lander game?
 - [ ] **Wire Skills routing to the real homelab services** (route classified captures out
       instead of `Unhandled`). Set env on CT 136 (`~/mydocker/.env` via `pct push`) +
       compose refs, then recreate `flowhub`. Targets (NOT the demo.* ones):
