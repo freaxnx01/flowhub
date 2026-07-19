@@ -12,6 +12,22 @@ Open operational items for the freshly-split `flowhub` product repo.
       want them kept as historical record.
 - [ ] (Cosmetic) Bump pinned GitHub Actions off Node-20 (checkout@v4, setup-dotnet@v4,
       docker/*@v3–5, action-gh-release@v2) when convenient — deprecation warning only.
+- [ ] **Make the UI nicer with Claude Design** — polish the Blazor dashboard's visual
+      design (typography, layout, cards) via the `frontend-design` skill.
+- [ ] **Wire Skills routing to the real homelab services** (route classified captures out
+      instead of `Unhandled`). Set env on CT 136 (`~/mydocker/.env` via `pct push`) +
+      compose refs, then recreate `flowhub`. Targets (NOT the demo.* ones):
+  - **Vikunja** → `https://todo.home.freaxnx01.ch` — *ready*: `Skills__Vikunja__BaseUrl`,
+    `Skills__Vikunja__ApiToken` (Passbolt `76a43ce8` "Vikunja API Token 'Task management'",
+    write-scope verified), `Skills__Vikunja__FallbackProject=Inbox`,
+    `Skills__Vikunja__FallbackProjectId=2` (the real Inbox project id).
+  - **Wallabag** → `https://read-later.home.freaxnx01.ch` — *needs provisioning first*
+    (no creds in Passbolt; local-auth instance, CT 126). Create a dedicated user +
+    OAuth2 client in the `wallabag` container: `php bin/console --env=prod fos:user:create …`
+    and `… fos:oauth-server:create-client --grant-type=password --grant-type=refresh_token`.
+    Then set `Skills__Wallabag__{BaseUrl,ClientId,ClientSecret,Username,Password}` (password
+    grant — FlowHub's `WallabagTokenProvider` mints/refreshes the token itself) and store the
+    client creds in Passbolt. Verify by submitting a capture that classifies to each skill.
 
 ## Done (2026-07-07 / 08)
 
