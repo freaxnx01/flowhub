@@ -8,6 +8,24 @@ This skill configures OpenClaw for this project.
 
 Canonical, **stack-agnostic** reference for all AI coding agents. Applies to every project regardless of language or framework. Stack-specific overlays live in `.ai/stacks/<stack>.md` and are loaded alongside this file. A project loads **base + exactly one stack overlay**. Tool-specific files (`CLAUDE.md`, `.github/copilot-instructions.md`, `SKILL.md`) derive from base + the chosen stack.
 
+> **Workflow role:** If a `WORKFLOW-ROLE.md` exists at the repo root, read it before continuing — it describes this repo's place in the personal dev workflow (implementer / consumer / workflow infrastructure). See `ai-instructions/workflows/personal-dev-workflow.md` for the workflow doc itself.
+>
+> **Project context:** If a `PROJECT-OVERVIEW.md` exists at the repo root, read it before continuing — it describes this repo's product/project context (name, purpose, stakeholders, vision, core customer need, key features, architecture in one paragraph). Per-feature PRDs live under `docs/specs/` or `designs/`; ADRs under `docs/adr/`.
+>
+> **Agent notes:** If an `AGENT-NOTES.md` exists at the repo root, read it before continuing — it holds project-specific agent-facing context that doesn't fit in the regenerated CLAUDE.md: operational gotchas, project-specific commands, repo-local workflow conventions (branch naming, PR conventions, etc.).
+
+---
+
+## Working Method (before any code)
+
+Meta-rules for *how* to approach a task. Framing adapted from [multica-ai/andrej-karpathy-skills](https://github.com/multica-ai/andrej-karpathy-skills).
+
+- **State assumptions explicitly.** If multiple interpretations exist, present them — don't pick silently.
+- **Ask when unclear.** Don't hide confusion behind plausible-looking code.
+- **Push back when a simpler approach exists.** Minimum code that solves the problem; nothing speculative (no unrequested flexibility, configurability, or error handling for impossible cases).
+- **Surgical edits.** Every changed line must trace to the request. Don't "improve" adjacent code, comments, or formatting. Match existing style. Remove orphans *your* change created — leave pre-existing dead code alone (mention it instead).
+- **Goal-driven execution.** Restate the task as a verifiable success criterion before starting. For multi-step work, write a brief numbered plan with a `verify:` check per step, then loop until each check passes.
+
 ---
 
 ## Clean Code Principles
@@ -50,14 +68,14 @@ Framework-specific test project layout, mocking library choice, and assertion li
 
 **Never skip phases. Never write component code before wireframe approval.**
 
-| Phase | Skill | Gate |
+| Phase | Command | Gate |
 |---|---|---|
-| 1 — Brainstorm | `/ui-brainstorm` | ASCII wireframe approved |
-| 2 — Flow       | `/ui-flow`       | Mermaid diagrams approved |
-| 3 — Build      | `/ui-build`      | Shell → logic → interactions → polish |
-| 4 — Review     | `/ui-review`     | Checklist passes |
+| 1 — Brainstorm | `/ui:brainstorm` | ASCII wireframe approved |
+| 2 — Flow       | `/ui:flow`       | Mermaid diagrams approved |
+| 3 — Build      | `/ui:build`      | Shell → logic → interactions → polish |
+| 4 — Review     | `/ui:review`     | Checklist passes |
 
-Skill files live in `.ai/skills/`. The skills themselves are stack-neutral — UI component library preferences (e.g. MudBlazor, shadcn/ui, Material, Flutter widgets) are captured in the active stack overlay.
+These commands ship from the global operator console (`agent-workflow`), installed once into `~/.claude/commands/ui/` — they are **not** synced per-project. They are stack-neutral: UI component library preferences (e.g. MudBlazor, shadcn/ui, Material, Flutter widgets) are read from the active stack overlay when one is present, otherwise inferred from the existing codebase.
 
 ### What to check before writing UI code
 
@@ -133,7 +151,7 @@ Full per-factor table: [`.ai/references/base/12-factor.md`](https://github.com/f
 
 ## Branching Strategy (GitHub Flow + protection rules)
 
-```
+```text
 main              ← always deployable, protected
   └── feature/<issue-id>-short-description
   └── fix/<issue-id>-short-description
@@ -145,6 +163,8 @@ main              ← always deployable, protected
 - Branch from `main`, PR back to `main`
 - Delete branch after merge
 - Rebase or squash merge — no merge commits on `main`
+
+Exception: trivial non-code edits (build-script tweaks, comments, docs typos) may skip review and push directly; CI must still pass. Source/runtime-config/CI changes still need a PR.
 
 ---
 
@@ -162,7 +182,7 @@ Agent tooling that automates worktree creation should discover these rules from 
 
 ## Commit Messages (Conventional Commits)
 
-```
+```text
 <type>(<scope>): <short summary>
 
 [optional body]
@@ -173,7 +193,7 @@ Agent tooling that automates worktree creation should discover these rules from 
 **Types:** `feat`, `fix`, `test`, `refactor`, `chore`, `docs`, `ci`, `perf`
 **Scope:** module or layer name, e.g. `orders`, `auth`, `infra`, `ui`
 
-```
+```text
 feat(orders): add order cancellation endpoint
 
 Implements POST /api/v1/orders/{id}/cancel.
@@ -224,11 +244,13 @@ Concrete CI configuration (GitHub Actions YAML, commands, package scanners) live
 ## Documentation Structure
 
 Repo-root `docs/` contains:
+
 - `design/<feature-name>/` — UI wireframes (`wireframe.md`) & Mermaid flows (`flow.md`) per feature
 - `adr/` — Architecture Decision Records
 - `ai-notes/` — AI agent working notes
 
 Rules:
+
 - `README.md` and `CHANGELOG.md` live in the repo root
 - UI design artifacts are saved per feature during the UI workflow phases
 - AI agents write working notes to `docs/ai-notes/`, not `.ai/`
@@ -268,6 +290,7 @@ Stack-specific guardrails (e.g. "do not add NuGet packages") live in the stack o
 ## Project Scaffold Checklist (baseline)
 
 Init-time checklist (every project, regardless of stack) — including baseline, .NET, and WebAPI layers — lives at [`.ai/references/scaffold-checklists.md`](https://github.com/freaxnx01/ai-instructions/blob/main/.ai/references/scaffold-checklists.md). Stack-specific additions are in the same file under their respective sections.
+
 [//]: # (GENERATED FILE — do not edit directly. Source: .ai/stacks/_partials/dotnet-core.md + .ai/stacks/_layers/dotnet-blazor.md. Run scripts/build-stacks.sh to regenerate.)
 
 [//]: # (Stack partial — shared .NET conventions. Composed with a layer file under .ai/stacks/_layers/ by `scripts/build-stacks.sh` to produce a flat .ai/stacks/dotnet-*.md. Do not edit the generated file directly.)
@@ -367,7 +390,7 @@ The base testing rules (TDD, no test modification to make green, full suite afte
 
 ### Test project layout (baseline)
 
-```
+```text
 tests/
   <Module>.UnitTests/         ← xUnit, no I/O
   <Module>.IntegrationTests/  ← xUnit, real I/O via Testcontainers
@@ -410,19 +433,19 @@ dotnet list package --vulnerable --fail-on-severity high
 dotnet list package --outdated
 ```
 
-**PDB symbols:** Release builds include embedded PDB symbols (`<DebugType>embedded</DebugType>` in `Directory.Build.props`) so exception stack traces contain source file names and line numbers in production. Never strip PDB symbols from release or Docker builds.
+**PDB symbols:** Release builds embed PDB symbols (`<DebugType>embedded</DebugType>` in `Directory.Build.props`) so production stack traces carry source file + line numbers. Never strip them from release or Docker builds.
 
 ---
 
-## Essential Make Targets
+## Essential just Recipes
 
-Projects using this stack ship a repo-root `justfile` standardizing the common commands. Target names are canonical; recipe bodies may use project-local variables.
+Projects ship a repo-root `justfile` ([casey/just](https://github.com/casey/just)) standardizing common commands — canonical recipe names, project-local bodies. Canonical groups: build/run, testing, Docker Compose, quality (`lint`, `outdated`, `vuln`), versioning (`version`, `bump-*`), release (`changelog`, `release`, `package`), `clean`. Document each with a leading `# <description>`; the default recipe runs `just --list --unsorted`.
 
-Canonical targets exist for: build/run (`build`, `watch`, `run-edge`), testing (`test`, `test-unit`, `test-coverage`), Docker Compose (`docker-run`, `up`, `down`, `logs`, `rebuild`), quality (`lint`, `outdated`, `vuln`), versioning (`version`, `version-set`, `bump-major|minor|patch`, `bump-auto`), release (`changelog`, `release-notes`, `release`, `release-auto`, `push-release`, `package`), and `clean`. Document each target with an inline `## <description>` comment and expose a `help` target that greps them.
+A reference `justfile` lives at `.ai/examples/dotnet/justfile` — copy it and customize the top-of-file variables. Host-specific recipes ship as `[unix]` + `[windows]` pairs (no WSL needed); tool/project-specific ones (`release-notes`, `package`) ship as stubs with per-OS examples in comments.
 
-A reference justfile lives at `.ai/examples/dotnet/justfile` — copy it and customize the top-of-file variables. Host/tool/project-specific targets (`run-edge`, `release-notes`, `package`) ship as stubs with per-OS examples in comments.
+Install (just ≥ 1.20): `cargo install just` / `brew install just` / `winget install Casey.Just` / `sudo apt install just`. CI: `extractions/setup-just@v2`.
 
-Full target list with descriptions: [`.ai/references/dotnet/makefile-targets.md`](https://github.com/freaxnx01/ai-instructions/blob/main/.ai/references/dotnet/makefile-targets.md)
+Full recipe list with descriptions: [`.ai/references/dotnet/justfile-recipes.md`](https://github.com/freaxnx01/ai-instructions/blob/main/.ai/references/dotnet/justfile-recipes.md)
 
 ---
 
@@ -450,6 +473,7 @@ Dockerfile scaffold: [`.ai/references/dotnet/dockerfile.md`](https://github.com/
 - Health checks: `/health/live` (liveness) and `/health/ready` (readiness, checks DB)
 
 **12-Factor enforcement points for this stack:**
+
 - Never write to the local filesystem inside a container for application state
 - Never use `appsettings.Development.json` for secrets — always env vars
 - EF Core migrations must be applied as a separate init container or pre-deploy step — **never** auto-migrated on `app.Run()`
@@ -481,7 +505,7 @@ Base rules (SemVer, Conventional Commits → bump mapping, git-cliff) live in `b
 
 ## CI/CD (GitHub Actions baseline)
 
-Pipeline stages: `build` → `test` → `security-scan` → `docker-build` → `push`. Build and test run on every PR; vulnerable-dependency scan fails the build on HIGH/CRITICAL; container image built and pushed only on `main` after tests pass.
+Pipeline stages: `build` → `test` → `security-scan` → `docker-build` → `push` (base CI rules apply): build/test on every PR, vuln scan fails on HIGH/CRITICAL, image pushed only on `main` after tests pass.
 
 Layer-specific CI jobs (E2E with Playwright for Blazor, k6 perf smoke for WebAPI) are added by the layer overlay.
 
@@ -594,7 +618,7 @@ Server-side localization (RequestLocalization, culture resolution, fallback rule
 
 The unit-test conventions and test project layout baseline live in the `dotnet-core` partial. For Blazor projects, add:
 
-```
+```text
 tests/
   <Module>.ComponentTests/    ← bUnit
   E2E/                        ← Playwright

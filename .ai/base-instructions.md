@@ -2,6 +2,12 @@
 
 Canonical, **stack-agnostic** reference for all AI coding agents. Applies to every project regardless of language or framework. Stack-specific overlays live in `.ai/stacks/<stack>.md` and are loaded alongside this file. A project loads **base + exactly one stack overlay**. Tool-specific files (`CLAUDE.md`, `.github/copilot-instructions.md`, `SKILL.md`) derive from base + the chosen stack.
 
+> **Workflow role:** If a `WORKFLOW-ROLE.md` exists at the repo root, read it before continuing — it describes this repo's place in the personal dev workflow (implementer / consumer / workflow infrastructure). See `ai-instructions/workflows/personal-dev-workflow.md` for the workflow doc itself.
+>
+> **Project context:** If a `PROJECT-OVERVIEW.md` exists at the repo root, read it before continuing — it describes this repo's product/project context (name, purpose, stakeholders, vision, core customer need, key features, architecture in one paragraph). Per-feature PRDs live under `docs/specs/` or `designs/`; ADRs under `docs/adr/`.
+>
+> **Agent notes:** If an `AGENT-NOTES.md` exists at the repo root, read it before continuing — it holds project-specific agent-facing context that doesn't fit in the regenerated CLAUDE.md: operational gotchas, project-specific commands, repo-local workflow conventions (branch naming, PR conventions, etc.).
+
 ---
 
 ## Working Method (before any code)
@@ -56,14 +62,14 @@ Framework-specific test project layout, mocking library choice, and assertion li
 
 **Never skip phases. Never write component code before wireframe approval.**
 
-| Phase | Skill | Gate |
+| Phase | Command | Gate |
 |---|---|---|
-| 1 — Brainstorm | `/ui-brainstorm` | ASCII wireframe approved |
-| 2 — Flow       | `/ui-flow`       | Mermaid diagrams approved |
-| 3 — Build      | `/ui-build`      | Shell → logic → interactions → polish |
-| 4 — Review     | `/ui-review`     | Checklist passes |
+| 1 — Brainstorm | `/ui:brainstorm` | ASCII wireframe approved |
+| 2 — Flow       | `/ui:flow`       | Mermaid diagrams approved |
+| 3 — Build      | `/ui:build`      | Shell → logic → interactions → polish |
+| 4 — Review     | `/ui:review`     | Checklist passes |
 
-Skill files live in `.ai/skills/`. The skills themselves are stack-neutral — UI component library preferences (e.g. MudBlazor, shadcn/ui, Material, Flutter widgets) are captured in the active stack overlay.
+These commands ship from the global operator console (`agent-workflow`), installed once into `~/.claude/commands/ui/` — they are **not** synced per-project. They are stack-neutral: UI component library preferences (e.g. MudBlazor, shadcn/ui, Material, Flutter widgets) are read from the active stack overlay when one is present, otherwise inferred from the existing codebase.
 
 ### What to check before writing UI code
 
@@ -139,7 +145,7 @@ Full per-factor table: [`.ai/references/base/12-factor.md`](https://github.com/f
 
 ## Branching Strategy (GitHub Flow + protection rules)
 
-```
+```text
 main              ← always deployable, protected
   └── feature/<issue-id>-short-description
   └── fix/<issue-id>-short-description
@@ -151,6 +157,8 @@ main              ← always deployable, protected
 - Branch from `main`, PR back to `main`
 - Delete branch after merge
 - Rebase or squash merge — no merge commits on `main`
+
+Exception: trivial non-code edits (build-script tweaks, comments, docs typos) may skip review and push directly; CI must still pass. Source/runtime-config/CI changes still need a PR.
 
 ---
 
@@ -168,7 +176,7 @@ Agent tooling that automates worktree creation should discover these rules from 
 
 ## Commit Messages (Conventional Commits)
 
-```
+```text
 <type>(<scope>): <short summary>
 
 [optional body]
@@ -179,7 +187,7 @@ Agent tooling that automates worktree creation should discover these rules from 
 **Types:** `feat`, `fix`, `test`, `refactor`, `chore`, `docs`, `ci`, `perf`
 **Scope:** module or layer name, e.g. `orders`, `auth`, `infra`, `ui`
 
-```
+```text
 feat(orders): add order cancellation endpoint
 
 Implements POST /api/v1/orders/{id}/cancel.
@@ -230,11 +238,13 @@ Concrete CI configuration (GitHub Actions YAML, commands, package scanners) live
 ## Documentation Structure
 
 Repo-root `docs/` contains:
+
 - `design/<feature-name>/` — UI wireframes (`wireframe.md`) & Mermaid flows (`flow.md`) per feature
 - `adr/` — Architecture Decision Records
 - `ai-notes/` — AI agent working notes
 
 Rules:
+
 - `README.md` and `CHANGELOG.md` live in the repo root
 - UI design artifacts are saved per feature during the UI workflow phases
 - AI agents write working notes to `docs/ai-notes/`, not `.ai/`

@@ -97,7 +97,7 @@ The base testing rules (TDD, no test modification to make green, full suite afte
 
 ### Test project layout (baseline)
 
-```
+```text
 tests/
   <Module>.UnitTests/         ← xUnit, no I/O
   <Module>.IntegrationTests/  ← xUnit, real I/O via Testcontainers
@@ -140,19 +140,17 @@ dotnet list package --vulnerable --fail-on-severity high
 dotnet list package --outdated
 ```
 
-**PDB symbols:** Release builds include embedded PDB symbols (`<DebugType>embedded</DebugType>` in `Directory.Build.props`) so exception stack traces contain source file names and line numbers in production. Never strip PDB symbols from release or Docker builds.
+**PDB symbols:** Release builds embed PDB symbols (`<DebugType>embedded</DebugType>` in `Directory.Build.props`) so production stack traces carry source file + line numbers. Never strip them from release or Docker builds.
 
 ---
 
 ## Essential just Recipes
 
-Projects using this stack ship a repo-root `justfile` (using [casey/just](https://github.com/casey/just)) standardizing the common commands. Recipe names are canonical; recipe bodies may use project-local variables.
+Projects ship a repo-root `justfile` ([casey/just](https://github.com/casey/just)) standardizing common commands — canonical recipe names, project-local bodies. Canonical groups: build/run, testing, Docker Compose, quality (`lint`, `outdated`, `vuln`), versioning (`version`, `bump-*`), release (`changelog`, `release`, `package`), `clean`. Document each with a leading `# <description>`; the default recipe runs `just --list --unsorted`.
 
-Canonical recipes exist for: build/run (`build`, `watch`, `run-edge`), testing (`test`, `test-unit`, `test-coverage`), Docker Compose (`docker-run`, `up`, `down`, `logs`, `rebuild`), quality (`lint`, `outdated`, `vuln`), versioning (`version`, `version-set`, `bump-major|minor|patch`, `bump-auto`), release (`changelog`, `release-notes`, `release`, `release-auto`, `push-release`, `package`), and `clean`. Document each recipe with a leading `# <description>` comment; the default recipe runs `just --list --unsorted` so `just` with no args prints the documented set.
+A reference `justfile` lives at `.ai/examples/dotnet/justfile` — copy it and customize the top-of-file variables. Host-specific recipes ship as `[unix]` + `[windows]` pairs (no WSL needed); tool/project-specific ones (`release-notes`, `package`) ship as stubs with per-OS examples in comments.
 
-A reference `justfile` lives at `.ai/examples/dotnet/justfile` — copy it and customize the top-of-file variables. Host-specific recipes (`run-edge`, `clean`, version/release helpers using `sed`) ship as `[unix]` + `[windows]` pairs so Windows contributors do not need WSL; tool/project-specific recipes (`release-notes`, `package`) ship as stubs with per-OS examples in comments.
-
-Install (requires just ≥ 1.20): `cargo install just` / `brew install just` / `winget install Casey.Just` / `sudo apt install just`. CI: `extractions/setup-just@v2`.
+Install (just ≥ 1.20): `cargo install just` / `brew install just` / `winget install Casey.Just` / `sudo apt install just`. CI: `extractions/setup-just@v2`.
 
 Full recipe list with descriptions: [`.ai/references/dotnet/justfile-recipes.md`](https://github.com/freaxnx01/ai-instructions/blob/main/.ai/references/dotnet/justfile-recipes.md)
 
@@ -182,6 +180,7 @@ Dockerfile scaffold: [`.ai/references/dotnet/dockerfile.md`](https://github.com/
 - Health checks: `/health/live` (liveness) and `/health/ready` (readiness, checks DB)
 
 **12-Factor enforcement points for this stack:**
+
 - Never write to the local filesystem inside a container for application state
 - Never use `appsettings.Development.json` for secrets — always env vars
 - EF Core migrations must be applied as a separate init container or pre-deploy step — **never** auto-migrated on `app.Run()`
@@ -213,7 +212,7 @@ Base rules (SemVer, Conventional Commits → bump mapping, git-cliff) live in `b
 
 ## CI/CD (GitHub Actions baseline)
 
-Pipeline stages: `build` → `test` → `security-scan` → `docker-build` → `push`. Build and test run on every PR; vulnerable-dependency scan fails the build on HIGH/CRITICAL; container image built and pushed only on `main` after tests pass.
+Pipeline stages: `build` → `test` → `security-scan` → `docker-build` → `push` (base CI rules apply): build/test on every PR, vuln scan fails on HIGH/CRITICAL, image pushed only on `main` after tests pass.
 
 Layer-specific CI jobs (E2E with Playwright for Blazor, k6 perf smoke for WebAPI) are added by the layer overlay.
 
@@ -326,7 +325,7 @@ Server-side localization (RequestLocalization, culture resolution, fallback rule
 
 The unit-test conventions and test project layout baseline live in the `dotnet-core` partial. For Blazor projects, add:
 
-```
+```text
 tests/
   <Module>.ComponentTests/    ← bUnit
   E2E/                        ← Playwright
