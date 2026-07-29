@@ -89,27 +89,9 @@ These commands ship from the global operator console (`agent-workflow`), install
 
 ## Localization (i18n) & Regional Formatting
 
-User-facing apps must support **`de` and `en`**. CI tooling and developer-only utilities are exempt.
+User-facing apps support **`de` and `en`** (CI/dev tooling exempt). Regional formatting follows the **OS region**, not the UI language; `de` with an unknown region falls back to **`de-CH`**. Render via the platform localization API, never `string.Format` / `toString()`.
 
-### Language
-
-- Default language resolved from the OS / browser locale at first launch
-- User can override at runtime via an in-app language switcher
-- The user's choice is persisted (cookie, preferences store, or user profile — stack-specific)
-
-### Regional formatting (decoupled from language)
-
-Regional formatting (date, time, number, currency separators) is selected from the OS region — **not** dictated by the language.
-
-- Auto-detect any `de-*` OS region (`de-CH`, `de-DE`, `de-AT`, …) and use the matching culture
-- If the language is `de` but the OS region is missing or unrecognized: fall back to **`de-CH`**
-- For `en`: use the OS-provided region (typically `en-US` / `en-GB`) — do not force a default
-
-### Rules
-
-- All date / number / currency rendering goes through the platform's localization API — never hand-format with raw `string.Format` / `toString()` / template literals.
-- Do not couple regional formatting to the UI language. A user can read German text with US formatting, or English text with Swiss formatting; both must work.
-- Stack overlays specify the concrete API (`CultureInfo` + `RequestLocalization` for .NET, `flutter_localizations` + `intl` for Flutter, etc.).
+Full rules: [`localization.md`](https://github.com/freaxnx01/ai-instructions/blob/main/.ai/references/base/localization.md)
 
 ---
 
@@ -164,7 +146,7 @@ main              ← always deployable, protected
 - Delete branch after merge
 - Rebase or squash merge — no merge commits on `main`
 
-Exception: trivial non-code edits (build-script tweaks, comments, docs typos) may skip review and push directly; CI must still pass. Source/runtime-config/CI changes still need a PR.
+All changes go through a PR, including docs-only ones. There is no trivial-edit exception: a direct push to a protected `main` lands before the required checks report, so they become a postmortem instead of a gate, and it leaves open PRs' branches stale.
 
 ---
 
@@ -241,6 +223,20 @@ Concrete CI configuration (GitHub Actions YAML, commands, package scanners) live
 
 ---
 
+## Scripting
+
+**PowerShell — customer-delivered scripts target Windows PowerShell 5.1.** Anything a customer runs (`build.ps1`, install/deploy scripts, release artifacts) must run on 5.1 unless the project documents a PS 7+ floor; `pwsh` is not installed there.
+
+- **Never** use `??`, `??=`, ternary `? :`, `?.`, `&&` / `||` chains — *parse* errors on 5.1, so the script dies before its first line — nor `ForEach-Object -Parallel`, `Sort-Object -Stable`, `-SslProtocol`
+- `$IsWindows` / `$IsLinux` / `$IsMacOS` **do not exist** on 5.1 — they are `$null`, so the branch is silently skipped. Use `$env:OS -eq 'Windows_NT'`
+- Pass `-Depth` to `ConvertTo-Json` (defaults to 2, truncates silently) and `-UseBasicParsing` to the web cmdlets (a patched host prompts and hangs)
+- Start with `#requires -Version 5.1`, pin encoding, verify with PSScriptAnalyzer
+- **Exempt:** dev-loop tooling (`justfile` recipes) may require `pwsh`
+
+Full rules: [`powershell-5.1.md`](https://github.com/freaxnx01/ai-instructions/blob/main/.ai/references/base/powershell-5.1.md)
+
+---
+
 ## Documentation Structure
 
 Repo-root `docs/` contains:
@@ -311,34 +307,27 @@ Full table: [`.ai/references/dotnet/tech-stack.md`](https://github.com/freaxnx01
 
 ## Architecture — Modular Monolith
 
-- Separate top-level folders per module: `src/Modules/<ModuleName>/`
-- Each module owns its Domain / Application / Infrastructure layers
-- Modules communicate via in-process interfaces — never direct project references across modules
+- One top-level folder per module (`src/Modules/<ModuleName>/`), each owning its Domain / Application / Infrastructure layers
+- Modules communicate via in-process interfaces — **never** direct project references across modules
 - Shared kernel in `src/Shared/` for cross-cutting types only
-- Modules register their own DI services via `IServiceCollection` extension methods
-- Apply Hexagonal (Ports & Adapters) inside a module when it has multiple infrastructure adapters (e.g. REST + messaging) or needs strong testability isolation
+- Each module registers its own DI services via `IServiceCollection` extension methods
+- Apply Hexagonal (Ports & Adapters) inside a module when it has multiple infrastructure adapters or needs strong testability isolation
 
-Directory layouts (modular-monolith and hexagonal): [`.ai/references/dotnet/architecture-layout.md`](https://github.com/freaxnx01/ai-instructions/blob/main/.ai/references/dotnet/architecture-layout.md)
+Directory layouts: [`architecture-layout.md`](https://github.com/freaxnx01/ai-instructions/blob/main/.ai/references/dotnet/architecture-layout.md)
 
 ---
 
 ## C# Conventions
 
-`Directory.Build.props` at repo root pins (mandatory): `TargetFramework=net10.0`, `Nullable=enable`, `ImplicitUsings=enable`, `TreatWarningsAsErrors=true`, `EnforceCodeStyleInBuild=true`, `AnalysisLevel=latest-recommended`, `DebugType=embedded`, `DebugSymbols=true`. Full file: [`.ai/references/dotnet/directory-build-props.md`](https://github.com/freaxnx01/ai-instructions/blob/main/.ai/references/dotnet/directory-build-props.md)
+Correctness rules — get these wrong and the build or production behaviour breaks:
 
-- File-scoped namespaces always
-- `global using` for framework namespaces in each project
-- `record` types for DTOs and value objects
-- `sealed` by default on non-base classes
-- No `var` when the type is not obvious from the right-hand side
-- Prefer primary constructors (.NET 8+)
-- Central Package Management via `Directory.Packages.props` — no versions in `.csproj`
-- Use `ILogger<T>` for logging — never `Console.WriteLine`
-- Use specific exception types — not generic `catch (Exception)`
-- Use `CancellationToken` in all async methods that call external resources
-- Use `async`/`await` end-to-end — never `Task.Result` or `.GetAwaiter().GetResult()`
-- No `#nullable disable` or warning suppressions to fix build errors
-- Never suppress nullable warnings with `!` without a clear comment
+- No `#nullable disable` and no warning suppressions to silence a build error; never suppress a nullable warning with `!` without a comment saying why it is safe
+- `async`/`await` end-to-end — never `Task.Result` or `.GetAwaiter().GetResult()`
+- `CancellationToken` on every async method that touches an external resource, and pass it down
+- Catch specific exception types — not bare `catch (Exception)`
+- `ILogger<T>` for logging — never `Console.WriteLine`
+
+Style and project setup (file-scoped namespaces, `record` DTOs, `sealed` by default, primary constructors, Central Package Management, the mandatory `Directory.Build.props` pins): [`csharp-conventions.md`](https://github.com/freaxnx01/ai-instructions/blob/main/.ai/references/dotnet/csharp-conventions.md)
 
 ---
 
@@ -371,67 +360,33 @@ CLI scaffold: [`.ai/references/dotnet/ef-core-cli.md`](https://github.com/freaxn
 
 ## Localization & Regional Formatting (server-side baseline)
 
-Base rules for `de` / `en` support and regional formatting live in `base-instructions.md`. For every ASP.NET Core project on this stack:
+Base rules for `de` / `en` support live in `base-instructions.md`. For every ASP.NET Core project on this stack:
 
-- Configure `RequestLocalizationMiddleware` in `Program.cs` with supported cultures `de-CH, de-DE, de-AT, en-US, en-GB` and default `de-CH` / `de`
-- Culture resolution order: cookie (`.AspNetCore.Culture`) → `Accept-Language` header → default (`de-CH` / `de`)
-- For language `de` with no recognized region (or a `de-*` region not in `SupportedCultures`), fall back to `de-CH` — never `de-DE`
-- Format dates / numbers / currency via `CurrentCulture` — never `string.Format` with a hardcoded culture or `CultureInfo.InvariantCulture` for user-visible text
+- Configure `RequestLocalizationMiddleware` in `Program.cs` — supported cultures, cookie → `Accept-Language` → default resolution order, and the `de-CH` fallback are all in the scaffold below
+- Format dates / numbers / currency via `CurrentCulture` — never `string.Format` with a hardcoded culture, and never `CultureInfo.InvariantCulture` for user-visible text
 
-Middleware scaffold: [`.ai/references/dotnet/request-localization.md`](https://github.com/freaxnx01/ai-instructions/blob/main/.ai/references/dotnet/request-localization.md)
+Middleware scaffold and culture list: [`request-localization.md`](https://github.com/freaxnx01/ai-instructions/blob/main/.ai/references/dotnet/request-localization.md)
 
-UI-specific localization rules (resource files for component strings, picker behaviour, language-switcher widgets) live in the Blazor layer.
+UI-specific localization (resource files for component strings, picker behaviour, language-switcher widgets) lives in the Blazor layer.
 
 ---
 
 ## Testing Strategy
 
-The base testing rules (TDD, no test modification to make green, full suite after implementation) live in `base-instructions.md`.
+Base testing rules (TDD, never modify a test to make it green, full suite after implementation) live in `base-instructions.md`. Baseline layout is `tests/<Module>.UnitTests/` (xUnit, no I/O) and `tests/<Module>.IntegrationTests/` (real I/O via Testcontainers); layer overlays add their own projects.
 
-### Test project layout (baseline)
+- One test class per production class; naming `MethodName_StateUnderTest_ExpectedBehavior`
+- `FluentAssertions` for assertions, `NSubstitute` for mocks/stubs
+- No `[Fact]` containing logic — use `[Theory]` + `[InlineData]` / `[MemberData]`
+- Run the full suite (`dotnet test`) after implementation, not just the new test
 
-```text
-tests/
-  <Module>.UnitTests/         ← xUnit, no I/O
-  <Module>.IntegrationTests/  ← xUnit, real I/O via Testcontainers
-```
-
-Layer-specific test projects (Blazor component tests, Playwright E2E, API integration tests with `WebApplicationFactory`) are added by the layer overlay.
-
-### Unit tests (xUnit)
-
-- One test class per production class
-- Naming: `MethodName_StateUnderTest_ExpectedBehavior`
-- Use `FluentAssertions` for assertions
-- Use `NSubstitute` for mocks/stubs
-- No `[Fact]` with logic — use `[Theory]` + `[InlineData]` / `[MemberData]`
-- After implementation, run the full test suite (`dotnet test`) — not just the new test
-
-Test class scaffold: [`.ai/references/dotnet/xunit-example.md`](https://github.com/freaxnx01/ai-instructions/blob/main/.ai/references/dotnet/xunit-example.md)
+Test class scaffold: [`xunit-example.md`](https://github.com/freaxnx01/ai-instructions/blob/main/.ai/references/dotnet/xunit-example.md)
 
 ---
 
 ## Essential Commands
 
-```bash
-# Restore / build (warnings as errors) / run
-dotnet restore
-dotnet build -c Release
-dotnet run --project src/Host
-
-# Run full stack locally
-docker-compose -f docker-compose.yml -f docker-compose.override.yml up --build
-
-# Tests
-dotnet test                                         # all
-dotnet test tests/<Module>.UnitTests                # unit only
-dotnet test tests/<Module>.IntegrationTests         # integration (needs Docker)
-dotnet test --collect:"XPlat Code Coverage" --results-directory ./coverage
-
-# Security / package checks
-dotnet list package --vulnerable --fail-on-severity high
-dotnet list package --outdated
-```
+Routine work runs through `just` — `just build`, `just test`, `just lint`, `just vuln` (canonical recipe names in *Essential just Recipes* below). Underlying `dotnet` / `docker-compose` commands: [`essential-commands.md`](https://github.com/freaxnx01/ai-instructions/blob/main/.ai/references/dotnet/essential-commands.md)
 
 **PDB symbols:** Release builds embed PDB symbols (`<DebugType>embedded</DebugType>` in `Directory.Build.props`) so production stack traces carry source file + line numbers. Never strip them from release or Docker builds.
 
@@ -439,13 +394,11 @@ dotnet list package --outdated
 
 ## Essential just Recipes
 
-Projects ship a repo-root `justfile` ([casey/just](https://github.com/casey/just)) standardizing common commands — canonical recipe names, project-local bodies. Canonical groups: build/run, testing, Docker Compose, quality (`lint`, `outdated`, `vuln`), versioning (`version`, `bump-*`), release (`changelog`, `release`, `package`), `clean`. Document each with a leading `# <description>`; the default recipe runs `just --list --unsorted`.
+Projects ship a repo-root `justfile` ([casey/just](https://github.com/casey/just)) standardizing commands — **canonical recipe names, project-local bodies**. Groups: build/run, testing, Docker Compose, quality (`lint`, `outdated`, `vuln`), versioning (`version`, `bump-*`), release (`changelog`, `release`, `package`), `clean`. Document each with a leading `# <description>`; the default recipe runs `just --list --unsorted`.
 
-A reference `justfile` lives at `.ai/examples/dotnet/justfile` — copy it and customize the top-of-file variables. Host-specific recipes ship as `[unix]` + `[windows]` pairs (no WSL needed); tool/project-specific ones (`release-notes`, `package`) ship as stubs with per-OS examples in comments.
+Copy `.ai/examples/dotnet/justfile` and customize the top-of-file variables. Host-specific recipes ship as `[unix]` + `[windows]` pairs, so no WSL is needed; tool-specific ones ship as stubs with per-OS examples in comments.
 
-Install (just ≥ 1.20): `cargo install just` / `brew install just` / `winget install Casey.Just` / `sudo apt install just`. CI: `extractions/setup-just@v2`.
-
-Full recipe list with descriptions: [`.ai/references/dotnet/justfile-recipes.md`](https://github.com/freaxnx01/ai-instructions/blob/main/.ai/references/dotnet/justfile-recipes.md)
+Full recipe list, install (just ≥ 1.20) and CI setup: [`justfile-recipes.md`](https://github.com/freaxnx01/ai-instructions/blob/main/.ai/references/dotnet/justfile-recipes.md)
 
 ---
 
@@ -465,32 +418,27 @@ Dockerfile scaffold: [`.ai/references/dotnet/dockerfile.md`](https://github.com/
 
 ## Logging & Observability
 
-- Serilog configured in `Program.cs` via `UseSerilog()`
-- Structured properties on every log entry: `{ModuleName}`, `{CorrelationId}`
-- Use `LoggerMessage.Define` source-generated logging for hot paths
-- Log levels: `Debug` local, `Information` production minimum
-- OpenTelemetry: export traces to OTLP collector; expose `/metrics` (Prometheus format)
-- Health checks: `/health/live` (liveness) and `/health/ready` (readiness, checks DB)
+Serilog via `UseSerilog()` with `{ModuleName}` / `{CorrelationId}` on every entry; OpenTelemetry traces to OTLP; `/metrics` in Prometheus format; `/health/live` + `/health/ready`. Config detail: [`logging-observability.md`](https://github.com/freaxnx01/ai-instructions/blob/main/.ai/references/dotnet/logging-observability.md)
 
-**12-Factor enforcement points for this stack:**
+**12-Factor enforcement points — violating these breaks production:**
 
-- Never write to the local filesystem inside a container for application state
-- Never use `appsettings.Development.json` for secrets — always env vars
-- EF Core migrations must be applied as a separate init container or pre-deploy step — **never** auto-migrated on `app.Run()`
-- Serilog sink in production: stdout or OTLP — never file sink in Docker
+- Never write to the container filesystem for application state
+- Never put secrets in `appsettings.Development.json` — environment variables only
+- EF Core migrations run as a separate init container or pre-deploy step — **never** auto-migrated on `app.Run()`
+- Serilog sink in production is stdout or OTLP — never a file sink in Docker
 
 ---
 
 ## Security (stack baseline)
 
-Base security rules live in `base-instructions.md`. For every project on this stack:
+Base security rules live in `base-instructions.md`; this is how they are enforced on this stack:
 
-- HTTPS enforced in all environments; HSTS enabled
-- Security response headers: `X-Content-Type-Options`, `X-Frame-Options`, `Content-Security-Policy`
-- No secrets in `appsettings.json` — use `IConfiguration` with environment variable binding
-- Run `dotnet list package --vulnerable --fail-on-severity high` in CI — fail build on HIGH/CRITICAL
-- Validate all inputs at the API boundary with FluentValidation before any domain logic
-- Error responses use `ProblemDetails` (no raw messages)
+- HTTPS + HSTS in **all** environments
+- Response headers: `X-Content-Type-Options`, `X-Frame-Options`, `Content-Security-Policy`
+- Secrets via `IConfiguration` bound to environment variables — never `appsettings.json`
+- `dotnet list package --vulnerable --fail-on-severity high` in CI
+- Boundary validation with FluentValidation, before any domain logic
+- Error responses are `ProblemDetails` — never raw messages
 
 ---
 
