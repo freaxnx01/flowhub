@@ -1,5 +1,8 @@
 # hadolint config. DL3018 (pin apk versions) is impractical for Alpine demo
-# images; DL3059 (consecutive RUN) is a style preference. Everything else gated.
+# images; DL3059 (consecutive RUN) is a style preference; DL3066 (numeric USER)
+# doesn't apply — the runtime user is created in-image via `adduser -S` and the
+# App_Data volume is ephemeral (no host UID mapping to resolve). Everything else gated.
 ignored:
   - DL3018
   - DL3059
+  - DL3066
