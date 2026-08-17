@@ -82,3 +82,14 @@ dotnet_diagnostic.CA1506.severity = none
 [**/*Tests/**.cs]
 dotnet_diagnostic.CA1506.severity = none
 dotnet_diagnostic.IDE0005.severity = suggestion
+
+# MassTransit pipeline consumers are wiring: each stage touches the Capture
+# aggregate, the classification result/event DTOs (and every field they carry),
+# the enricher/service abstractions it orchestrates, and MassTransit's own
+# context types. That coupling is the consumer's role, not a design smell —
+# same architectural reality as the composition root / endpoints carve-outs
+# above. Adding a field to a DTO this layer already threads through (e.g. the
+# BridgeAction fields on ClassificationResult/CaptureClassified/Capture) pushes
+# an already-coupled consumer over the threshold without changing its shape.
+[**/Pipeline/*Consumer.cs]
+dotnet_diagnostic.CA1506.severity = none

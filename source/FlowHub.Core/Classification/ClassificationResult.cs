@@ -13,4 +13,7 @@ public sealed record ClassificationResult(
     string? Title = null,
     string? VikunjaProject = null,
     IReadOnlyDictionary<string, string>? Entities = null,
-    ClassifierTrace? Trace = null);
+    ClassifierTrace? Trace = null,
+    string? BridgeAlias = null,
+    BridgeAction BridgeAction = BridgeAction.Unknown,
+    string? BridgeBody = null);
