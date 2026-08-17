@@ -70,6 +70,13 @@ public static class AiServiceCollectionExtensions
         });
         services.TryAddSingleton<IVikunjaProjectCatalog>(sp =>
             new EnricherBucketCatalog(sp.GetServices<IEnricher>(), sp.GetRequiredService<VikunjaFallback>().Name));
+
+        // IBridgeCatalog: TryAdd an empty no-op so the classifiers resolve even when the
+        // Bridge skill isn't configured. AddBridge (FlowHub.Skills) AddSingletons the real
+        // BridgeCatalog which overrides at resolve time — last AddSingleton wins. Must run
+        // before AddFlowHubSkills in Program.cs (it already does: line 88 before line 93).
+        services.TryAddSingleton<IBridgeCatalog>(_ => new EmptyBridgeCatalog());
+
         services.AddSingleton<EnricherDispatcher>();
 
         var pricingSection = configuration.GetSection(Pricing.ClassificationPricingOptions.SectionName);
