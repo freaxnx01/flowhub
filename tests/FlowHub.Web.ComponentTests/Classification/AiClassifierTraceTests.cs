@@ -9,6 +9,11 @@ namespace FlowHub.Web.ComponentTests.Classification;
 
 public class AiClassifierTraceTests
 {
+    private sealed class NoBridgeAliases : FlowHub.Core.Skills.IBridgeCatalog
+    {
+        public Task<IReadOnlySet<string>> GetAliasesAsync(CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlySet<string>>(new HashSet<string>());
+    }
     private static ChatResponse JsonResponse(object payload, UsageDetails? usage = null) =>
         new(new ChatMessage(ChatRole.Assistant, JsonSerializer.Serialize(payload)))
         {
@@ -53,7 +58,7 @@ public class AiClassifierTraceTests
 
         var classifier = new AiClassifier(
             chat,
-            new KeywordClassifier(),
+            new KeywordClassifier(new NoBridgeAliases()),
             NullLogger<AiClassifier>.Instance,
             new ChatOptions(),
             Catalog(),
@@ -83,7 +88,7 @@ public class AiClassifierTraceTests
 
         var classifier = new AiClassifier(
             chat,
-            new KeywordClassifier(),
+            new KeywordClassifier(new NoBridgeAliases()),
             NullLogger<AiClassifier>.Instance,
             new ChatOptions(),
             Catalog(),
