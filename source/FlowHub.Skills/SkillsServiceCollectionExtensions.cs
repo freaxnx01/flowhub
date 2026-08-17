@@ -1,4 +1,5 @@
 using FlowHub.Core.Skills;
+using FlowHub.Skills.Bridge;
 using FlowHub.Skills.Paperless;
 using FlowHub.Skills.Vikunja;
 using FlowHub.Skills.Wallabag;
@@ -17,6 +18,7 @@ public static class SkillsServiceCollectionExtensions
         AddWallabag(services, configuration);
         AddVikunja(services, configuration);
         AddPaperless(services, configuration);
+        AddBridge(services, configuration);
 
         return services;
     }
@@ -106,5 +108,39 @@ public static class SkillsServiceCollectionExtensions
         });
         services.AddSingleton<ISkillIntegration>(sp => sp.GetRequiredService<PaperlessSkillIntegration>());
         services.AddSingleton(new SkillsRegistrationOutcome("Paperless", Registered: true, Reason: "configured"));
+    }
+
+    private static void AddBridge(IServiceCollection services, IConfiguration configuration)
+    {
+        var section = configuration.GetSection(BridgeOptions.SectionName);
+        var options = section.Get<BridgeOptions>() ?? new BridgeOptions();
+
+        string? reason = null;
+        if (string.IsNullOrWhiteSpace(options.BaseUrl)) { reason = "missing-base-url"; }
+        else if (string.IsNullOrWhiteSpace(options.ApiToken)) { reason = "missing-api-token"; }
+
+        if (reason is not null)
+        {
+            services.AddSingleton(new SkillsRegistrationOutcome("Bridge", Registered: false, Reason: reason));
+            return;
+        }
+
+        services.Configure<BridgeOptions>(section);
+        services.TryAddSingleton(TimeProvider.System);
+        services.AddHttpClient<BridgeSkillIntegration>(client =>
+        {
+            client.BaseAddress = new Uri(options.BaseUrl!);
+            client.Timeout = TimeSpan.FromSeconds(10);
+        });
+        services.AddHttpClient<BridgeCatalog>(client =>
+        {
+            client.BaseAddress = new Uri(options.BaseUrl!);
+            client.Timeout = TimeSpan.FromSeconds(10);
+        });
+        // Overrides the EmptyBridgeCatalog fallback registered in AddFlowHubAi (last
+        // AddSingleton wins); requires AddFlowHubAi to run before AddFlowHubSkills (Program.cs).
+        services.AddSingleton<IBridgeCatalog>(sp => sp.GetRequiredService<BridgeCatalog>());
+        services.AddSingleton<ISkillIntegration>(sp => sp.GetRequiredService<BridgeSkillIntegration>());
+        services.AddSingleton(new SkillsRegistrationOutcome("Bridge", Registered: true, Reason: "configured"));
     }
 }
