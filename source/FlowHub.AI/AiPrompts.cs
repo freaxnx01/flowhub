@@ -44,4 +44,26 @@ internal static class AiPrompts
         new ChatMessage(ChatRole.System, BuildSystemPrompt(vikunjaBuckets)),
         new ChatMessage(ChatRole.User, content),
     ];
+
+    private const string BridgeSystemPrompt = """
+        You route a short note to a code repository via the "bridge" tool. Decide whether
+        the note should become a GitHub/Forgejo ISSUE or an entry in the repo's ideas.md.
+
+        Return:
+        - action: exactly one of
+            "issue"   – an actionable bug report, task, or concrete feature request
+            "idea"    – a fuzzy, exploratory, or "what if" thought worth keeping
+            "unknown" – you genuinely cannot tell; do NOT guess
+        - title: a 3–8 word title
+        - body: the cleaned-up detail (issue description, or the idea text)
+        - tags: 1–3 short lowercase tags
+
+        Reply ONLY via the structured response schema. Never include explanations.
+        """;
+
+    internal static IList<ChatMessage> BuildBridgeMessages(string content) =>
+    [
+        new ChatMessage(ChatRole.System, BridgeSystemPrompt),
+        new ChatMessage(ChatRole.User, content),
+    ];
 }

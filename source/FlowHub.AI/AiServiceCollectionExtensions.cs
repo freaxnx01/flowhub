@@ -119,7 +119,8 @@ public static class AiServiceCollectionExtensions
             sp.GetRequiredService<ILogger<AiClassifier>>(),
             new ChatOptions { MaxOutputTokens = maxTokens, Temperature = 0.2f },
             sp.GetRequiredService<IVikunjaProjectCatalog>(),
-            sp.GetRequiredService<AiModelInfo>()));
+            sp.GetRequiredService<AiModelInfo>(),
+            sp.GetRequiredService<IBridgeCatalog>()));
         services.AddSingleton<IClassifier>(sp => sp.GetRequiredService<AiClassifier>());
 
         return services;

@@ -62,7 +62,8 @@ public class AiClassifierTraceTests
             NullLogger<AiClassifier>.Instance,
             new ChatOptions(),
             Catalog(),
-            new AiModelInfo("OpenRouter", "google/gemma-4-31b-it:free"));
+            new AiModelInfo("OpenRouter", "google/gemma-4-31b-it:free"),
+            new EmptyBridgeCatalog());
 
         var result = await classifier.ClassifyAsync("\"Unix and C ...\", Richard Gabriel", default);
 
@@ -92,7 +93,8 @@ public class AiClassifierTraceTests
             NullLogger<AiClassifier>.Instance,
             new ChatOptions(),
             Catalog(),
-            new AiModelInfo("OpenRouter", "google/gemma-4-31b-it:free"));
+            new AiModelInfo("OpenRouter", "google/gemma-4-31b-it:free"),
+            new EmptyBridgeCatalog());
 
         var result = await classifier.ClassifyAsync("some content", default);
 
