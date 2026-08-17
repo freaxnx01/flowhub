@@ -115,4 +115,56 @@ public sealed class BridgeSkillIntegrationTests
 
         await act.Should().ThrowAsync<InvalidOperationException>();
     }
+
+    [Fact]
+    public async Task HandleAsync_IssueWithEmptyTitle_FallsBackToBridgeBodyAsTitle()
+    {
+        var (sut, mock) = Build();
+        var capture = BridgeCapture(BridgeAction.Issue, title: null, body: "fix the flaky login test");
+        mock.Expect(HttpMethod.Post, $"{BaseUrl}/api/capture/issue")
+            .WithPartialContent("\"title\":\"fix the flaky login test\"")
+            .Respond("application/json", """{"url":"https://forge/issues/9"}""");
+
+        var result = await sut.HandleAsync(capture, CancellationToken.None);
+
+        result.ExternalRef.Should().Be("https://forge/issues/9");
+        mock.VerifyNoOutstandingExpectation();
+    }
+
+    [Fact]
+    public async Task HandleAsync_IssueWithEmptyTitleAndNoBody_TruncatesLongContentToTitle()
+    {
+        var (sut, mock) = Build();
+        var longContent = new string('x', 200);
+        var capture = new Capture(
+            Guid.NewGuid(), ChannelKind.Web, longContent, DateTimeOffset.UtcNow,
+            LifecycleStage.Routed, "Bridge",
+            Title: null, BridgeAlias: "br", BridgeAction: BridgeAction.Issue, BridgeBody: null);
+        mock.Expect(HttpMethod.Post, $"{BaseUrl}/api/capture/issue")
+            .WithPartialContent("\"title\":\"" + new string('x', 120) + "\"")
+            .Respond("application/json", """{"url":"https://forge/issues/10"}""");
+
+        var result = await sut.HandleAsync(capture, CancellationToken.None);
+
+        result.ExternalRef.Should().Be("https://forge/issues/10");
+        mock.VerifyNoOutstandingExpectation();
+    }
+
+    [Fact]
+    public async Task HandleAsync_IdeaWithEmptyBody_FallsBackToContentAsText()
+    {
+        var (sut, mock) = Build();
+        var capture = new Capture(
+            Guid.NewGuid(), ChannelKind.Web, "agp a fuzzy idea worth keeping", DateTimeOffset.UtcNow,
+            LifecycleStage.Routed, "Bridge",
+            Title: null, BridgeAlias: "agp", BridgeAction: BridgeAction.Idea, BridgeBody: null);
+        mock.Expect(HttpMethod.Post, $"{BaseUrl}/api/capture/idea")
+            .WithPartialContent("\"text\":\"agp a fuzzy idea worth keeping\"")
+            .Respond("application/json", """{"url":"https://forge/ideas.md#z"}""");
+
+        var result = await sut.HandleAsync(capture, CancellationToken.None);
+
+        result.ExternalRef.Should().Be("https://forge/ideas.md#z");
+        mock.VerifyNoOutstandingExpectation();
+    }
 }

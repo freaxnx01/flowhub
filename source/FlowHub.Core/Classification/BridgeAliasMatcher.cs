@@ -35,7 +35,9 @@ public static class BridgeAliasMatcher
         }
 
         // Need the token followed by at least one whitespace char, then a body.
-        if (tokenEnd == 0 || tokenEnd >= trimmed.Length)
+        // (tokenEnd is always >= 1: the IsNullOrWhiteSpace guard + TrimStart guarantee
+        // the first character is non-whitespace.)
+        if (tokenEnd >= trimmed.Length)
         {
             return false;
         }

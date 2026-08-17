@@ -76,4 +76,15 @@ public sealed class BridgeAliasMatcherTests
         BridgeAliasMatcher.TryMatch("", Aliases, out _, out _).Should().BeFalse();
         BridgeAliasMatcher.TryMatch("   ", Aliases, out _, out _).Should().BeFalse();
     }
+
+    [Fact]
+    public void TryMatch_AliasFollowedByWhitespaceOnly_DoesNotMatch()
+    {
+        // The alias token is present with trailing whitespace but no body after it.
+        var matched = BridgeAliasMatcher.TryMatch("br    ", Aliases, out var alias, out var remainder);
+
+        matched.Should().BeFalse();
+        alias.Should().BeEmpty();
+        remainder.Should().BeEmpty();
+    }
 }
