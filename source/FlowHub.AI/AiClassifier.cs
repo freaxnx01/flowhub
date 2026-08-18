@@ -23,6 +23,7 @@ internal sealed partial class AiClassifier : IClassifier
     private readonly ChatOptions _options;
     private readonly IVikunjaProjectCatalog _catalog;
     private readonly AiModelInfo _modelInfo;
+    private readonly IBridgeCatalog _bridgeCatalog;
 
     public AiClassifier(
         IChatClient chat,
@@ -30,7 +31,8 @@ internal sealed partial class AiClassifier : IClassifier
         ILogger<AiClassifier> log,
         ChatOptions options,
         IVikunjaProjectCatalog catalog,
-        AiModelInfo modelInfo)
+        AiModelInfo modelInfo,
+        IBridgeCatalog bridgeCatalog)
     {
         _chat = chat;
         _keyword = keyword;
@@ -38,6 +40,7 @@ internal sealed partial class AiClassifier : IClassifier
         _options = options;
         _catalog = catalog;
         _modelInfo = modelInfo;
+        _bridgeCatalog = bridgeCatalog;
     }
 
     public async Task<ClassificationResult> ClassifyAsync(string content, CancellationToken cancellationToken)
@@ -47,6 +50,12 @@ internal sealed partial class AiClassifier : IClassifier
 
         try
         {
+            var aliases = await _bridgeCatalog.GetAliasesAsync(cancellationToken);
+            if (BridgeAliasMatcher.TryMatch(content, aliases, out var alias, out var remainder))
+            {
+                return await ClassifyBridgeAsync(alias, remainder, sw, cancellationToken);
+            }
+
             var catalog = await _catalog.GetAsync(cancellationToken);
             var buckets = catalog.Keys.ToArray();
 
@@ -94,6 +103,47 @@ internal sealed partial class AiClassifier : IClassifier
             LogFellBack(reason, sw.ElapsedMilliseconds);
             return await _keyword.ClassifyAsync(content, cancellationToken);
         }
+    }
+
+    private async Task<ClassificationResult> ClassifyBridgeAsync(
+        string alias, string remainder, Stopwatch sw, CancellationToken cancellationToken)
+    {
+        var response = await _chat.GetResponseAsync<AiBridgeResponse>(
+            AiPrompts.BuildBridgeMessages(remainder),
+            _options,
+            cancellationToken: cancellationToken);
+
+        if (!response.TryGetResult(out var payload))
+        {
+            throw new InvalidOperationException("schema_violation");
+        }
+
+        var action = payload.Action switch
+        {
+            "issue" => BridgeAction.Issue,
+            "idea" => BridgeAction.Idea,
+            _ => BridgeAction.Unknown,
+        };
+
+        var tags = payload.Tags is { Length: > 0 } ? payload.Tags : ["bridge"];
+
+        sw.Stop();
+        var trace = new ClassifierTrace(
+            ClassifierKind.Ai,
+            (int)sw.ElapsedMilliseconds,
+            _modelInfo.Provider,
+            _modelInfo.Model,
+            (int?)response.Usage?.InputTokenCount,
+            (int?)response.Usage?.OutputTokenCount);
+
+        return new ClassificationResult(
+            tags,
+            "Bridge",
+            Title: payload.Title,
+            Trace: trace,
+            BridgeAlias: alias,
+            BridgeAction: action,
+            BridgeBody: payload.Body);
     }
 
     [LoggerMessage(

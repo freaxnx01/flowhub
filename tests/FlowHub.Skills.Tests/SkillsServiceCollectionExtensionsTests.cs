@@ -164,4 +164,41 @@ public sealed class SkillsServiceCollectionExtensionsTests
 
         sp.GetServices<ISkillIntegration>().Should().NotContain(i => i.Name == "Paperless");
     }
+
+    [Fact]
+    public void AddFlowHubSkills_BridgeFullyConfigured_RegistersIntegrationAndCatalog()
+    {
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["Skills:Bridge:BaseUrl"] = "https://bridge.example.com",
+            ["Skills:Bridge:ApiToken"] = "tok",
+        }).Build();
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddSingleton(TimeProvider.System);
+        services.AddFlowHubSkills(configuration);
+        using var sp = services.BuildServiceProvider();
+
+        sp.GetServices<ISkillIntegration>().Should().ContainSingle(i => i.Name == "Bridge");
+        sp.GetRequiredService<IBridgeCatalog>().Should().BeOfType<FlowHub.Skills.Bridge.BridgeCatalog>();
+        sp.GetServices<SkillsRegistrationOutcome>().Single(o => o.Skill == "Bridge").Registered.Should().BeTrue();
+    }
+
+    [Fact]
+    public void AddFlowHubSkills_BridgeWithoutToken_NotRegisteredReportsMissingToken()
+    {
+        var sp = Build(new Dictionary<string, string?> { ["Skills:Bridge:BaseUrl"] = "https://bridge.example.com" });
+
+        sp.GetServices<ISkillIntegration>().Should().NotContain(i => i.Name == "Bridge");
+        sp.GetServices<SkillsRegistrationOutcome>().Single(o => o.Skill == "Bridge").Reason.Should().Be("missing-api-token");
+    }
+
+    [Fact]
+    public void AddFlowHubSkills_BridgeWithoutBaseUrl_NotRegisteredReportsMissingBaseUrl()
+    {
+        var sp = Build(new Dictionary<string, string?>());
+
+        sp.GetServices<ISkillIntegration>().Should().NotContain(i => i.Name == "Bridge");
+        sp.GetServices<SkillsRegistrationOutcome>().Single(o => o.Skill == "Bridge").Reason.Should().Be("missing-base-url");
+    }
 }

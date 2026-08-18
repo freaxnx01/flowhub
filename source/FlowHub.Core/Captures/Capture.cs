@@ -18,4 +18,7 @@ public sealed record Capture(
     string? VikunjaProject = null,
     string? EnrichmentDescription = null,
     Attachment? Attachment = null,
-    FlowHub.Core.Classification.ClassifierTrace? ClassifierTrace = null);
+    FlowHub.Core.Classification.ClassifierTrace? ClassifierTrace = null,
+    string? BridgeAlias = null,
+    FlowHub.Core.Classification.BridgeAction BridgeAction = FlowHub.Core.Classification.BridgeAction.Unknown,
+    string? BridgeBody = null);

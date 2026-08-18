@@ -51,6 +51,17 @@ public sealed partial class CaptureEnrichmentConsumer : IConsumer<CaptureCreated
 
         var result = await _classifier.ClassifyAsync(msg.Content, ct);
 
+        // Bridge alias matched but the classifier couldn't determine issue-vs-idea →
+        // park for triage before any publish/network call (spec decision #6).
+        if (string.Equals(result.MatchedSkill, "Bridge", StringComparison.Ordinal)
+            && result.BridgeAction == BridgeAction.Unknown)
+        {
+            await _captureService.MarkUnhandledAsync(
+                msg.CaptureId, "bridge action undetermined — needs triage", ct);
+            LogBridgeUndetermined(msg.CaptureId, result.BridgeAlias ?? string.Empty);
+            return;
+        }
+
         if (string.IsNullOrEmpty(result.MatchedSkill))
         {
             await _captureService.MarkOrphanAsync(msg.CaptureId, "no skill matched during classification", ct);
@@ -85,7 +96,10 @@ public sealed partial class CaptureEnrichmentConsumer : IConsumer<CaptureCreated
             result.MatchedSkill,
             DateTimeOffset.UtcNow,
             project,
-            enrichment?.Description));
+            enrichment?.Description,
+            result.BridgeAlias,
+            result.BridgeAction,
+            result.BridgeBody));
     }
 
     [LoggerMessage(
@@ -93,4 +107,10 @@ public sealed partial class CaptureEnrichmentConsumer : IConsumer<CaptureCreated
         Level = LogLevel.Information,
         Message = "Capture {CaptureId} classified as Orphan (no matched skill)")]
     private partial void LogOrphan(Guid captureId);
+
+    [LoggerMessage(
+        EventId = 1003,
+        Level = LogLevel.Information,
+        Message = "Capture {CaptureId} bridge action undetermined (alias={Alias}) — marked Unhandled for triage")]
+    private partial void LogBridgeUndetermined(Guid captureId, string alias);
 }

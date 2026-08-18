@@ -51,8 +51,14 @@ public sealed partial class SkillRoutingConsumer : IConsumer<CaptureClassified>
         var capture = await _captureService.GetByIdAsync(msg.CaptureId, ct)
             ?? throw new InvalidOperationException($"Capture {msg.CaptureId} not found in store.");
 
-        // Carry the transient enrichment description from the event into the skill call.
-        capture = capture with { EnrichmentDescription = msg.EnrichmentDescription };
+        // Carry the transient event-only fields into the skill call (not persisted).
+        capture = capture with
+        {
+            EnrichmentDescription = msg.EnrichmentDescription,
+            BridgeAlias = msg.BridgeAlias,
+            BridgeAction = msg.BridgeAction,
+            BridgeBody = msg.BridgeBody,
+        };
 
         await _captureService.MarkRoutedAsync(msg.CaptureId, ct);
 

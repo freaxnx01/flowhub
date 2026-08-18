@@ -11,7 +11,13 @@ namespace FlowHub.Core.Tests.Classification;
 /// </summary>
 public sealed class KeywordClassifierTests
 {
-    private readonly KeywordClassifier _sut = new();
+    private sealed class NoBridgeAliases : FlowHub.Core.Skills.IBridgeCatalog
+    {
+        public Task<IReadOnlySet<string>> GetAliasesAsync(CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlySet<string>>(new HashSet<string>());
+    }
+
+    private readonly KeywordClassifier _sut = new(new NoBridgeAliases());
 
     // --- URL detection: positive cases ---------------------------------------
 

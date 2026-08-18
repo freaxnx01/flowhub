@@ -10,6 +10,11 @@ namespace FlowHub.Web.ComponentTests.Classification;
 
 public class ClassifyAndEnrichPipelineTests
 {
+    private sealed class NoBridgeAliases : FlowHub.Core.Skills.IBridgeCatalog
+    {
+        public Task<IReadOnlySet<string>> GetAliasesAsync(CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlySet<string>>(new HashSet<string>());
+    }
     private static ChatResponse JsonResponse(object payload) =>
         new(new ChatMessage(ChatRole.Assistant, JsonSerializer.Serialize(payload)));
 
@@ -47,10 +52,10 @@ public class ClassifyAndEnrichPipelineTests
                 }),
                 _ => TextResponse("American computer scientist; co-author of the 'Worse is Better' essay."));
 
-        var keyword = new KeywordClassifier();
+        var keyword = new KeywordClassifier(new NoBridgeAliases());
         var classifier = new AiClassifier(chat, keyword,
             NullLogger<AiClassifier>.Instance, new ChatOptions(), catalog,
-            new AiModelInfo("OpenRouter", "test-model"));
+            new AiModelInfo("OpenRouter", "test-model"), new EmptyBridgeCatalog());
 
         var dispatcher = new EnricherDispatcher(
             new IEnricher[] { new ZitateEnricher(chat, NullLogger<ZitateEnricher>.Instance) },

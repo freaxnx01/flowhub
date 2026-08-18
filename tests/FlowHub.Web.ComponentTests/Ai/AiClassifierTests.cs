@@ -23,7 +23,7 @@ public sealed class AiClassifierTests
     }
 
     private AiClassifier Sut() =>
-        new(_chat, _keyword, _log, _opts, _catalog, new AiModelInfo("OpenRouter", "test-model"));
+        new(_chat, _keyword, _log, _opts, _catalog, new AiModelInfo("OpenRouter", "test-model"), new EmptyBridgeCatalog());
 
     private static ChatResponse JsonResponse(object payload) =>
         new(new ChatMessage(ChatRole.Assistant, JsonSerializer.Serialize(payload)));
