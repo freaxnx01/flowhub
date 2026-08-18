@@ -57,7 +57,7 @@ jobs:
         with:
           solution: FlowHub.slnx
           test-project: tests/FlowHub.Core.Tests/FlowHub.Core.Tests.csproj
-          max-added-cs-lines: "800"
+          max-added-cs-lines: "2000"   # raised from 800: a full TDD feature (impl + tests) legitimately runs ~1.5k lines; still catches runaway PRs
           max-method-lines: "40"
           run-method-size: "false"           # deferred: Metrics.exe is Linux-incompatible (agent-pipeline#91)
           run-mutation: "true"               # enabled in #96 cluster 1 — break is 35 (just below the 37.21% baseline)
