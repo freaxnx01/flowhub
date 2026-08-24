@@ -30,7 +30,7 @@ the outcome of its Capture — so the chat itself shows what has been processed.
   (verified: no Whisper/STT reference anywhere in `source/`). Choosing an STT
   provider is its own decision — cost per minute, local vs. cloud, model quality —
   and belongs in its own spec. Voice gets a "not supported yet" reply here and a
-  follow-up issue.
+  follow-up issue ([#21](https://github.com/freaxnx01/flowhub/issues/21)).
 - **Webhook transport.** Long polling only (see D1).
 - **Group chats and multi-user.** Single operator, private chat.
 - **Editing or deleting Captures from Telegram.** Ingest and acknowledgement only.
@@ -285,4 +285,4 @@ Telegram client substituted — **no live API calls in any test**:
 
 ## Follow-up
 
-- **Voice capture via speech-to-text** — its own issue and spec (see Non-goals).
+- **Voice capture via speech-to-text** — [#21](https://github.com/freaxnx01/flowhub/issues/21).
