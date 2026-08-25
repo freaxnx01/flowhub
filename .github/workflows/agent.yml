@@ -37,7 +37,7 @@ permissions:            # a reusable workflow can't be granted more than its
 jobs:
   claude:
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.label.name == 'ai-implement' }}
-    uses: freaxnx01/agent-workflow/.github/workflows/agent-implement.yml@v1
+    uses: freaxnx01/agent-workflow/.github/workflows/agent-implement.yml@v1.12.0
     secrets:
       CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
     with:
@@ -47,7 +47,7 @@ jobs:
       # public repo (fork-PR / pwn-request attack surface).
       runner-labels: '["ubuntu-latest"]'
       default-model: claude-sonnet-5
-      pipeline-ref: v1
+      pipeline-ref: v1.12.0
       # .NET builds + tests are slower than trivial markdown changes.
       timeout-minutes: 60
       # The pipeline default of 30 turns is sized for a single-file change. A
@@ -57,3 +57,10 @@ jobs:
       # tasks, 50 steps, ~15 files — exhausted 30 turns on orientation alone and
       # produced no PR (run 32873223257, error_max_turns).
       max-turns: 200
+      # Wall-clock cap on the claude process itself — distinct from
+      # timeout-minutes above, which caps the job. Left unset it defaults to 10
+      # minutes, and #20 was killed at exit 124 on task 3 of 7 with turns barely
+      # touched (run 32879917041). A .NET build plus Testcontainers needs far
+      # more; 55 keeps the process cap below the 60-minute job cap so the job
+      # still reports a result instead of being killed outright.
+      claude-timeout-minutes: 55
