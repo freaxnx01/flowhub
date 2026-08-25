@@ -40,6 +40,23 @@ jobs:
     uses: freaxnx01/agent-workflow/.github/workflows/agent-implement.yml@v1.13.0
     secrets:
       CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+      # Optional GitHub App (agent-workflow #55). Both are declared required:false
+      # upstream, so while the secrets are unset these pass through empty and the
+      # pipeline falls back to GITHUB_TOKEN exactly as before — wiring them early
+      # costs nothing and means enabling the App is a secrets-only change.
+      #
+      # Why it matters: a PR opened with the ambient GITHUB_TOKEN does not trigger
+      # workflows, so #29 landed with no checks at all and needed a manual
+      # close/reopen to run CI. An App-authored PR triggers them normally.
+      #
+      # Still required before this does anything (see agent-workflow
+      # docs/CONSUMER-SETUP.md "Enabling the GitHub App for PR creation"):
+      #   1. create the App (Contents R/W, Pull requests R/W, Issues R/W)
+      #   2. install it on this repo and generate a private key
+      #   3. set PIPELINE_APP_ID + PIPELINE_APP_PRIVATE_KEY as repo secrets
+      #   4. add `pipeline-author-allowlist: <app-name>[bot]` to `with:` above
+      PIPELINE_APP_ID: ${{ secrets.PIPELINE_APP_ID }}
+      PIPELINE_APP_PRIVATE_KEY: ${{ secrets.PIPELINE_APP_PRIVATE_KEY }}
     with:
       issue-number: ${{ github.event.inputs.issue-number || github.event.issue.number }}
       attempt: ${{ fromJSON(github.event.inputs.attempt || '1') }}
