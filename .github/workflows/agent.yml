@@ -50,3 +50,10 @@ jobs:
       pipeline-ref: v1
       # .NET builds + tests are slower than trivial markdown changes.
       timeout-minutes: 60
+      # The pipeline default of 30 turns is sized for a single-file change. A
+      # FlowHub feature issue is an enriched multi-task plan implemented under
+      # TDD, where every step costs at least four turns (write the failing test,
+      # run it RED, implement, run it GREEN) before the commit. Issue #20 — 7
+      # tasks, 50 steps, ~15 files — exhausted 30 turns on orientation alone and
+      # produced no PR (run 32873223257, error_max_turns).
+      max-turns: 200
