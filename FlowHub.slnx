@@ -5,6 +5,7 @@
     <Project Path="source/FlowHub.Core/FlowHub.Core.csproj" />
     <Project Path="source/FlowHub.Persistence/FlowHub.Persistence.csproj" />
     <Project Path="source/FlowHub.Skills/FlowHub.Skills.csproj" />
+    <Project Path="source/FlowHub.Telegram/FlowHub.Telegram.csproj" />
     <Project Path="source/FlowHub.Web/FlowHub.Web.csproj" />
   </Folder>
   <Folder Name="/tests/">
@@ -15,6 +16,7 @@
     <Project Path="tests/FlowHub.Skills.ContractTests/FlowHub.Skills.ContractTests.csproj" />
     <Project Path="tests/FlowHub.Skills.IntegrationTests/FlowHub.Skills.IntegrationTests.csproj" />
     <Project Path="tests/FlowHub.Skills.Tests/FlowHub.Skills.Tests.csproj" />
+    <Project Path="tests/FlowHub.Telegram.Tests/FlowHub.Telegram.Tests.csproj" />
     <Project Path="tests/FlowHub.Web.ComponentTests/FlowHub.Web.ComponentTests.csproj" />
     <Project Path="tests/FlowHub.Web.E2ETests/FlowHub.Web.E2ETests.csproj" />
   </Folder>
