@@ -39,6 +39,7 @@
     <ProjectReference Include="..\FlowHub.Core\FlowHub.Core.csproj" />
     <ProjectReference Include="..\FlowHub.Persistence\FlowHub.Persistence.csproj" />
     <ProjectReference Include="..\FlowHub.Skills\FlowHub.Skills.csproj" />
+    <ProjectReference Include="..\FlowHub.Telegram\FlowHub.Telegram.csproj" />
   </ItemGroup>
 
 </Project>
