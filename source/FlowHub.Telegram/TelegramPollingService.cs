@@ -79,8 +79,11 @@ public sealed partial class TelegramPollingService : BackgroundService
                 LogUnauthorized(ex);
                 return;
             }
-            catch (Exception ex) when (ex is HttpRequestException or ApiRequestException or InvalidOperationException)
+            catch (Exception ex) when (ex is HttpRequestException or ApiRequestException)
             {
+                // InvalidOperationException is deliberately NOT caught here: it is what
+                // GetRequiredService throws for a missing dependency, which is permanent.
+                // Backing off over it would present a wiring bug as a flaky network.
                 LogPollFailed(ex, backoff);
                 await Task.Delay(backoff, stoppingToken);
                 backoff = backoff < MaxBackoff ? backoff * 2 : MaxBackoff;
