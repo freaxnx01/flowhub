@@ -78,6 +78,13 @@ dotnet_diagnostic.CA1506.severity = none
 [**/Stubs/*.cs]
 dotnet_diagnostic.CA1506.severity = none
 
+# The Telegram inbound channel wires ICaptureService, the update-dedup
+# repository, the gateway port, upload policy, IOptions, ILogger, and the
+# message/attachment DTOs it maps between — same integration-role coupling as
+# the Skills/AI carve-outs above. See #20.
+[source/FlowHub.Telegram/**.cs]
+dotnet_diagnostic.CA1506.severity = none
+
 # Test code is held to a looser bar (high coupling / long arrange blocks).
 [**/*Tests/**.cs]
 dotnet_diagnostic.CA1506.severity = none
