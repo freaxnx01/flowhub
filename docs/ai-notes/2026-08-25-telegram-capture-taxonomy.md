@@ -251,10 +251,57 @@ howto (1).
 
 ## 9. Open questions
 
-- Does `bridge`'s repo catalog expose enough metadata (topics, language, description) to infer a repo
-  from free text, or does inference need its own mapping table?
-- For shape 3, is the issue body the vision transcript, the image as an attachment, or both?
+### 9.1 Catalog metadata — **resolved 2026-08-25**
+
+> *Original question: does `bridge`'s repo catalog expose enough metadata (topics, language,
+> description) to infer a repo from free text, or does inference need its own mapping table?*
+
+**Answer: yes for descriptions, no for topics — and no mapping table is needed.**
+
+`GET /api/repos` serializes `core.Repo` (`bridge/internal/core/repo.go:12-22`), which already carries
+everything inference would want:
+
+```go
+Name, Path, Forge, Owner, Visibility,
+Alias         `json:"alias,omitempty"`
+Topics        []string `json:"topics,omitempty"`
+Desc          string   `json:"desc,omitempty"`
+DefaultBranch, RemoteURL, LastUsed
+```
+
+**FlowHub discards all of it.** `BridgeCatalog.cs:100` declares
+`private sealed record BridgeRepoDto(string? Alias);` — a single-field DTO. The response is parsed into
+an alias-only `HashSet<string>`; `Desc`, `Topics`, `Name` and `LastUsed` come over the wire and are
+dropped on the floor. **Widening the trigger requires no bridge-side change**, only that FlowHub stop
+throwing the payload away.
+
+Measured against the live catalog (94 repos, 2026-08-25):
+
+| Field | Usefulness | Evidence |
+|---|---|---|
+| `Desc` | **High** | ~43 `game-*` repos, most with a real one-liner — *"Beach Buggy Racer — a single-file isometric arcade beach racer"*, *"Faithful browser Nibbles/Snake clone"*, *"Tschau Sepp — the classic Swiss Jass card game"* |
+| `Name` | **High** | The `game-` prefix alone partitions the catalog |
+| `LastUsed` | Medium | Recency tie-breaker between plausible matches |
+| `Topics` | **Unusable today** | Populated on **1 of 94** repos (`config` → `["clrepo"]`). Present in the schema; simply not filled in. |
+
+Two candidates from §5 become routable on catalog data alone:
+
+- `"Game: strand buggy > micro machines browser"` → **`game-beach-buggy-racer`**, via description match.
+- The bug report (msg 184, a Jass game screenshotted on `…ub.freaxnx01.ch`) → **`game-tschau-sepp`**,
+  whose description reads *"the classic Swiss Jass card game"*.
+
+Follow-up worth its own decision: populating `Topics` would give a cheap, high-precision signal, but it
+is 94 repos of manual curation for a field that description matching may already cover.
+
+### 9.2 Still open
+
+- For shape 3 (photo-as-issue), is the issue body the vision transcript, the image as an attachment,
+  or both?
 - Should `unclear` (6) stay a manual-triage bucket, or is that the correct permanent behaviour?
+- Message 70 (`"- IT Inventar Lösung mit REST API - FlowHub copy repo -> prod - Kanban Board mit Homelab
+  Todos"`) is **one Capture containing three distinct issues**, targeting at least two repos. Splitting
+  one Capture into several issues is outside every current design. Is that in scope, or does such a
+  capture stay manual?
 
 ---
 
