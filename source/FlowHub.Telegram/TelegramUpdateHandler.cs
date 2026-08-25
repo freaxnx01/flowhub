@@ -15,6 +15,7 @@ public sealed partial class TelegramUpdateHandler
     private readonly ICaptureService _captures;
     private readonly ITelegramUpdateRepository _updates;
     private readonly ITelegramGateway _gateway;
+    private readonly TelegramReactionService _reactions;
     private readonly IUploadPolicy _uploads;
     private readonly TelegramOptions _options;
     private readonly ILogger<TelegramUpdateHandler> _logger;
@@ -23,6 +24,7 @@ public sealed partial class TelegramUpdateHandler
         ICaptureService captures,
         ITelegramUpdateRepository updates,
         ITelegramGateway gateway,
+        TelegramReactionService reactions,
         IUploadPolicy uploads,
         IOptions<TelegramOptions> options,
         ILogger<TelegramUpdateHandler> logger)
@@ -30,6 +32,7 @@ public sealed partial class TelegramUpdateHandler
         _captures = captures;
         _updates = updates;
         _gateway = gateway;
+        _reactions = reactions;
         _uploads = uploads;
         _options = options.Value;
         _logger = logger;
@@ -70,6 +73,7 @@ public sealed partial class TelegramUpdateHandler
 
         var capture = await _captures.SubmitAsync(message.Text, ChannelKind.Telegram, null, cancellationToken);
         await RecordAsync(message, capture.Id, cancellationToken);
+        await ReactIfAlreadyResolvedAsync(capture.Id, cancellationToken);
     }
 
     private async Task HandleFileAsync(TelegramMessage message, TelegramFile file, CancellationToken cancellationToken)
@@ -109,6 +113,20 @@ public sealed partial class TelegramUpdateHandler
 
             var capture = await _captures.SubmitAsync(message.Text, ChannelKind.Telegram, input, cancellationToken);
             await RecordAsync(message, capture.Id, cancellationToken);
+            await ReactIfAlreadyResolvedAsync(capture.Id, cancellationToken);
+        }
+    }
+
+    /// <summary>
+    /// The pipeline can resolve a Capture before the update row exists, in which case the
+    /// decorator's reaction found nothing to react to. Re-check once the row is written.
+    /// </summary>
+    private async Task ReactIfAlreadyResolvedAsync(Guid captureId, CancellationToken cancellationToken)
+    {
+        var current = await _captures.GetByIdAsync(captureId, cancellationToken);
+        if (current is not null)
+        {
+            await _reactions.ApplyAsync(captureId, current.Stage, cancellationToken);
         }
     }
 

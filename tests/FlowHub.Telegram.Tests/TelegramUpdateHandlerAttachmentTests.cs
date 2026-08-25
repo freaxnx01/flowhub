@@ -23,8 +23,9 @@ public class TelegramUpdateHandlerAttachmentTests
         uploads.MaxBytes.Returns(maxBytes);
         uploads.AllowedContentTypes.Returns(["application/pdf", "image/png", "image/jpeg"]);
         var options = Options.Create(new TelegramOptions { BotToken = "123:ABC", AllowedUserIds = [AllowedUser] });
+        var reactions = new TelegramReactionService(repo, gateway, NullLogger<TelegramReactionService>.Instance);
 
-        return (new TelegramUpdateHandler(captures, repo, gateway, uploads, options,
+        return (new TelegramUpdateHandler(captures, repo, gateway, reactions, uploads, options,
             NullLogger<TelegramUpdateHandler>.Instance), captures, gateway);
     }
 

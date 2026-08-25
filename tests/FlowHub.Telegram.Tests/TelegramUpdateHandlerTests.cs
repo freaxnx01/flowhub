@@ -25,8 +25,9 @@ public class TelegramUpdateHandlerTests
         var uploads = Substitute.For<IUploadPolicy>();
         uploads.MaxBytes.Returns(2L * 1024 * 1024);
         uploads.AllowedContentTypes.Returns(["application/pdf", "image/png", "image/jpeg"]);
+        var reactions = new TelegramReactionService(repo, gateway, NullLogger<TelegramReactionService>.Instance);
 
-        var sut = new TelegramUpdateHandler(captures, repo, gateway, uploads, options,
+        var sut = new TelegramUpdateHandler(captures, repo, gateway, reactions, uploads, options,
             NullLogger<TelegramUpdateHandler>.Instance);
         return (sut, captures, repo, gateway);
     }
