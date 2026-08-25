@@ -4,6 +4,7 @@ using FlowHub.Api.Endpoints;
 using FlowHub.Core.Telemetry;
 using FlowHub.Persistence;
 using FlowHub.Skills;
+using FlowHub.Telegram;
 using FlowHub.Web;
 using FlowHub.Web.Components;
 using FlowHub.Web.Observability;
@@ -106,6 +107,9 @@ builder.AddFlowHubMessaging(demoNotifyEnabled);
 
 // Block 3 Slice A — REST API surface for non-UI consumers.
 builder.Services.AddFlowHubApi();
+
+// Telegram inbound Channel — dormant unless Telegram__BotToken + Telegram__AllowedUserIds are set.
+builder.Services.AddFlowHubTelegram(builder.Configuration);
 
 // E2E-only: fault-injection decorators (no-op unless FLOWHUB_E2E_FAULTS_ENABLED=true).
 // Used by the J26 / J28 Playwright specs to force ISkillRegistry / IIntegrationHealthService
