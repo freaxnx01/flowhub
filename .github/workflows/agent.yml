@@ -37,7 +37,7 @@ permissions:            # a reusable workflow can't be granted more than its
 jobs:
   claude:
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.label.name == 'ai-implement' }}
-    uses: freaxnx01/agent-workflow/.github/workflows/agent-implement.yml@v1.12.0
+    uses: freaxnx01/agent-workflow/.github/workflows/agent-implement.yml@v1.13.0
     secrets:
       CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
     with:
@@ -47,7 +47,7 @@ jobs:
       # public repo (fork-PR / pwn-request attack surface).
       runner-labels: '["ubuntu-latest"]'
       default-model: claude-sonnet-5
-      pipeline-ref: v1.12.0
+      pipeline-ref: v1.13.0
       # .NET builds + tests are slower than trivial markdown changes.
       timeout-minutes: 60
       # The pipeline default of 30 turns is sized for a single-file change. A
