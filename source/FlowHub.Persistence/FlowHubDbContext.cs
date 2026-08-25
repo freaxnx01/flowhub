@@ -14,6 +14,7 @@ public sealed class FlowHubDbContext : DbContext
     internal DbSet<IntegrationHealthSampleEntity> IntegrationHealthSamples => Set<IntegrationHealthSampleEntity>();
     internal DbSet<TagEntity> Tags => Set<TagEntity>();
     internal DbSet<SkillRunEntity> SkillRuns => Set<SkillRunEntity>();
+    internal DbSet<TelegramUpdateEntity> TelegramUpdates => Set<TelegramUpdateEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

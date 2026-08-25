@@ -31,6 +31,7 @@ public static class PersistenceServiceCollectionExtensions
         services.AddScoped<IIntegrationHealthService, EfIntegrationHealthService>();
         services.AddScoped<ITagRepository, EfTagRepository>();
         services.AddScoped<ISkillRunRepository, EfSkillRunRepository>();
+        services.AddScoped<ITelegramUpdateRepository, EfTelegramUpdateRepository>();
         services.TryAddSingleton<IEmbeddingService>(NullEmbeddingService.Instance);
 
         return services;
