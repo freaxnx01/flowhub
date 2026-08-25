@@ -55,8 +55,10 @@ jobs:
       # TDD, where every step costs at least four turns (write the failing test,
       # run it RED, implement, run it GREEN) before the commit. Issue #20 — 7
       # tasks, 50 steps, ~15 files — exhausted 30 turns on orientation alone and
-      # produced no PR (run 32873223257, error_max_turns).
-      max-turns: 200
+      # produced no PR (run 32873223257, error_max_turns). At 200 it reached
+      # task 6 of 7 in 33 minutes before hitting the cap again (run 32883249971),
+      # so 300 is sized off that measurement rather than a guess.
+      max-turns: 300
       # Wall-clock cap on the claude process itself — distinct from
       # timeout-minutes above, which caps the job. Left unset it defaults to 10
       # minutes, and #20 was killed at exit 124 on task 3 of 7 with turns barely
