@@ -10,6 +10,12 @@
 
 **Spec:** [`docs/superpowers/specs/2026-08-24-telegram-inbound-channel-design.md`](../specs/2026-08-24-telegram-inbound-channel-design.md)
 
+> **Reading this plan:** the file is ~29,000 tokens, past the `Read` tool's 25,000
+> limit — a whole-file read fails. The complete plan is already inlined in
+> [issue #20](https://github.com/freaxnx01/flowhub/issues/20)'s body, so work from
+> there; reach for this file only for the two long listings the issue elides, and
+> then with `offset`/`limit` or a grep for the task heading.
+
 ## Global Constraints
 
 - `TargetFramework` is `net10.0`; `Nullable` is `enable`; **`TreatWarningsAsErrors` is `true`** — a warning fails the build.
