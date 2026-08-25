@@ -36,6 +36,48 @@ Section 5 addresses that directly.
   removed from clusters 9, 10 and 11 — counts and cluster shapes are kept, specifics are not. The
   redaction affects no conclusion in this report; see §7 for why it is also a design input.
 
+### 2.1 Validity caveat — the classifier that produced this is not the classifier that will run it
+
+**This is the most important limitation in the report.** The clusters below were produced by *Claude
+Opus 5*, reading all 203 messages inside one long-lived session, with vision over the media. FlowHub in
+production classifies with something materially weaker, and the difference is not a detail.
+
+Production config, read from the running container on CT 136 (2026-08-25):
+
+```text
+Ai__Provider=OpenRouter
+Ai__OpenRouter__Model=meta-llama/llama-3.1-70b-instruct
+```
+
+Three divergences, in increasing order of severity:
+
+1. **Model capability.** Swiss German (`"Jetz hani de bewiis"`), telegraphic German/English mixes
+   (`"Gag 1800 > nat"`), and inferring that `"Reihenfolge for milestones and only one milestone can be
+   active at once"` targets agent-workflow are exactly the cases where a 70B open-weights model degrades
+   first.
+2. **No shared context.** The analysis knew `br`/`fh`/`nat`/`j` were meaningful *because it had read all
+   203 messages*. Production classifies **one capture in isolation**, so those signals do not exist for
+   it unless they are engineered in explicitly (glossary, entity list, few-shot examples).
+3. **No vision path at all.** `IClassifier.ClassifyAsync(string content, …)` takes a **string**.
+   Grepping `source/FlowHub.AI` for `image|vision|base64|multimodal|attachment` returns **zero hits**.
+   Photos cannot reach the classifier in any form, with any model. That makes **41 media captures
+   (20.2% of the corpus)** structurally unclassifiable today — including the bug report and both dev
+   screenshots.
+
+**What survives the caveat and what does not:**
+
+- **Cluster counts and shapes are unaffected.** They describe the corpus, not a classifier. §3 stands.
+- **Every routing recommendation carries an implicit assumption** — *"achievable if the classifier is
+  roughly as capable as the one that did the clustering."* Treat the hand labels as an **upper bound on
+  achievable accuracy**, not as a target the current stack will hit.
+- **The prerequisite is unglamorous:** shape 3 (photo-as-issue) is blocked on an interface change, not
+  on prompt work or a model upgrade.
+
+**How to convert this caveat into a number:** replay a sample of the 57 forge-issue candidates through
+the production classifier and measure agreement against the hand labels in this report. Until that is
+done, §5 and §8 are hypotheses about what the stream *could* support, not predictions of what the
+current deployment *will* do.
+
 ---
 
 ## 3. What is actually in the stream
@@ -228,21 +270,25 @@ Design consequences:
 
 ## 8. Recommendations, ranked
 
-1. **Widen the Bridge trigger (highest value).** 28.1% of the corpus wants to be a forge issue and 61%
+Each is tagged with what it actually depends on (see §2.1): **[model]** needs classifier capability
+beyond what `llama-3.1-70b-instruct` may deliver; **[interface]** is blocked on a code change and no
+model upgrade helps; **[mechanical]** works with no LLM involved at all.
+
+1. **Widen the Bridge trigger (highest value).** **[model]** 28.1% of the corpus wants to be a forge issue and 61%
    of it cannot reach the existing, already-built `BridgeAction.Issue` path. Infer the repo from content
    when no alias matches; keep `Unknown` → triage as the safe default.
-2. **`Game:` prefix → `game-*` repo.** 12 messages, literal prefix, one repo family. Cheapest possible
+2. **`Game:` prefix → `game-*` repo.** **[mechanical]** 12 messages, literal prefix, one repo family. Cheapest possible
    win inside recommendation 1.
-3. **Photo-as-issue.** Vision-derived body + repo inferred from what is visible. Needed for the single
+3. **Photo-as-issue.** **[interface]** Vision-derived body + repo inferred from what is visible. Needed for the single
    most valuable Capture type (a user bug report with evidence).
-4. **Calendar skill (`gws`).** 8 dated events, half of them image-only, all currently lost. You already
+4. **Calendar skill (`gws`).** **[model + interface]** 8 dated events, half of them image-only, all currently lost. You already
    asked for this yourself in message 56.
-5. **Split Wallabag's cluster.** `tool-link` (29) and `read-later` (21) behave differently — one is an
+5. **Split Wallabag's cluster.** **[model]** `tool-link` (29) and `read-later` (21) behave differently — one is an
    evaluation queue, the other a reading queue. Same integration, different target.
-6. **Typed Vikunja targets.** Movies (17), shopping (16), travel (4) already have projects; they arrive
+6. **Typed Vikunja targets.** **[model]** Movies (17), shopping (16), travel (4) already have projects; they arrive
    as generic tasks. Message 53 is a written spec for the Movies case.
-7. **Burst grouping + dedup.** Cheap, mechanical, and prevents the 13-page-book failure mode.
-8. **Noise filter.** 3 messages. Trivial.
+7. **Burst grouping + dedup.** **[mechanical]** Cheap, mechanical, and prevents the 13-page-book failure mode.
+8. **Noise filter.** **[mechanical]** 3 messages. Trivial.
 
 Deferred as too thin to justify a skill yet: finance (2), inventory (2), reading-highlight (2),
 howto (1).
