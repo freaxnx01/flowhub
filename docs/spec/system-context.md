@@ -57,8 +57,8 @@ graph TD
 
 ## Current state (Block 5 — submission)
 
-The solution (`FlowHub.slnx`) contains six implemented projects; two folders remain
-intentional, not-yet-implemented placeholders.
+The solution (`FlowHub.slnx`) contains seven implemented projects; one folder remains
+an intentional, not-yet-implemented placeholder.
 
 - **Implemented (in the solution, with code):**
   - `FlowHub.Web` — Blazor Web App (Interactive Server) + the REST API host
@@ -67,11 +67,13 @@ intentional, not-yet-implemented placeholders.
   - `FlowHub.AI` — LLM-backed classifier behind the `IClassifier` port (provider abstraction + keyword fallback)
   - `FlowHub.Persistence` — EF Core + PostgreSQL repositories and migrations
   - `FlowHub.Skills` — Wallabag and Vikunja `ISkillIntegration` adapters
-- **Planned, not yet scaffolded (no project in the source tree):** a Telegram
-  inbound channel and a generic integrations layer. They are intentionally absent
-  until built — the Wallabag/Vikunja adapters that an early draft placed under
-  `FlowHub.Integrations` live in `FlowHub.Skills` (see ADR 0002 "As built").
-- **Not yet wired:** Authentik OIDC (dev bypass only) and the Telegram channel.
+  - `FlowHub.Telegram` — inbound Telegram Channel (long-polling `IHostedService`,
+    hosted in-process by `FlowHub.Web`; dormant unless configured)
+- **Planned, not yet scaffolded (no project in the source tree):** a generic
+  integrations layer. It is intentionally absent until built — the Wallabag/Vikunja
+  adapters that an early draft placed under `FlowHub.Integrations` live in
+  `FlowHub.Skills` (see ADR 0002 "As built").
+- **Not yet wired:** Authentik OIDC (dev bypass only).
 - **AI hosting — honest current state:** classification and embeddings run on **cloud
   providers today** (OpenRouter / Mistral), so capture content **leaves the homelab
   for AI inference**. Local-by-default Ollama hosting is the documented target (ADR

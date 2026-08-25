@@ -52,6 +52,15 @@ The REST API (built in Block 3) exists for **non-UI consumers**:
 - CLI tools, future mobile clients
 - Webhook receivers from upstream services
 
+> **As built (Telegram Channel, 2026-08-24).** `FlowHub.Telegram` is **not** a separate
+> process and is **not** a REST API consumer. It ships as a class library hosted
+> in-process by `FlowHub.Web` as an `IHostedService`, reaching `ICaptureService` through
+> DI exactly as the Web UI does — matching `docs/spec/system-context.md`, which had
+> always described it that way. Keeping it in-process avoids issuing a service
+> credential for the `.RequireAuthorization()` capture endpoints and keeps
+> `docker-compose.yml` at a single application service. See
+> `docs/superpowers/specs/2026-08-24-telegram-inbound-channel-design.md` §D4.
+
 This means: the Block 3 *Services* assignment is **not** "build the API the frontend needs". It's "build the API the *other clients* need." That distinction shapes how we model the API's resource design.
 
 ### 3. Authentication: **OIDC against the existing homelab Authentik instance**

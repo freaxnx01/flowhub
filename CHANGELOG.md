@@ -10,6 +10,11 @@ FlowHub continues as a standalone product. This repository was extracted from it
 original incubation repo; entries below `[0.3.1]` are that pre-split history, kept
 for continuity.
 
+### Added
+
+- Telegram inbound Channel: messages from allow-listed users become Captures, and the
+  original message is marked with a reaction when its Capture resolves (#20).
+
 ### Changed
 
 - Async pipeline now runs on an in-memory bus by default; RabbitMQ is an opt-in
