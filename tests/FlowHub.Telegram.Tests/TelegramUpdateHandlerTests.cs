@@ -33,6 +33,54 @@ public class TelegramUpdateHandlerTests
     }
 
     [Fact]
+    public async Task HandleAsync_LifecycleAlreadyResolvedWhenRowIsRecorded_StillReacts()
+    {
+        // The D6 race: EfCaptureService.SubmitAsync publishes CaptureCreated itself, so
+        // with the in-memory transport the pipeline can drive a Capture to a terminal
+        // stage before the handler has written the TelegramUpdate row. The decorator
+        // fires first and finds no coordinates; the handler must re-check afterwards.
+        var (sut, captures, repo, gateway) = Build();
+        var captureId = Guid.NewGuid();
+        captures.SubmitAsync(Arg.Any<string?>(), Arg.Any<ChannelKind>(), Arg.Any<AttachmentInput?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(new Capture(
+                captureId, ChannelKind.Telegram, "done already", DateTimeOffset.UtcNow,
+                LifecycleStage.Raw, null)));
+        // By the time the row exists the pipeline has already completed the Capture.
+        captures.GetByIdAsync(captureId, Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<Capture?>(new Capture(
+                captureId, ChannelKind.Telegram, "done already", DateTimeOffset.UtcNow,
+                LifecycleStage.Completed, "wallabag")));
+        repo.FindByCaptureIdAsync(captureId, Arg.Any<CancellationToken>())
+            .Returns(new TelegramUpdate(1L, 55L, 7, captureId, DateTimeOffset.UtcNow));
+
+        await sut.HandleAsync(TextMessage("done already"), CancellationToken.None);
+
+        await gateway.Received(1).SetReactionAsync(55L, 7, "\U0001F44D", Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task HandleAsync_LifecycleStillInFlight_DoesNotReactYet()
+    {
+        // The ordinary path: the Capture is still Raw when the row lands, so the
+        // handler must leave the reaction to the decorator rather than marking a
+        // message whose outcome is not known yet.
+        var (sut, captures, repo, gateway) = Build();
+        var captureId = Guid.NewGuid();
+        captures.SubmitAsync(Arg.Any<string?>(), Arg.Any<ChannelKind>(), Arg.Any<AttachmentInput?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(new Capture(
+                captureId, ChannelKind.Telegram, "in flight", DateTimeOffset.UtcNow, LifecycleStage.Raw, null)));
+        captures.GetByIdAsync(captureId, Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<Capture?>(new Capture(
+                captureId, ChannelKind.Telegram, "in flight", DateTimeOffset.UtcNow, LifecycleStage.Raw, null)));
+        repo.FindByCaptureIdAsync(captureId, Arg.Any<CancellationToken>())
+            .Returns(new TelegramUpdate(1L, 55L, 7, captureId, DateTimeOffset.UtcNow));
+
+        await sut.HandleAsync(TextMessage("in flight"), CancellationToken.None);
+
+        await gateway.DidNotReceiveWithAnyArgs().SetReactionAsync(default, default, default!, default);
+    }
+
+    [Fact]
     public async Task HandleAsync_AllowedUserSendsText_SubmitsCaptureWithTelegramChannel()
     {
         var (sut, captures, _, _) = Build();
