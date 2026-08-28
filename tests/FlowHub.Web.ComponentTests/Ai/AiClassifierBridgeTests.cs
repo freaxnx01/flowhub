@@ -113,4 +113,70 @@ public sealed class AiClassifierBridgeTests
         result.MatchedSkill.Should().Be("Bridge");
         result.BridgeAction.Should().Be(BridgeAction.Unknown);
     }
+
+    private AiClassifier SutWithBridgeClassification() =>
+        new(_chat, _keyword, NullLogger<AiClassifier>.Instance, _opts, _catalog,
+            new AiModelInfo("OpenRouter", "test-model"), _bridge, allowBridgeClassification: true);
+
+    [Fact]
+    public async Task ClassifyAsync_BridgeEnabledAndModelReturnsBridge_ReturnsBridgeWithNoAlias()
+    {
+        _chat.GetResponseAsync(Arg.Any<IEnumerable<ChatMessage>>(), Arg.Any<ChatOptions?>(), Arg.Any<CancellationToken>())
+            .Returns(JsonResponse(new
+            {
+                tags = new[] { "dev" },
+                matched_skill = "Bridge",
+                title = "Align milestones across repos",
+                project = (string?)null,
+                entities = (object?)null,
+            }));
+
+        var result = await SutWithBridgeClassification()
+            .ClassifyAsync("Auto dispatcher issues cross repo and milestone aligned", default);
+
+        result.MatchedSkill.Should().Be("Bridge");
+        result.BridgeAlias.Should().BeNull();
+        result.BridgeAction.Should().Be(BridgeAction.Unknown);
+    }
+
+    [Fact]
+    public async Task ClassifyAsync_BridgeDisabledAndModelReturnsBridge_FallsBackToKeyword()
+    {
+        _chat.GetResponseAsync(Arg.Any<IEnumerable<ChatMessage>>(), Arg.Any<ChatOptions?>(), Arg.Any<CancellationToken>())
+            .Returns(JsonResponse(new
+            {
+                tags = new[] { "dev" },
+                matched_skill = "Bridge",
+                title = "Align milestones across repos",
+                project = (string?)null,
+                entities = (object?)null,
+            }));
+        _keyword.ClassifyAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(new ClassificationResult([], ""));
+
+        var result = await Sut()
+            .ClassifyAsync("Auto dispatcher issues cross repo and milestone aligned", default);
+
+        result.MatchedSkill.Should().Be("");
+        await _keyword.Received(1).ClassifyAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task ClassifyAsync_BridgeEnabled_VikunjaResultIsUnaffected()
+    {
+        _chat.GetResponseAsync(Arg.Any<IEnumerable<ChatMessage>>(), Arg.Any<ChatOptions?>(), Arg.Any<CancellationToken>())
+            .Returns(JsonResponse(new
+            {
+                tags = new[] { "todo" },
+                matched_skill = "Vikunja",
+                title = "Buy milk on Saturday",
+                project = "Inbox",
+                entities = (object?)null,
+            }));
+
+        var result = await SutWithBridgeClassification().ClassifyAsync("todo: buy milk", default);
+
+        result.MatchedSkill.Should().Be("Vikunja");
+        result.VikunjaProject.Should().Be("Inbox");
+    }
 }
