@@ -271,9 +271,10 @@ git push
 
 ---
 
-### Task 3: Stop the Web form discarding typed text
+### Task 3: Let the Web form take a caption
 
 **Files:**
+- Modify: `source/FlowHub.Web/Components/Pages/NewCapture.razor:26,29`
 - Modify: `source/FlowHub.Web/Components/Pages/NewCapture.razor.cs:84-92`
 - Test: `tests/FlowHub.Web.ComponentTests/Pages/NewCaptureUploadTests.cs`
 
@@ -281,35 +282,86 @@ git push
 - Consumes: Task 1's `caption` parameter name.
 - Produces: nothing new.
 
-The form renders a text field (`NewCapture.razor:19-20`, bound to `_content`) and then passes `content: null` when a file is staged — so a user can type a note, attach a file, and watch the note vanish.
+**This is a UI change, not a call-site fix.** `NewCapture.razor` deliberately disables the text area once a file is staged and tells the user *"File overrides text"* — so passing `_content` on its own would submit whatever was typed *before* staging, because the field is disabled rather than cleared. See the spec's D5.
 
-- [ ] **Step 1: Write the failing test**
+`StagingFile_DisablesTextAreaAndShowsHelperText` in the test file asserts the behaviour being replaced. Like the Task 1 test, it is inverted **deliberately** — it pins a decision the spec reverses, not a defect being hidden.
 
-Open `tests/FlowHub.Web.ComponentTests/Pages/NewCaptureUploadTests.cs` and copy the arrangement its existing upload test uses (service substitutes, `AddMudServices()`, staging a file). Add:
+- [ ] **Step 1: Invert the pinning test and add the caption test**
+
+In `tests/FlowHub.Web.ComponentTests/Pages/NewCaptureUploadTests.cs`, replace the whole `StagingFile_DisablesTextAreaAndShowsHelperText` test with these two. The constructor already registers every service these need — leave it alone.
 
 ```csharp
     [Fact]
-    public async Task Submit_WithFileAndTypedText_PassesTheTypedTextAsCaption()
+    public void StagingFile_KeepsTextAreaEnabledAndOffersACaption()
     {
-        var cut = RenderComponent<NewCapturePage>();
+        var cut = RenderComponent<NewCapture>();
+        var file = InputFileContent.CreateFromBinary(new byte[2], "doc.pdf", null, "application/pdf");
+        cut.FindComponent<InputFile>().UploadFiles(file);
 
-        await StageFileAsync(cut, "invoice.pdf", "application/pdf", 10);
-        cut.Find("input[type='text']").Change("boiler service invoice");
-        await cut.Find("button[type='submit']").ClickAsync(new MouseEventArgs());
+        cut.Markup.Should().Contain("Caption (optional)");
+        cut.Markup.Should().NotContain("File overrides text");
+        cut.Find("textarea").GetAttribute("disabled").Should().BeNull();
+    }
 
-        await _captureService.Received(1).SubmitAsync(
+    [Fact]
+    public void StagingFileAndTypingACaption_SubmitsTheCaption()
+    {
+        var captures = Substitute.For<ICaptureService>();
+        captures.SubmitAsync(Arg.Any<string?>(), Arg.Any<ChannelKind>(), Arg.Any<AttachmentInput?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(new Capture(
+                Guid.NewGuid(), ChannelKind.Web, "boiler service invoice", DateTimeOffset.UtcNow,
+                LifecycleStage.Raw, null)));
+        Services.AddSingleton(captures);
+
+        var cut = RenderComponent<NewCapture>();
+        var file = InputFileContent.CreateFromBinary(new byte[2], "doc.pdf", null, "application/pdf");
+        cut.FindComponent<InputFile>().UploadFiles(file);
+        cut.Find("textarea").Change("boiler service invoice");
+        cut.Find("form").Submit();
+
+        captures.Received(1).SubmitAsync(
             "boiler service invoice", ChannelKind.Web, Arg.Any<AttachmentInput>(), Arg.Any<CancellationToken>());
     }
 ```
 
-If the existing file has no `StageFileAsync` helper, use whatever mechanism its current upload test uses to stage a file and follow that exactly — do not invent a second approach.
+If `Services.AddSingleton(captures)` collides with the constructor's own registration, move the substitute to a field the constructor registers (as `CapturesTests` does with `_captureService`) and configure it per-test instead — do not register the same service twice.
 
-- [ ] **Step 2: Run it to verify it fails**
+If `cut.Find("form").Submit()` does not trigger the handler, use the submit button the page renders — inspect `cut.Markup` to find its selector rather than guessing. Do not change the component to make the test easier to drive.
+
+- [ ] **Step 2: Run them to verify they fail**
 
 Run: `dotnet test tests/FlowHub.Web.ComponentTests/FlowHub.Web.ComponentTests.csproj --filter NewCaptureUploadTests`
-Expected: FAIL — `SubmitAsync` receives `null`, not the typed text.
+Expected: FAIL — the markup still says "File overrides text", the textarea still carries `disabled`, and `SubmitAsync` receives `null`.
 
-- [ ] **Step 3: Pass the typed text**
+- [ ] **Step 3: Re-enable the field and relabel it**
+
+In `source/FlowHub.Web/Components/Pages/NewCapture.razor`, change line 26 from:
+
+```razor
+                          HelperText="@(_stagedFile is null ? "Paste a URL, type a quote, or describe what you want to capture." : "File overrides text")"
+```
+
+to:
+
+```razor
+                          HelperText="@(_stagedFile is null ? "Paste a URL, type a quote, or describe what you want to capture." : "Caption (optional) — describe the file")"
+```
+
+and line 29 from:
+
+```razor
+                          Disabled="_isSubmitting || _stagedFile is not null" />
+```
+
+to:
+
+```razor
+                          Disabled="_isSubmitting" />
+```
+
+Leave `RequiredError="Content is required"` as it is — with a file staged the form no longer needs text, and the submit path for a staged file does not read the validation state. If the form refuses to submit with an empty textarea and a staged file, make `Required` conditional on `_stagedFile is null` rather than removing the validation outright.
+
+- [ ] **Step 4: Pass the caption**
 
 In `source/FlowHub.Web/Components/Pages/NewCapture.razor.cs`, change:
 
@@ -325,18 +377,18 @@ to:
                     caption: _content, ChannelKind.Web,
 ```
 
-`_content` may be null or blank, which Task 1 already treats as "no caption" — so no guard is needed here.
+`_content` may be null or blank, which Task 1 already treats as "no caption" — no guard is needed here.
 
-- [ ] **Step 4: Run it to verify it passes**
+- [ ] **Step 5: Run them to verify they pass**
 
 Run: `dotnet test tests/FlowHub.Web.ComponentTests/FlowHub.Web.ComponentTests.csproj --filter NewCaptureUploadTests`
 Expected: PASS.
 
-- [ ] **Step 5: Commit and push**
+- [ ] **Step 6: Commit and push**
 
 ```bash
-git add source/FlowHub.Web/Components/Pages/NewCapture.razor.cs tests/FlowHub.Web.ComponentTests/Pages/NewCaptureUploadTests.cs
-git commit -m "fix(web): submit typed text as the caption when a file is attached
+git add source/FlowHub.Web/Components/Pages/NewCapture.razor source/FlowHub.Web/Components/Pages/NewCapture.razor.cs tests/FlowHub.Web.ComponentTests/Pages/NewCaptureUploadTests.cs
+git commit -m "feat(web): accept a caption alongside an attached file
 
 Refs #31"
 git push
