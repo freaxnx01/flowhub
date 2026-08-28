@@ -80,4 +80,17 @@ public class TelegramUpdateHandlerAttachmentTests
 
         await captures.DidNotReceiveWithAnyArgs().SubmitAsync(default, default, default, default);
     }
+
+    [Fact]
+    public async Task HandleAsync_DocumentWithCaption_PassesTheCaptionThrough()
+    {
+        var (sut, captures, _) = Build();
+
+        await sut.HandleAsync(
+            FileMessage("invoice.pdf", "application/pdf", 16, caption: "boiler service invoice"),
+            CancellationToken.None);
+
+        await captures.Received(1).SubmitAsync(
+            "boiler service invoice", ChannelKind.Telegram, Arg.Any<AttachmentInput>(), Arg.Any<CancellationToken>());
+    }
 }

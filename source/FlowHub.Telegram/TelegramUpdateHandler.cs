@@ -96,13 +96,6 @@ public sealed partial class TelegramUpdateHandler
 
         await using (content)
         {
-            if (!string.IsNullOrWhiteSpace(message.Text))
-            {
-                // Captures with an attachment take the filename as Content; the caption
-                // is not persisted. Same limitation as the Web upload path.
-                LogDroppingCaption(message.UpdateId);
-            }
-
             var input = new AttachmentInput
             {
                 Content = content,
@@ -160,8 +153,4 @@ public sealed partial class TelegramUpdateHandler
     [LoggerMessage(EventId = 5002, Level = LogLevel.Warning,
         Message = "Rejected Telegram update from unlisted user (updateId={UpdateId}, userId={UserId})")]
     private partial void LogUpdateRejectedUnlistedUser(long updateId, long userId);
-
-    [LoggerMessage(EventId = 5003, Level = LogLevel.Debug,
-        Message = "Dropping caption on Telegram update (updateId={UpdateId})")]
-    private partial void LogDroppingCaption(long updateId);
 }
