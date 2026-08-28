@@ -82,7 +82,7 @@ public partial class NewCapture : ComponentBase
             {
                 await using var stream = _stagedFile.OpenReadStream(UploadPolicy.MaxBytes);
                 capture = await CaptureService.SubmitAsync(
-                    content: null, ChannelKind.Web,
+                    caption: _content, ChannelKind.Web,
                     new AttachmentInput
                     {
                         Content = stream,
