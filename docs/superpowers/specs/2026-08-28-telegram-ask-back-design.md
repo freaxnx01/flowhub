@@ -3,14 +3,14 @@
 **Date:** 2026-08-28
 **Status:** Design, awaiting review
 **Scope:** Two independent changes — (A) persist the caption of an attachment Capture, (B) ask the
-operator a clarifying question when a Telegram-originated Capture resolves to Unhandled or Orphan.
+operator a clarifying question when a Telegram-originated Capture resolves to **Orphan**.
 
 ---
 
 ## 1. Problem
 
-A Telegram Capture that FlowHub cannot route ends as `Unhandled` or `Orphan`. Today the only signal is a
-reaction emoji (🤔 / 💔) on the original message. The information needed to route it usually exists —
+A Telegram Capture that FlowHub cannot classify ends as `Orphan`. Today the only signal is a
+reaction emoji (💔) on the original message. The information needed to route it usually exists —
 in the operator's head, and often in words they already typed — but there is no way to ask for it.
 
 The motivating case, from `docs/ai-notes/2026-08-25-telegram-capture-taxonomy.md` §4 cluster 19: a
@@ -25,7 +25,7 @@ Two failures, one visible and one not:
    (`source/FlowHub.Persistence/EfCaptureService.cs:56-63`). The operator's own words are lost before
    the classifier ever sees them.
 2. **Nothing asks.** The Channel can already speak — `ITelegramGateway.SendTextAsync` is used for
-   rejection messages — but a resolved-unhandled Capture produces only an emoji.
+   rejection messages — but an orphaned Capture produces only an emoji.
 
 ---
 
@@ -34,7 +34,7 @@ Two failures, one visible and one not:
 **Goals**
 
 - Persist an attachment Capture's caption as its content.
-- When a Telegram Capture resolves to Unhandled/Orphan, ask one question in-chat and use the reply to
+- When a Telegram Capture resolves to `Orphan`, ask one question in-chat and use the reply to
   re-run classification.
 - Change no lifecycle stage, no classifier, no skill.
 
@@ -46,7 +46,7 @@ Two failures, one visible and one not:
 - Multi-turn conversation. Exactly one question, one answer.
 
 **Success criterion.** Send the Tschau Sepp screenshot with its caption; the caption is the Capture's
-content. If it still resolves Unhandled, the bot replies asking what it is; answering that reply
+content. If it still resolves `Orphan`, the bot replies asking what it is; answering that reply
 re-runs the pipeline against caption + answer, without creating a second Capture.
 
 ---
@@ -82,9 +82,22 @@ Part A ships on its own merit and does not depend on Part B.
 
 ### 4.1 Trigger
 
-`TelegramReactionCaptureServiceDecorator` already wraps `MarkUnhandledAsync` and `MarkOrphanAsync` and
-calls `TelegramReactionService.ApplyAsync`. The ask-back hangs off the same two hooks. No new lifecycle
-stage, no pipeline change, no classifier change.
+`TelegramReactionCaptureServiceDecorator` already wraps `MarkOrphanAsync` and calls
+`TelegramReactionService.ApplyAsync`. The ask-back hangs off that hook — **`MarkOrphanAsync` only**. No
+new lifecycle stage, no pipeline change, no classifier change.
+
+**Why Orphan and not Unhandled.** The two stages mean different things, and only one of them is a
+question worth asking:
+
+| Stage | Raised by | Reason | Can the operator help? |
+|---|---|---|---|
+| `Orphan` | `CaptureEnrichmentConsumer.cs:66` | `MatchedSkill` empty — *"no skill matched during classification"* | **Yes** — FlowHub did not understand it |
+| `Unhandled` | `SkillRoutingConsumer.cs:43` | *"no integration registered for skill 'X'"*, Bridge action undetermined, routing faults | **No** — FlowHub understood it; the destination is unconfigured |
+
+Asking on `Unhandled` would pester the operator about Captures that classified correctly, and no answer
+can fix a missing base URL. On the current CT 136 deployment — where no skills are configured at all —
+it would fire for nearly every routable Capture. The motivating Tschau Sepp capture classifies as
+`matched_skill=""` and is therefore an **Orphan**.
 
 The reaction stays exactly as it is; the question is additional.
 
@@ -104,8 +117,8 @@ key is the **outbound** message id, not the inbound update id.
 
 ### 4.3 Flow — asking
 
-1. A Capture reaches `Unhandled`/`Orphan`; the decorator calls the reaction service (unchanged) and then
-   `TelegramQuestionService.AskIfUsefulAsync(captureId, stage)`.
+1. A Capture reaches `Orphan`; the decorator calls the reaction service (unchanged) and then
+   `TelegramQuestionService.AskIfUsefulAsync(captureId)`.
 2. The service resolves the originating message via `ITelegramUpdateRepository.FindByCaptureIdAsync`.
    **No row → no question** (the Capture did not come from Telegram).
 3. **Ask-once guard:** if a question already exists for this Capture, stop. One question per Capture,
@@ -166,7 +179,8 @@ Identical posture to `TelegramReactionService`: **best-effort, logged, never thr
 
 Unit (xUnit + NSubstitute + FluentAssertions):
 
-- Unhandled Capture with a Telegram origin → one question sent, one row recorded.
+- Orphan Capture with a Telegram origin → one question sent, one row recorded.
+- **Unhandled Capture with a Telegram origin → no question** (reaction only).
 - Second resolve of the same Capture → no second question.
 - Capture with no `TelegramUpdate` row → no question.
 - Gateway throws → lifecycle transition still completes, warning logged.
@@ -208,8 +222,10 @@ own issue.
 
 ## 8. Open questions
 
-- Should the question be sent for `Orphan` as well as `Unhandled`, or only `Unhandled`? Orphan means
-  "classified as nothing", which is arguably the case most worth asking about — but it is also the
-  stage a deliberately unroutable note lands in. Defaulting to **both**; narrow if it proves noisy.
+- ~~Which stage triggers the question?~~ **Resolved 2026-08-28: `Orphan` only** — see §4.1. `Unhandled`
+  is a configuration failure the operator cannot resolve by answering.
+- `Orphan` is also where a deliberately unroutable note lands (a passing thought, a reference with no
+  home). If the question proves noisy for those, the next lever is a content heuristic — ask only when
+  the Capture has an attachment or is under N words — not a stage change.
 - Is a fixed question sufficient, or should it name what FlowHub does know (the file type, the title it
   guessed)? Fixed text is the safer start and avoids implying false understanding.
