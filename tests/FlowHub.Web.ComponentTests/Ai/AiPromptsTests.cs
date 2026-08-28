@@ -40,4 +40,51 @@ public sealed class AiPromptsTests
         prompt.Should().NotContain("Ablage");
         prompt.Should().NotContain("Aufgabe");
     }
+
+    [Fact]
+    public void BuildSystemPrompt_BridgeDisabled_DoesNotOfferBridge()
+    {
+        var prompt = AiPrompts.BuildSystemPrompt(DefaultBuckets, allowBridge: false);
+
+        prompt.Should().NotContain("Bridge");
+    }
+
+    [Fact]
+    public void BuildSystemPrompt_BridgeDisabled_IsIdenticalToDefault()
+    {
+        // Prompt drift silently changes classification for every capture, not just
+        // dev ones. The default and the explicitly-disabled prompt must not diverge.
+        AiPrompts.BuildSystemPrompt(DefaultBuckets, allowBridge: false)
+            .Should().Be(AiPrompts.BuildSystemPrompt(DefaultBuckets));
+    }
+
+    [Fact]
+    public void BuildSystemPrompt_BridgeEnabled_OffersBridgeAndKeepsBuckets()
+    {
+        var prompt = AiPrompts.BuildSystemPrompt(DefaultBuckets, allowBridge: true);
+
+        prompt.Should().Contain("\"Bridge\"");
+        prompt.Should().Contain("Wallabag");
+        prompt.Should().Contain("Vikunja");
+        prompt.Should().Contain("Inbox, Zitate");
+    }
+
+    [Fact]
+    public void BuildSystemPrompt_BridgeEnabled_DoesNotAskForARepositoryName()
+    {
+        // Repo inference is issue #38. The model has no catalogue here and would
+        // hallucinate a name, so the prompt must not invite one.
+        var prompt = AiPrompts.BuildSystemPrompt(DefaultBuckets, allowBridge: true);
+
+        prompt.Should().NotContain("repository name");
+        prompt.Should().NotContain("alias");
+    }
+
+    [Fact]
+    public void BuildMessages_BridgeEnabled_SystemMessageOffersBridge()
+    {
+        var messages = AiPrompts.BuildMessages("fix the login bug", DefaultBuckets, allowBridge: true);
+
+        messages[0].Text.Should().Contain("\"Bridge\"");
+    }
 }

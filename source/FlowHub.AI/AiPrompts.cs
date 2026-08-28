@@ -8,11 +8,20 @@ namespace FlowHub.AI;
 
 internal static class AiPrompts
 {
-    internal static string BuildSystemPrompt(IReadOnlyCollection<string> vikunjaBuckets)
+    internal static string BuildSystemPrompt(
+        IReadOnlyCollection<string> vikunjaBuckets, bool allowBridge = false)
     {
         var bucketLine = vikunjaBuckets.Count == 0
             ? "Inbox"
             : string.Join(", ", vikunjaBuckets);
+
+        var bridgeOption = allowBridge
+            ? """
+
+                    "Bridge"    – the snippet is an actionable task, bug report, or feature
+                                  request about one of the operator's own software projects
+            """.TrimEnd('\n')
+            : "";
 
         return string.Create(CultureInfo.InvariantCulture, $$"""
             You classify user-captured snippets for a personal knowledge tool called FlowHub.
@@ -22,7 +31,7 @@ internal static class AiPrompts
             - matched_skill: which downstream skill should handle it. Choose exactly ONE:
                 "Wallabag"  – the snippet is a URL or article worth saving for later reading
                 "Vikunja"   – the snippet is a task, todo, OR a structured piece of content
-                              that belongs in a Vikunja project (quote, movie, book, …)
+                              that belongs in a Vikunja project (quote, movie, book, …){{bridgeOption}}
                 ""          – none of the above; it will be marked as Orphan
             - project: when matched_skill="Vikunja", pick the best matching project from
               this list. If unsure, pick "Inbox".
@@ -39,9 +48,10 @@ internal static class AiPrompts
             """);
     }
 
-    internal static IList<ChatMessage> BuildMessages(string content, IReadOnlyCollection<string> vikunjaBuckets) =>
+    internal static IList<ChatMessage> BuildMessages(
+        string content, IReadOnlyCollection<string> vikunjaBuckets, bool allowBridge = false) =>
     [
-        new ChatMessage(ChatRole.System, BuildSystemPrompt(vikunjaBuckets)),
+        new ChatMessage(ChatRole.System, BuildSystemPrompt(vikunjaBuckets, allowBridge)),
         new ChatMessage(ChatRole.User, content),
     ];
 
