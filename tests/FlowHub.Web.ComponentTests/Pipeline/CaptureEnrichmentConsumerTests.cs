@@ -101,7 +101,7 @@ public sealed class CaptureEnrichmentConsumerTests
         var captureService = provider.GetRequiredService<ICaptureService>();
         using var bytes = new MemoryStream(new byte[] { 1, 2, 3 });
         var capture = await captureService.SubmitAsync(
-            content: null, ChannelKind.Web,
+            caption: null, ChannelKind.Web,
             new AttachmentInput { Content = bytes, FileName = "scan.pdf", ContentType = "application/pdf", SizeBytes = 3 },
             default);
 

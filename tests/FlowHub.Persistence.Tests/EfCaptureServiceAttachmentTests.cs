@@ -6,8 +6,7 @@ namespace FlowHub.Persistence.Tests;
 
 public class EfCaptureServiceAttachmentTests
 {
-    [Fact]
-    public async Task SubmitAsync_WithAttachment_PersistsAttachmentAndUsesFileNameAsContent()
+    private static (EfCaptureService Sut, IAttachmentStorage Storage) BuildSut()
     {
         var repo = Substitute.For<ICaptureRepository>();
         repo.AddAsync(Arg.Any<Capture>(), Arg.Any<CancellationToken>())
@@ -16,17 +15,63 @@ public class EfCaptureServiceAttachmentTests
         storage.SaveAsync(Arg.Any<Stream>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns("2026/05/abc123.pdf");
         var publish = Substitute.For<IPublishEndpoint>();
-        var sut = new EfCaptureService(repo, publish, storage);
+        return (new EfCaptureService(repo, publish, storage), storage);
+    }
 
+    private static AttachmentInput PdfInput(Stream bytes) =>
+        new() { Content = bytes, FileName = "invoice.pdf", ContentType = "application/pdf", SizeBytes = 10 };
+
+    [Fact]
+    public async Task SubmitAsync_WithAttachmentAndCaption_UsesTheCaptionAsContent()
+    {
+        // Deliberate inversion of the old assertion: the caption is the note, the
+        // filename lives on the Attachment. See the spec's D4.
+        var (sut, _) = BuildSut();
         using var bytes = new MemoryStream(new byte[10]);
-        var input = new AttachmentInput { Content = bytes, FileName = "invoice.pdf", ContentType = "application/pdf", SizeBytes = 10 };
 
-        var capture = await sut.SubmitAsync(content: "ignored typed text", ChannelKind.Web, input);
+        var capture = await sut.SubmitAsync("invoice for the boiler service", ChannelKind.Web, PdfInput(bytes));
+
+        capture.Content.Should().Be("invoice for the boiler service");
+        capture.Attachment.Should().NotBeNull();
+        capture.Attachment!.FileName.Should().Be("invoice.pdf");
+        capture.Attachment.RelativePath.Should().Be("2026/05/abc123.pdf");
+        capture.Attachment.SizeBytes.Should().Be(10);
+    }
+
+    [Fact]
+    public async Task SubmitAsync_WithAttachmentAndNoCaption_FallsBackToTheFileName()
+    {
+        var (sut, _) = BuildSut();
+        using var bytes = new MemoryStream(new byte[10]);
+
+        var capture = await sut.SubmitAsync(caption: null, ChannelKind.Web, PdfInput(bytes));
 
         capture.Content.Should().Be("invoice.pdf");
-        capture.Attachment.Should().NotBeNull();
-        capture.Attachment!.RelativePath.Should().Be("2026/05/abc123.pdf");
-        capture.Attachment.SizeBytes.Should().Be(10);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData("\t\n")]
+    public async Task SubmitAsync_WithAttachmentAndBlankCaption_FallsBackToTheFileName(string caption)
+    {
+        var (sut, _) = BuildSut();
+        using var bytes = new MemoryStream(new byte[10]);
+
+        var capture = await sut.SubmitAsync(caption, ChannelKind.Web, PdfInput(bytes));
+
+        capture.Content.Should().Be("invoice.pdf");
+    }
+
+    [Fact]
+    public async Task SubmitAsync_WithAttachmentAndPaddedCaption_TrimsIt()
+    {
+        var (sut, _) = BuildSut();
+        using var bytes = new MemoryStream(new byte[10]);
+
+        var capture = await sut.SubmitAsync("  boiler invoice  ", ChannelKind.Web, PdfInput(bytes));
+
+        capture.Content.Should().Be("boiler invoice");
     }
 
     [Fact]

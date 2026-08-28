@@ -61,7 +61,7 @@ internal static class CaptureWriteEndpoints
 
         await using var stream = file!.OpenReadStream();
         var capture = await captureService.SubmitAsync(
-            content: null,
+            caption: null,
             ChannelKind.Api,
             new AttachmentInput
             {
