@@ -46,11 +46,11 @@ public sealed class EfCaptureService : ICaptureService
     }
 
     public async Task<Capture> SubmitAsync(
-        string? content, ChannelKind source, AttachmentInput? attachment, CancellationToken cancellationToken = default)
+        string? caption, ChannelKind source, AttachmentInput? attachment, CancellationToken cancellationToken = default)
     {
         if (attachment is null)
         {
-            return await SubmitAsync(content ?? throw new ArgumentNullException(nameof(content)), source, cancellationToken);
+            return await SubmitAsync(caption ?? throw new ArgumentNullException(nameof(caption)), source, cancellationToken);
         }
 
         var fileName = Path.GetFileName(attachment.FileName);
@@ -58,8 +58,15 @@ public sealed class EfCaptureService : ICaptureService
             attachment.Content, fileName, attachment.ContentType, cancellationToken);
 
         var att = new Attachment(fileName, attachment.ContentType, attachment.SizeBytes, relativePath, DateTimeOffset.UtcNow);
+
+        // The caption is the note; the file is the evidence. The filename is not lost —
+        // it lives on the Attachment above, so this replaces a duplicated value rather
+        // than displacing one. Content is what the classifier and the embedder read.
+        // Whitespace-only counts as absent so a stray space cannot blank a Capture.
+        var content = string.IsNullOrWhiteSpace(caption) ? fileName : caption.Trim();
+
         var capture = new Capture(
-            Guid.NewGuid(), source, fileName, DateTimeOffset.UtcNow,
+            Guid.NewGuid(), source, content, DateTimeOffset.UtcNow,
             LifecycleStage.Raw, MatchedSkill: null, Attachment: att);
 
         try

@@ -18,7 +18,7 @@ public interface ICaptureService
     Task<Capture> SubmitAsync(string content, ChannelKind source, CancellationToken cancellationToken = default);
 
     Task<Capture> SubmitAsync(
-        string? content,
+        string? caption,
         ChannelKind source,
         AttachmentInput? attachment,
         CancellationToken cancellationToken = default);
