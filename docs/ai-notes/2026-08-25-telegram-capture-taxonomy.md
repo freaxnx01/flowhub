@@ -191,9 +191,38 @@ largest single routing opportunity in the stream, and it is roughly the size of 
 - `BridgeSkillIntegration` already posts to bridge's `POST /api/capture/issue` / `/api/capture/idea`.
 - `ClassificationResult` already carries `BridgeAlias`, `BridgeAction`, `BridgeBody`.
 
-**Why it does not fire on this corpus.** `AiClassifier.cs:53-56` gates the whole Bridge branch behind
-`BridgeAliasMatcher.TryMatch(content, aliases, …)` — an **explicit alias must appear in the message**.
-Measured against the 57 candidates:
+### 5.1 Bridge's dual role — why this fails silently rather than degrading
+
+**Bridge is the only skill that is both a target Integration and a pre-LLM classification gate.**
+Every other skill (Wallabag, Vikunja, Paperless) is purely a *destination*: the LLM decides, the
+dispatcher routes, and an unconfigured skill simply means the capture lands as `Unhandled` — visible,
+countable, recoverable. Bridge sits on both sides of the classifier:
+
+- **As a gate:** `AiClassifier.cs:53-56` calls `BridgeAliasMatcher.TryMatch(content, aliases, …)`
+  **before** the LLM is consulted at all, short-circuiting into `ClassifyBridgeAsync` on a hit.
+- **As a target:** `BridgeSkillIntegration` posts the resulting issue/idea to bridge.
+- **Both sides read the same config.** `AddBridge` (`SkillsServiceCollectionExtensions.cs:113`) fails
+  closed when `Skills:Bridge:BaseUrl`/`ApiToken` are empty, leaving `EmptyBridgeCatalog` — which
+  returns an **empty alias set**, so `TryMatch` can never fire.
+
+That coupling is the whole problem. **A misconfigured Bridge does not degrade the forge route — it
+deletes it**, and does so invisibly:
+
+1. No alias catalog → the gate never triggers → no capture ever reaches `ClassifyBridgeAsync`.
+2. The LLM cannot compensate, because `AiClassifier.cs:19` declares
+   `AllowedSkills = ["Wallabag", "Vikunja", ""]` — **"Bridge" is not a permitted answer**, and a model
+   returning it would be rejected as `schema_violation`.
+3. So forge-bound captures are classified as ordinary tasks and filed to Vikunja/Inbox. There is **no
+   `Unhandled` spike, no error, no failed skill run** — the signal that something is missing simply
+   does not exist.
+
+Contrast with Wallabag: unconfigured, it logs `Skill not configured — capture matching Wallabag will go
+to Unhandled` and the captures pile up visibly. Bridge unconfigured produces silence.
+
+### 5.2 Why it does not fire on this corpus — measured
+
+`BridgeAliasMatcher.TryMatch` requires an **explicit alias in the message text**. Against the 57
+candidates, by shape:
 
 - **22 of 57 (39%)** begin with something alias-shaped: `Flowhub …`, `Bridge …`, `Homelab: …`,
   `Quicktask: …`, `Claude-dev: …`, `Immich - …`, `Game: …`, `Game-* …`.
@@ -201,8 +230,15 @@ Measured against the 57 candidates:
   aligned"`, `"Reihenfolge for milestones…"`, `"Try out Claude /design (game idea?)"`, the Jass bug
   report, both dev screenshots, all three quiz items.
 
-So the mechanism is built; the **trigger is too narrow**. The corpus says the alias is the exception,
-not the rule — you write the project name inline, or omit it entirely because context is obvious to you.
+**But that 22 is a code-level upper bound, not the deployed reality.** On CT 136 (checked 2026-08-25)
+there are **no `Skills__*` environment variables at all**, `bridge serve` is not running, and the
+container logs `Skill not configured` for Wallabag, Vikunja and Paperless. By §5.1, an unconfigured
+Bridge yields an empty alias set, so the true number of captures that would reach the forge route in
+the current deployment is **0 of 57**, not 22.
+
+So the accurate statement is not "the mechanism is built but the trigger is too narrow". It is: **the
+mechanism is built, the trigger is too narrow, and in the current deployment the trigger is wired to
+nothing.** Fixing the narrowness without fixing the configuration changes 0 into 0.
 
 **Three shapes the route has to handle** (they are not one problem):
 
@@ -351,8 +387,58 @@ is 94 repos of manual curation for a field that description matching may already
 
 ---
 
-## 10. Artifacts
+## 10. Replay against the production classifier — measured
 
+§2.1 said the hand labels were an upper bound and that the way to get a number was to replay the
+candidates through the production classifier. That was done on 2026-08-25.
+
+**Setup (faithful to `source/FlowHub.AI`):** model `meta-llama/llama-3.1-70b-instruct` via OpenRouter,
+`AiPrompts.BuildSystemPrompt` verbatim, the `AiClassificationResponse` schema, buckets `Inbox, Zitate`
+(the `EnricherBucketCatalog` fallback, since no skills are configured). Read-only — OpenRouter directly,
+nothing written to FlowHub or Vikunja. **53 of the 57** candidates were replayed; the other 4 are
+photo-only and cannot be represented as a string at all.
+
+**Result:**
+
+| Verdict | Count |
+|---|---:|
+| `Vikunja` → `Inbox` | 38 |
+| `""` → Orphan | 15 |
+| **Forge issue** | **0** |
+| Errors | 0 |
+
+**Zero is structural, not a model failure.** Per §5.1, `AllowedSkills` does not contain `"Bridge"`, so
+the model is never offered forge routing as an option — the system prompt lists only Wallabag, Vikunja
+and none. The classifier answered the question it was asked; the question omits the forge.
+
+Notable individual verdicts: the Jass bug report (msg 184) → **Orphan**; `"Auto dispatcher Issues cross
+repo and milestone aligned"` → **Vikunja/Inbox**; `"Kürzel br bridge, fh flowhub…"` → **Orphan**. Nothing
+in the corpus's largest cluster reaches a repo.
+
+### 10.1 Repo detection — throwaway prototype
+
+To make §5's "infer the repo from content" concrete, a scratch matcher (token overlap over repo
+**name + description**, with a `game-*` bias on a `Game:` prefix) was run over the same 53 captures.
+**It is not production code and was not committed.**
+
+Roughly **10 correct, 8 wrong, 9 no-match**. Correct: `"Game: strand buggy > micro machines browser"` →
+`game-beach-buggy-racer`; `"Acronym Quiz: SPQR"` → `game-acronym-quiz`; `"bridge mcp from outside LAN?"`
+→ `bridge`. Wrong: `"Auto dispatcher Issues cross repo…"` → `game-criss-cross` (matched *cross*);
+`"Immich - Up and running?"` → `game-esel-running` (matched *running*).
+
+Two findings worth carrying into any real design:
+
+- **The `game-*` family is a magnet.** 38 repos with rich descriptions absorb any capture containing a
+  common word. Naive lexical scoring is not viable; the catalog should be a **shortlist offered to the
+  LLM**, not a scorer that decides alone.
+- **Several game ideas have no repo yet** — they are requests to *create* one. "Pick an existing repo"
+  is the wrong frame for that subset, and no current design covers it.
+
+---
+
+## 11. Artifacts
+
+- Replay + prototype outputs: session scratchpad (`replay-out.json`, `repomatch.py`) — **not committed**.
 - Parsed corpus: `messages.json` (203 records) in the session scratchpad — **not committed**; regenerate
   from the zip with the parser in this session's history if needed.
 - Source zip: `~/LocalSend/ChatExport_2026-08-24.zip` (9.6 MB, 132 files).
