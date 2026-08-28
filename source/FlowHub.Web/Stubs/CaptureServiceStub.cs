@@ -116,18 +116,19 @@ public sealed class CaptureServiceStub : ICaptureService
     }
 
     public async Task<Capture> SubmitAsync(
-        string? content, ChannelKind source, AttachmentInput? attachment, CancellationToken cancellationToken = default)
+        string? caption, ChannelKind source, AttachmentInput? attachment, CancellationToken cancellationToken = default)
     {
         if (attachment is null)
         {
-            return await SubmitAsync(content ?? throw new ArgumentNullException(nameof(content)), source, cancellationToken);
+            return await SubmitAsync(caption ?? throw new ArgumentNullException(nameof(caption)), source, cancellationToken);
         }
 
         var fileName = Path.GetFileName(attachment.FileName);
+        var content = string.IsNullOrWhiteSpace(caption) ? fileName : caption.Trim();
         var capture = new Capture(
             Id: Guid.NewGuid(),
             Source: source,
-            Content: fileName,
+            Content: content,
             CreatedAt: DateTimeOffset.UtcNow,
             Stage: LifecycleStage.Raw,
             MatchedSkill: null,
