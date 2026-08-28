@@ -88,6 +88,37 @@ public class RecentCapturesCardTests : TestContext
         clickedId.Should().Be(target.Id);
     }
 
+    [Fact]
+    public void Render_CaptureWithAttachment_ShowsTheAttachmentIconAndFileName()
+    {
+        var captures = new[]
+        {
+            new Capture(
+                Guid.NewGuid(), ChannelKind.Web, "boiler service invoice", DateTimeOffset.UtcNow,
+                LifecycleStage.Completed, "Wallabag",
+                Attachment: new Attachment("invoice.pdf", "application/pdf", 10, "2026/08/x.pdf", DateTimeOffset.UtcNow)),
+        };
+
+        var cut = RenderComponent<RecentCapturesCard>(p => p.Add(c => c.Captures, captures));
+
+        cut.Markup.Should().Contain("boiler service invoice");
+        cut.FindAll("[data-testid='attachment-indicator']").Should().HaveCount(1);
+    }
+
+    [Fact]
+    public void Render_CaptureWithoutAttachment_ShowsNoAttachmentIcon()
+    {
+        var captures = new[]
+        {
+            new Capture(Guid.NewGuid(), ChannelKind.Web, "just some text", DateTimeOffset.UtcNow,
+                LifecycleStage.Completed, "Articles"),
+        };
+
+        var cut = RenderComponent<RecentCapturesCard>(p => p.Add(c => c.Captures, captures));
+
+        cut.FindAll("[data-testid='attachment-indicator']").Should().BeEmpty();
+    }
+
     [Theory]
     // FormatRelative buckets — drive the < 60min / < 24h / ≥ 24h arms via CreatedAt.
     [InlineData(-30, "0 m")]      // < 1 minute → "now" not "0 m"; but Minute<1 returns "now". Tweak below.

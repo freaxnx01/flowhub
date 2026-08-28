@@ -120,9 +120,20 @@ else
             </PropertyColumn>
             <PropertyColumn Property="x => x.Content" Title="Content">
                 <CellTemplate>
-                    <MudText Typo="Typo.body2" Style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:380px;">
-                        @context.Item.Content
-                    </MudText>
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                        @if (context.Item.Attachment is not null)
+                        {
+                            <MudTooltip Text="@context.Item.Attachment.FileName">
+                                <MudIcon Icon="@Icons.Material.Filled.AttachFile"
+                                         Size="Size.Small"
+                                         Color="Color.Default"
+                                         data-testid="attachment-indicator" />
+                            </MudTooltip>
+                        }
+                        <MudText Typo="Typo.body2" Style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:380px;">
+                            @context.Item.Content
+                        </MudText>
+                    </MudStack>
                 </CellTemplate>
             </PropertyColumn>
             <PropertyColumn Property="x => x.MatchedSkill" Title="Skill">

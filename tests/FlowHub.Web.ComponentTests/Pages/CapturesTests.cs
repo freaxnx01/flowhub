@@ -32,6 +32,16 @@ public class CapturesTests : TestContext
             stage,
             matchedSkill);
 
+    private static Capture CapWithAttachment(string content, string fileName) =>
+        new(
+            Guid.NewGuid(),
+            ChannelKind.Web,
+            content,
+            DateTimeOffset.UtcNow,
+            LifecycleStage.Completed,
+            "Wallabag",
+            Attachment: new Attachment(fileName, "application/pdf", 10, "2026/08/x.pdf", DateTimeOffset.UtcNow));
+
     private void GivenCaptures(params Capture[] items) =>
         _captureService.GetAllAsync(Arg.Any<CancellationToken>())
             .Returns(items);
@@ -222,6 +232,27 @@ public class CapturesTests : TestContext
         targetRow.Click();
 
         nav.Uri.Should().EndWith($"/captures/{target.Id}");
+    }
+
+    [Fact]
+    public void Render_CaptureWithAttachment_ShowsTheAttachmentIconAndFileName()
+    {
+        GivenCaptures(CapWithAttachment("boiler service invoice", "invoice.pdf"));
+
+        var cut = RenderComponent<CapturesPage>();
+
+        cut.Markup.Should().Contain("boiler service invoice");
+        cut.FindAll("[data-testid='attachment-indicator']").Should().HaveCount(1);
+    }
+
+    [Fact]
+    public void Render_CaptureWithoutAttachment_ShowsNoAttachmentIcon()
+    {
+        GivenCaptures(Cap("just some text"));
+
+        var cut = RenderComponent<CapturesPage>();
+
+        cut.FindAll("[data-testid='attachment-indicator']").Should().BeEmpty();
     }
 
     [Fact]
