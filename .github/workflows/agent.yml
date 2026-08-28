@@ -75,6 +75,20 @@ jobs:
       # produced no PR (run 32873223257, error_max_turns). At 200 it reached
       # task 6 of 7 in 33 minutes before hitting the cap again (run 32883249971),
       # so 300 is sized off that measurement rather than a guess.
+      # Pre-preview (agent-workflow ADR-004): after the draft PR opens, the
+      # pipeline reviews its own diff and, on approve, promotes it to ready for a
+      # human to merge. No auto-merge and no safety envelope — a non-approve
+      # verdict leaves the PR draft and stamps `ai:review-blocked`.
+      #
+      # Needs no App or PAT: the pre_preview job runs on the ambient github.token.
+      # It activates only when this input is true AND the issue carries
+      # `ai-pre-preview`; /gh:implement applies that label automatically once it
+      # sees this line, and both labels already exist in this repo.
+      #
+      # Worth it because #29 arrived as 36 files / +1785 lines with no review and
+      # no checks. A first pass by the pipeline surfaces the obvious findings
+      # before a human opens the diff.
+      pre-preview: true
       max-turns: 300
       # Wall-clock cap on the claude process itself — distinct from
       # timeout-minutes above, which caps the job. Left unset it defaults to 10
