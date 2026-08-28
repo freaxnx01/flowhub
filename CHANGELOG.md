@@ -21,6 +21,12 @@ for continuity.
 - Async pipeline now runs on an in-memory bus by default; RabbitMQ is an opt-in
   overlay (`docker-compose.rabbitmq.yml`) for durable, broker-backed delivery.
 
+### Fixed
+
+- Text submitted alongside an attachment is kept as the Capture's content instead of
+  being replaced by the filename, so it reaches classification and search. Captures
+  carrying a file are now marked with an icon in the grids (#31).
+
 ## [0.3.1] - 2026-07-03
 
 ### Fixed
