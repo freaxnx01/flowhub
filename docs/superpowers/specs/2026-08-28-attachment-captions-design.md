@@ -16,7 +16,7 @@ It is discarded in three different places, which is why it reads as one bug and 
 | Where | What happens |
 |---|---|
 | `EfCaptureService.cs:62` | `Content` is set to `fileName`; the `content` argument is ignored |
-| `NewCapture.razor.cs:85` | Web passes `content: null` — **even though the form has a text field** |
+| `NewCapture.razor.cs:85` | Web passes `content: null` — and the form *disables* its text field once a file is staged (see D5) |
 | `CaptureWriteEndpoints.cs` `/upload` | The multipart request has no caption field at all |
 
 Telegram is the exception: `TelegramUpdateHandler` already passes `message.Text`, and logs a debug line saying the caption is being dropped.
@@ -53,7 +53,7 @@ Rejected: **`EnrichmentDescription`** — it is written by the enricher, not by 
 
 - **Core** — the fix above.
 - **Telegram** — already passes `message.Text`; the Core fix alone makes it work.
-- **Web** — `NewCapture.razor.cs:85` stops hard-coding `content: null` and passes `_content`. One line, for a field the form already renders (`NewCapture.razor:19-20`) and today silently discards.
+- **Web** — see D5. Larger than first assessed.
 - **API** — out of scope (see Non-goals).
 
 ### D3 — Attachments get an explicit icon in the grids
@@ -80,6 +80,30 @@ The parameter is literally named *"ignored typed text"*, so the behaviour was un
 `CLAUDE.md` says **never modify a test to make it green — fix the implementation.** That rule is about bending a test to hide a defect. This is the opposite: the specification changed, and the test encodes the old one. It must be updated, and the implementer should not read the rule as a reason to preserve the bug. Any implementation that keeps this assertion passing has not done the work.
 
 The updated test asserts the caption wins, and a **new** test covers the no-caption path so the fallback stays pinned.
+### D5 — Web re-enables the text field as a caption
+
+**Corrected during planning.** An earlier reading of D2 called this a one-line call-site fix. It is not. `NewCapture.razor:26,29` *deliberately* disables the text area when a file is staged and tells the user **"File overrides text"**:
+
+```razor
+HelperText="@(_stagedFile is null ? "…" : "File overrides text")"
+Disabled="_isSubmitting || _stagedFile is not null"
+```
+
+So `content: null` at the call site is not an oversight — it is consistent with a UI that refuses captions by design, and `tests/FlowHub.Web.ComponentTests/Pages/NewCaptureUploadTests.cs` pins that behaviour in `StagingFile_DisablesTextAreaAndShowsHelperText`.
+
+Passing `_content` without touching the UI would be worse than today: the field is disabled, not cleared, so it would submit whatever the user typed *before* staging the file.
+
+The Web change is therefore:
+
+1. Stop disabling the text area when a file is staged — `Disabled="_isSubmitting"`.
+2. Change the staged-file helper text from `"File overrides text"` to `"Caption (optional) — describe the file"`.
+3. Pass `_content` as the caption.
+4. Invert `StagingFile_DisablesTextAreaAndShowsHelperText`, which asserts the behaviour being replaced — the same deliberate-inversion reasoning as D4.
+
+This brings Web in line with Telegram, where sending a file with a caption is the ordinary case.
+
+Rejected: **dropping Web from the issue** (leaves a user unable to attach a note to a file — the original complaint); **keeping the disable but clearing `_content`** (removes the stale-text hazard while entrenching the no-captions decision, and throws away text already typed).
+
 
 ---
 
@@ -111,7 +135,8 @@ No new failure modes. The attachment-storage rollback on a repository failure (`
 - A caption with surrounding whitespace is trimmed
 - `Attachment.FileName` is the filename in every case above
 - bUnit: a Capture with an attachment renders the attach icon in `Captures.razor` and `RecentCapturesCard.razor`; one without renders no icon
-- Web: `NewCapture` submits `_content` alongside a staged file
+- Web: the text area stays enabled when a file is staged, and shows the caption helper text (inverts `StagingFile_DisablesTextAreaAndShowsHelperText`)
+- Web: `NewCapture` submits `_content` as the caption alongside a staged file
 
 ## Consequences
 
