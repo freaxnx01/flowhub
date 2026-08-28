@@ -20,6 +20,10 @@ a URL, a text snippet, a quote, an image, a voice memo. German working term:
 A Capture carries its source Channel, its content, a lifecycle stage, the Skill it
 matched, and (once processed) the downstream `ExternalRef` it produced.
 
+For a Capture with an attachment, `Content` is the caption submitted alongside the
+file, falling back to the filename when no caption was given. The filename is always
+available on the `Attachment` record regardless.
+
 Type: `FlowHub.Core.Captures.Capture`
 
 ### Capture lifecycle
