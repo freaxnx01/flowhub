@@ -23,10 +23,10 @@
                           RequiredError="Content is required"
                           Lines="5"
                           Placeholder="Paste a URL, type a quote, or describe what you want to capture."
-                          HelperText="@(_stagedFile is null ? "Paste a URL, type a quote, or describe what you want to capture." : "File overrides text")"
+                          HelperText="@(_stagedFile is null ? "Paste a URL, type a quote, or describe what you want to capture." : "Caption (optional) — describe the file")"
                           Variant="Variant.Outlined"
                           Class="mb-4"
-                          Disabled="_isSubmitting || _stagedFile is not null" />
+                          Disabled="_isSubmitting" />
 
             <MudSelect T="string"
                        @bind-Value="_selectedSkill"
