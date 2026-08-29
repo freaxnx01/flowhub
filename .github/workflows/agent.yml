@@ -88,6 +88,15 @@ jobs:
       # Worth it because #29 arrived as 36 files / +1785 lines with no review and
       # no checks. A first pass by the pipeline surfaces the obvious findings
       # before a human opens the diff.
+      # Both logins on purpose, so enabling the App is not a flag day. PRs are
+      # authored by github-actions[bot] today (the ambient GITHUB_TOKEN); once
+      # PIPELINE_APP_ID/PRIVATE_KEY are set they arrive as the App instead.
+      # find-pipeline-pr.sh matches on this list and every later pre-preview step
+      # is gated on it finding the PR — an unlisted author means pre-preview
+      # silently reviews nothing, with no error to notice.
+      pipeline-author-allowlist: |
+        github-actions[bot]
+        freaxnx01-agent-pipeline[bot]
       pre-preview: true
       max-turns: 300
       # Wall-clock cap on the claude process itself — distinct from
