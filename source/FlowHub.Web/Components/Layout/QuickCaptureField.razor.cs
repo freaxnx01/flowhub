@@ -122,7 +122,10 @@ public partial class QuickCaptureField : ComponentBase
                 ContentType = file.ContentType,
                 SizeBytes = file.Size,
             };
-            var capture = await CaptureService.SubmitAsync(caption: null, ChannelKind.Web, input);
+            // Text typed before the file was staged is the caption, not something to
+            // discard — the quick-add field is the other Web submit path (#31).
+            var caption = string.IsNullOrWhiteSpace(_input) ? null : _input.Trim();
+            var capture = await CaptureService.SubmitAsync(caption, ChannelKind.Web, input);
             Snackbar.Add($"Uploaded ✓ — {capture.Content}", Severity.Success, key: capture.Id.ToString());
             ClearFile();
         }

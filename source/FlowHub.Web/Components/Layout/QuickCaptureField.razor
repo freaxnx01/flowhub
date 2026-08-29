@@ -28,17 +28,18 @@
                 <MudText Color="Color.Error" Typo="Typo.caption">@_fileError</MudText>
             }
         }
-        else
-        {
-            <MudTextField T="string"
-                          @bind-Value="_input"
-                          Immediate="true"
-                          Placeholder="+ Quick capture: paste URL or type…"
-                          Variant="Variant.Outlined"
-                          Margin="Margin.Dense"
-                          OnKeyDown="OnKeyDownAsync"
-                          Disabled="_isSubmitting" />
-        }
+
+        @* The text field stays rendered while a file is staged so its caption is
+           visible and editable rather than submitted unseen (#31). Placeholder
+           switches to name the field's role once a file is attached. *@
+        <MudTextField T="string"
+                      @bind-Value="_input"
+                      Immediate="true"
+                      Placeholder="@(_stagedFile is null ? "+ Quick capture: paste URL or type…" : "Caption (optional)")"
+                      Variant="Variant.Outlined"
+                      Margin="Margin.Dense"
+                      OnKeyDown="OnKeyDownAsync"
+                      Disabled="_isSubmitting" />
 
         <MudIconButton Icon="@(_isSubmitting ? Icons.Material.Filled.HourglassTop : Icons.Material.Filled.KeyboardReturn)"
                        Color="Color.Inherit"
