@@ -101,6 +101,8 @@ public static class AiServiceCollectionExtensions
         var apiKey = configuration[$"Ai:{outcome.Provider}:ApiKey"]!;
         var model = outcome.Model!;
         var maxTokens = int.TryParse(configuration["Ai:MaxOutputTokens"], out var parsed) ? parsed : 300;
+        var allowBridgeClassification =
+            bool.TryParse(configuration["Ai:EnableBridgeClassification"], out var allowBridge) && allowBridge;
 
         services.AddSingleton<IChatClient>(sp =>
             BuildChatClient(outcome.Provider!.Value, apiKey, model, configuration)
@@ -120,7 +122,8 @@ public static class AiServiceCollectionExtensions
             new ChatOptions { MaxOutputTokens = maxTokens, Temperature = 0.2f },
             sp.GetRequiredService<IVikunjaProjectCatalog>(),
             sp.GetRequiredService<AiModelInfo>(),
-            sp.GetRequiredService<IBridgeCatalog>()));
+            sp.GetRequiredService<IBridgeCatalog>(),
+            allowBridgeClassification));
         services.AddSingleton<IClassifier>(sp => sp.GetRequiredService<AiClassifier>());
 
         return services;

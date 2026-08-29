@@ -69,4 +69,58 @@ public sealed class CaptureEnrichmentConsumerBridgeTests
         (await harness.Published.Any<CaptureClassified>(x => x.Context.Message.CaptureId == capture.Id))
             .Should().BeFalse();
     }
+
+    [Fact]
+    public async Task Consume_BridgeWithoutAlias_ParksWithRepoUndeterminedReason()
+    {
+        var classifier = ClassifierReturning(new ClassificationResult(
+            ["dev"], "Bridge", Title: "Align milestones"));
+
+        await using var provider = PipelineTestBase.Build(
+            configure: s => s.AddSingleton(classifier),
+            configureBus: x => x.AddConsumer<CaptureEnrichmentConsumer>());
+
+        var harness = provider.GetRequiredService<ITestHarness>();
+        await harness.Start();
+
+        const string content = "Auto dispatcher issues cross repo and milestone aligned";
+        var captureService = provider.GetRequiredService<ICaptureService>();
+        var capture = await captureService.SubmitAsync(content, ChannelKind.Web, default);
+
+        await harness.Bus.Publish(new CaptureCreated(capture.Id, content, ChannelKind.Web, DateTimeOffset.UtcNow));
+
+        (await harness.Consumed.Any<CaptureCreated>(x => x.Context.Message.CaptureId == capture.Id))
+            .Should().BeTrue();
+
+        var stored = (await captureService.GetByIdAsync(capture.Id, default))!;
+        stored.Stage.Should().Be(LifecycleStage.Unhandled);
+        stored.FailureReason.Should().Be("bridge candidate — repo undetermined");
+        (await harness.Published.Any<CaptureClassified>(x => x.Context.Message.CaptureId == capture.Id))
+            .Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Consume_BridgeWithAliasButUnknownAction_KeepsActionUndeterminedReason()
+    {
+        var classifier = ClassifierReturning(new ClassificationResult(
+            ["bridge"], "Bridge", BridgeAlias: "br", BridgeAction: BridgeAction.Unknown));
+
+        await using var provider = PipelineTestBase.Build(
+            configure: s => s.AddSingleton(classifier),
+            configureBus: x => x.AddConsumer<CaptureEnrichmentConsumer>());
+
+        var harness = provider.GetRequiredService<ITestHarness>();
+        await harness.Start();
+
+        var captureService = provider.GetRequiredService<ICaptureService>();
+        var capture = await captureService.SubmitAsync("br hmm", ChannelKind.Web, default);
+
+        await harness.Bus.Publish(new CaptureCreated(capture.Id, "br hmm", ChannelKind.Web, DateTimeOffset.UtcNow));
+
+        (await harness.Consumed.Any<CaptureCreated>(x => x.Context.Message.CaptureId == capture.Id))
+            .Should().BeTrue();
+
+        var stored = (await captureService.GetByIdAsync(capture.Id, default))!;
+        stored.FailureReason.Should().Be("bridge action undetermined — needs triage");
+    }
 }

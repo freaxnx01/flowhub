@@ -51,13 +51,14 @@ public sealed partial class CaptureEnrichmentConsumer : IConsumer<CaptureCreated
 
         var result = await _classifier.ClassifyAsync(msg.Content, ct);
 
-        // Bridge alias matched but the classifier couldn't determine issue-vs-idea →
-        // park for triage before any publish/network call (spec decision #6).
+        // Bridge with no determinable target → park for triage before any publish or
+        // network call (spec decision #6). Two distinct causes, two distinct reasons:
+        // no alias means the LLM proposed Bridge but no repo is known (issue #38);
+        // an alias with an Unknown action means issue-vs-idea could not be decided.
         if (string.Equals(result.MatchedSkill, "Bridge", StringComparison.Ordinal)
             && result.BridgeAction == BridgeAction.Unknown)
         {
-            await _captureService.MarkUnhandledAsync(
-                msg.CaptureId, "bridge action undetermined — needs triage", ct);
+            await _captureService.MarkUnhandledAsync(msg.CaptureId, BridgeUndeterminedReason(result), ct);
             LogBridgeUndetermined(msg.CaptureId, result.BridgeAlias ?? string.Empty);
             return;
         }
@@ -101,6 +102,11 @@ public sealed partial class CaptureEnrichmentConsumer : IConsumer<CaptureCreated
             result.BridgeAction,
             result.BridgeBody));
     }
+
+    private static string BridgeUndeterminedReason(ClassificationResult result) =>
+        result.BridgeAlias is null
+            ? "bridge candidate — repo undetermined"
+            : "bridge action undetermined — needs triage";
 
     [LoggerMessage(
         EventId = 1001,

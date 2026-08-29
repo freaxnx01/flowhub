@@ -15,7 +15,8 @@ namespace FlowHub.AI;
 /// </summary>
 internal sealed partial class AiClassifier : IClassifier
 {
-    private static readonly string[] AllowedSkills = ["Wallabag", "Vikunja", ""];
+    private static readonly string[] SkillsWithoutBridge = ["Wallabag", "Vikunja", ""];
+    private static readonly string[] SkillsWithBridge = ["Wallabag", "Vikunja", "Bridge", ""];
 
     private readonly IChatClient _chat;
     private readonly IClassifier _keyword;
@@ -24,6 +25,8 @@ internal sealed partial class AiClassifier : IClassifier
     private readonly IVikunjaProjectCatalog _catalog;
     private readonly AiModelInfo _modelInfo;
     private readonly IBridgeCatalog _bridgeCatalog;
+    private readonly bool _allowBridgeClassification;
+    private readonly string[] _allowedSkills;
 
     public AiClassifier(
         IChatClient chat,
@@ -32,7 +35,8 @@ internal sealed partial class AiClassifier : IClassifier
         ChatOptions options,
         IVikunjaProjectCatalog catalog,
         AiModelInfo modelInfo,
-        IBridgeCatalog bridgeCatalog)
+        IBridgeCatalog bridgeCatalog,
+        bool allowBridgeClassification = false)
     {
         _chat = chat;
         _keyword = keyword;
@@ -41,6 +45,8 @@ internal sealed partial class AiClassifier : IClassifier
         _catalog = catalog;
         _modelInfo = modelInfo;
         _bridgeCatalog = bridgeCatalog;
+        _allowBridgeClassification = allowBridgeClassification;
+        _allowedSkills = allowBridgeClassification ? SkillsWithBridge : SkillsWithoutBridge;
     }
 
     public async Task<ClassificationResult> ClassifyAsync(string content, CancellationToken cancellationToken)
@@ -60,7 +66,7 @@ internal sealed partial class AiClassifier : IClassifier
             var buckets = catalog.Keys.ToArray();
 
             var response = await _chat.GetResponseAsync<AiClassificationResponse>(
-                AiPrompts.BuildMessages(content, buckets),
+                AiPrompts.BuildMessages(content, buckets, _allowBridgeClassification),
                 _options,
                 cancellationToken: cancellationToken);
 
@@ -69,7 +75,7 @@ internal sealed partial class AiClassifier : IClassifier
                 throw new InvalidOperationException("schema_violation");
             }
 
-            if (Array.IndexOf(AllowedSkills, payload.MatchedSkill) < 0)
+            if (Array.IndexOf(_allowedSkills, payload.MatchedSkill) < 0)
             {
                 throw new InvalidOperationException("schema_violation");
             }

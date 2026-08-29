@@ -14,6 +14,7 @@ for continuity.
 
 - Telegram inbound Channel: messages from allow-listed users become Captures, and the
   original message is marked with a reaction when its Capture resolves (#20).
+- Classifier can route a capture to Bridge when `Ai:EnableBridgeClassification` is enabled (default off). A Bridge result with no repo parks as Unhandled for triage. (#37)
 
 ### Changed
 
