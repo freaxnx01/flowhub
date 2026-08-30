@@ -14,6 +14,8 @@ public class ClassifyAndEnrichPipelineTests
     {
         public Task<IReadOnlySet<string>> GetAliasesAsync(CancellationToken cancellationToken) =>
             Task.FromResult<IReadOnlySet<string>>(new HashSet<string>());
+        public Task<IReadOnlyList<BridgeRepo>> GetReposAsync(CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyList<BridgeRepo>>(Array.Empty<BridgeRepo>());
     }
     private static ChatResponse JsonResponse(object payload) =>
         new(new ChatMessage(ChatRole.Assistant, JsonSerializer.Serialize(payload)));

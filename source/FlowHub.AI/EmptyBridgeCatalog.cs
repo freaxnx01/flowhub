@@ -13,5 +13,10 @@ internal sealed class EmptyBridgeCatalog : IBridgeCatalog
     private static readonly Task<IReadOnlySet<string>> Empty =
         Task.FromResult<IReadOnlySet<string>>(new HashSet<string>(StringComparer.Ordinal));
 
+    private static readonly Task<IReadOnlyList<BridgeRepo>> EmptyRepos =
+        Task.FromResult<IReadOnlyList<BridgeRepo>>(Array.Empty<BridgeRepo>());
+
     public Task<IReadOnlySet<string>> GetAliasesAsync(CancellationToken cancellationToken) => Empty;
+
+    public Task<IReadOnlyList<BridgeRepo>> GetReposAsync(CancellationToken cancellationToken) => EmptyRepos;
 }

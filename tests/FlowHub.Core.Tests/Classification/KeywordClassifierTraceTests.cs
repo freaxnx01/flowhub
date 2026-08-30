@@ -9,6 +9,8 @@ public sealed class KeywordClassifierTraceTests
     {
         public Task<IReadOnlySet<string>> GetAliasesAsync(CancellationToken cancellationToken) =>
             Task.FromResult<IReadOnlySet<string>>(new HashSet<string>());
+        public Task<IReadOnlyList<FlowHub.Core.Skills.BridgeRepo>> GetReposAsync(CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyList<FlowHub.Core.Skills.BridgeRepo>>(Array.Empty<FlowHub.Core.Skills.BridgeRepo>());
     }
 
     [Fact]
