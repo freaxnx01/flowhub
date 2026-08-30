@@ -21,6 +21,7 @@ public sealed partial class BridgeCatalog : IBridgeCatalog, IDisposable
     private readonly SemaphoreSlim _gate = new(1, 1);
 
     private IReadOnlySet<string>? _cache;
+    private IReadOnlyList<BridgeRepo>? _repoCache;
     private DateTimeOffset _fetchedAt;
 
     public BridgeCatalog(
@@ -61,16 +62,8 @@ public sealed partial class BridgeCatalog : IBridgeCatalog, IDisposable
                 var repos = await response.Content.ReadFromJsonAsync<BridgeRepoDto[]>(cancellationToken)
                     ?? Array.Empty<BridgeRepoDto>();
 
-                var set = new HashSet<string>(StringComparer.Ordinal);
-                foreach (var repo in repos)
-                {
-                    if (!string.IsNullOrWhiteSpace(repo.Alias))
-                    {
-                        set.Add(repo.Alias.Trim().ToLowerInvariant());
-                    }
-                }
-
-                _cache = set;
+                _cache = BuildAliasSet(repos);
+                _repoCache = BuildRepoList(repos);
                 _fetchedAt = now;
                 return _cache;
             }
@@ -85,6 +78,7 @@ public sealed partial class BridgeCatalog : IBridgeCatalog, IDisposable
                 LogFirstFetchFailed(ex.GetType().Name);
                 var empty = (IReadOnlySet<string>)new HashSet<string>(StringComparer.Ordinal);
                 _cache = empty;
+                _repoCache = Array.Empty<BridgeRepo>();
                 _fetchedAt = now;
                 return empty;
             }
@@ -95,9 +89,44 @@ public sealed partial class BridgeCatalog : IBridgeCatalog, IDisposable
         }
     }
 
+    public async Task<IReadOnlyList<BridgeRepo>> GetReposAsync(CancellationToken cancellationToken)
+    {
+        await GetAliasesAsync(cancellationToken);
+        return _repoCache ?? Array.Empty<BridgeRepo>();
+    }
+
+    private static HashSet<string> BuildAliasSet(BridgeRepoDto[] repos)
+    {
+        var set = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var repo in repos)
+        {
+            if (!string.IsNullOrWhiteSpace(repo.Alias))
+            {
+                set.Add(repo.Alias.Trim().ToLowerInvariant());
+            }
+        }
+        return set;
+    }
+
+    private static List<BridgeRepo> BuildRepoList(BridgeRepoDto[] repos) =>
+        repos
+            .Where(r => !string.IsNullOrWhiteSpace(r.Name))
+            .Select(r => new BridgeRepo(
+                r.Name!.Trim(),
+                string.IsNullOrWhiteSpace(r.Alias) ? null : r.Alias.Trim().ToLowerInvariant(),
+                string.IsNullOrWhiteSpace(r.Desc) ? null : r.Desc.Trim(),
+                (IReadOnlyList<string>)(r.Topics ?? Array.Empty<string>()),
+                r.Last_Used))
+            .ToList();
+
     public void Dispose() => _gate.Dispose();
 
-    private sealed record BridgeRepoDto(string? Alias);
+    private sealed record BridgeRepoDto(
+        string? Name,
+        string? Alias,
+        string? Desc,
+        string[]? Topics,
+        DateTimeOffset? Last_Used);
 
     [LoggerMessage(EventId = 3050, Level = LogLevel.Warning,
         Message = "Bridge catalog first fetch failed (reason={Reason}); no aliases available")]

@@ -11,6 +11,8 @@ public sealed class KeywordClassifierBridgeTests
         private readonly IReadOnlySet<string> _aliases = new HashSet<string>(aliases, StringComparer.Ordinal);
         public Task<IReadOnlySet<string>> GetAliasesAsync(CancellationToken cancellationToken) =>
             Task.FromResult(_aliases);
+        public Task<IReadOnlyList<BridgeRepo>> GetReposAsync(CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyList<BridgeRepo>>(Array.Empty<BridgeRepo>());
     }
 
     [Fact]
