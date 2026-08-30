@@ -1,5 +1,7 @@
+using FlowHub.Persistence.Entities;
 using FlowHub.Persistence.Repositories;
 using FlowHub.Persistence.Tests.Fixtures;
+using Microsoft.EntityFrameworkCore;
 
 namespace FlowHub.Persistence.Tests.Repositories;
 
@@ -63,5 +65,57 @@ public sealed class RepoEmbeddingStoreTests(PostgresFixture fixture)
         var hits = await sut.NearestAsync(Vec(10f), 2, default);
 
         hits[0].Should().Be("near");
+    }
+
+    [Fact]
+    public async Task NearestAsync_RowWithoutAnEmbedding_IsExcluded()
+    {
+        // The Embedding column is nullable, so a row can exist with a hash but no vector.
+        // NearestAsync filters those out; without the filter pgvector would order them
+        // arbitrarily and a repo with no embedding could win the shortlist.
+        await using var db = await fixture.CreateFreshDbAsync();
+        var sut = new EfRepoEmbeddingStore(db);
+        await sut.UpsertAsync("embedded", "h", Vec(10f), default);
+        db.RepoEmbeddings.Add(new RepoEmbeddingEntity
+        {
+            RepoName = "pending",
+            ContentHash = "h",
+            Embedding = null,
+            UpdatedAt = DateTimeOffset.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        var hits = await sut.NearestAsync(Vec(10f), 50, default);
+
+        hits.Should().ContainSingle().Which.Should().Be("embedded");
+    }
+
+    [Fact]
+    public async Task UpsertAsync_ConcurrentCallsForTheSameRepo_AllSucceed()
+    {
+        // Overlapping catalogue syncs are reachable: RepoResolver syncs per classification
+        // and the pipeline consumers run concurrently. A read-then-write would have both
+        // callers INSERT the same primary key and one would fail.
+        await using var db = await fixture.CreateFreshDbAsync();
+        var connectionString = db.Database.GetConnectionString()!;
+
+        FlowHubDbContext Connect() => new(
+            new DbContextOptionsBuilder<FlowHubDbContext>()
+                .UseNpgsql(connectionString, npgsql => npgsql.UseVector())
+                .Options);
+
+        var writes = Enumerable.Range(0, 8).Select(async i =>
+        {
+            // A DbContext is not thread-safe, so each concurrent writer needs its own.
+            await using var scoped = Connect();
+            await new EfRepoEmbeddingStore(scoped).UpsertAsync("racy", $"hash-{i}", Vec(i), default);
+        });
+
+        var act = async () => await Task.WhenAll(writes);
+
+        await act.Should().NotThrowAsync();
+
+        var hashes = await new EfRepoEmbeddingStore(db).GetHashesAsync(default);
+        hashes.Should().ContainKey("racy");
     }
 }
