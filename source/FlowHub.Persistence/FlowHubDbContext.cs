@@ -15,6 +15,7 @@ public sealed class FlowHubDbContext : DbContext
     internal DbSet<TagEntity> Tags => Set<TagEntity>();
     internal DbSet<SkillRunEntity> SkillRuns => Set<SkillRunEntity>();
     internal DbSet<TelegramUpdateEntity> TelegramUpdates => Set<TelegramUpdateEntity>();
+    internal DbSet<RepoEmbeddingEntity> RepoEmbeddings => Set<RepoEmbeddingEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -29,6 +30,7 @@ public sealed class FlowHubDbContext : DbContext
         {
             // InMemory and other non-Npgsql providers cannot map Pgvector.Vector — ignore the column.
             modelBuilder.Entity<CaptureEntity>().Ignore(c => c.Embedding);
+            modelBuilder.Entity<RepoEmbeddingEntity>().Ignore(r => r.Embedding);
         }
     }
 }

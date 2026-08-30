@@ -1,6 +1,7 @@
 using FlowHub.Core.Captures;
 using FlowHub.Core.Channels;
 using FlowHub.Core.Health;
+using FlowHub.Core.Skills;
 using FlowHub.Persistence.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -32,6 +33,7 @@ public static class PersistenceServiceCollectionExtensions
         services.AddScoped<ITagRepository, EfTagRepository>();
         services.AddScoped<ISkillRunRepository, EfSkillRunRepository>();
         services.AddScoped<ITelegramUpdateRepository, EfTelegramUpdateRepository>();
+        services.AddScoped<IRepoEmbeddingStore, EfRepoEmbeddingStore>();
         services.TryAddSingleton<IEmbeddingService>(NullEmbeddingService.Instance);
 
         return services;
