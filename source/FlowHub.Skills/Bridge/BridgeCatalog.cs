@@ -112,6 +112,7 @@ public sealed partial class BridgeCatalog : IBridgeCatalog, IDisposable
         repos
             .Where(r => !string.IsNullOrWhiteSpace(r.Name))
             .Select(r => new BridgeRepo(
+                // Safe: the Where above filters out null/whitespace names.
                 r.Name!.Trim(),
                 string.IsNullOrWhiteSpace(r.Alias) ? null : r.Alias.Trim().ToLowerInvariant(),
                 string.IsNullOrWhiteSpace(r.Desc) ? null : r.Desc.Trim(),
