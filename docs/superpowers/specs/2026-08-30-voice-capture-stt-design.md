@@ -113,6 +113,22 @@ On failure the consumer calls `MarkOrphanAsync` with the reason, and the bot rep
 
 Transcription is billed per minute. Without a cap, one mis-sent hour-long recording is an unbounded charge for something nobody meant to capture.
 
+### D8 — The transcript is persisted via a narrow `SetTranscriptAsync`
+
+**Found during planning.** `ICaptureService` has no way to change `Content` after creation — `MarkClassifiedAsync` sets `MatchedSkill` and `Title` only. Without a new method the transcript would travel in the re-published event (so classification works) while the **stored Capture kept `"[voice message]"` forever**: wrong in the grids, unmatched by the search filter at `Captures.razor.cs:73`, and embedded as the placeholder so voice captures would never surface in semantic search.
+
+So the port gains one method:
+
+```csharp
+Task<Capture> SetTranscriptAsync(Guid id, string transcript, CancellationToken cancellationToken = default);
+```
+
+implemented in `EfCaptureService`, `CaptureServiceStub` and `TelegramReactionCaptureServiceDecorator`. The transcription consumer calls it **before** re-publishing, so the row and the event agree.
+
+Named for its one job deliberately. A general `SetContentAsync` would be a broad mutator on the Capture aggregate inviting edits nobody has designed for; renaming is cheap if a second caller ever appears.
+
+Rejected: **`EnrichmentDescription`** — it is the enricher's field, and using it leaves the grids, the search filter and the embedding all looking at the placeholder.
+
 ---
 
 ## Architecture
