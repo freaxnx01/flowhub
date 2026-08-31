@@ -17,4 +17,10 @@
     <ProjectReference Include="..\FlowHub.Core\FlowHub.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- The retry handler is internal; its published event is worth asserting on
+         directly rather than inferring from downstream effects. -->
+    <InternalsVisibleTo Include="FlowHub.Api.IntegrationTests" />
+  </ItemGroup>
+
 </Project>

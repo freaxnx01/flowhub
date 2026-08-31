@@ -21,7 +21,7 @@ internal static class CaptureRetryEndpoint
             .ProducesProblem(StatusCodes.Status409Conflict);
     }
 
-    private static async Task<Results<Accepted<Capture>, ProblemHttpResult>> RetryAsync(
+    internal static async Task<Results<Accepted<Capture>, ProblemHttpResult>> RetryAsync(
         Guid id,
         ICaptureService captureService,
         IBus bus,
@@ -55,7 +55,14 @@ internal static class CaptureRetryEndpoint
         // in-memory MassTransit consumer has already classified the capture before we read it back.
         var reset = capture with { Stage = LifecycleStage.Raw, FailureReason = null };
 
-        await bus.Publish(new CaptureCreated(capture.Id, capture.Content, capture.Source, capture.CreatedAt), ct);
+        // HasAttachment must be re-derived: it defaults to false, and consumers branch on
+        // it — CaptureEnrichmentConsumer routes attachment-bearing Captures to Paperless
+        // without classifying. Dropping it here silently reclassified retried scans (#34).
+        await bus.Publish(
+            new CaptureCreated(
+                capture.Id, capture.Content, capture.Source, capture.CreatedAt,
+                HasAttachment: capture.Attachment is not null),
+            ct);
 
         return TypedResults.Accepted($"/api/v1/captures/{id}", reset);
     }
