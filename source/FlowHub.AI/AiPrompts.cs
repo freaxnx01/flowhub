@@ -76,4 +76,35 @@ internal static class AiPrompts
         new ChatMessage(ChatRole.System, BridgeSystemPrompt),
         new ChatMessage(ChatRole.User, content),
     ];
+
+    internal static IList<ChatMessage> BuildRepoConfirmMessages(
+        string content, IReadOnlyList<(string Name, string? Desc)> candidates)
+    {
+        var lines = string.Join("\n", candidates.Select(c =>
+            c.Desc is null ? $"  - {c.Name}" : $"  - {c.Name} — {c.Desc}"));
+
+        var system = string.Create(CultureInfo.InvariantCulture, $$"""
+            You route a developer note to one of the operator's own code repositories.
+
+            Candidate repositories:
+            {{lines}}
+
+            Return:
+            - repo: the exact name of ONE listed repository, or null if none of them fits.
+                    Choosing a repository that does not fit is worse than returning null.
+                    Never invent a name that is not in the list above.
+            - action: "issue" for an actionable bug report, task, or concrete feature
+                      request; "idea" for a fuzzy or exploratory thought
+            - title: a 3–8 word title
+            - body: the cleaned-up detail
+
+            Reply ONLY via the structured response schema. Never include explanations.
+            """);
+
+        return
+        [
+            new ChatMessage(ChatRole.System, system),
+            new ChatMessage(ChatRole.User, content),
+        ];
+    }
 }
