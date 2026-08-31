@@ -92,7 +92,12 @@ A new table stores one embedding per repo:
 | `UpdatedAt` | timestamptz | |
 
 On each catalog refresh, re-embed **only** repos whose `ContentHash` changed, and delete rows for repos
-no longer in the catalog. Recomputing 94 embeddings every 5-minute TTL would be pure waste; the hash
+no longer in the catalog.
+
+**The write must be atomic.** `RepoResolver` syncs per classification and the pipeline consumers run
+concurrently, so two overlapping syncs can target the same repo. A read-then-write keyed on the primary
+key has both callers see no row, both insert, and one fail — an `ON CONFLICT DO UPDATE` (or equivalent)
+is required for last-writer-wins to be the actual behaviour rather than the intended one. Recomputing 94 embeddings every 5-minute TTL would be pure waste; the hash
 makes a refresh normally zero embedding calls.
 
 Embedding text is `"{Name}\n{Desc}"`. Name matters — the `game-` prefix is real signal — and repos with
