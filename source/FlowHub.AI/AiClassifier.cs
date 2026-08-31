@@ -27,6 +27,7 @@ internal sealed partial class AiClassifier : IClassifier
     private readonly IBridgeCatalog _bridgeCatalog;
     private readonly bool _allowBridgeClassification;
     private readonly string[] _allowedSkills;
+    private readonly RepoResolver? _repoResolver;
 
     public AiClassifier(
         IChatClient chat,
@@ -36,7 +37,8 @@ internal sealed partial class AiClassifier : IClassifier
         IVikunjaProjectCatalog catalog,
         AiModelInfo modelInfo,
         IBridgeCatalog bridgeCatalog,
-        bool allowBridgeClassification = false)
+        bool allowBridgeClassification = false,
+        RepoResolver? repoResolver = null)
     {
         _chat = chat;
         _keyword = keyword;
@@ -47,6 +49,7 @@ internal sealed partial class AiClassifier : IClassifier
         _bridgeCatalog = bridgeCatalog;
         _allowBridgeClassification = allowBridgeClassification;
         _allowedSkills = allowBridgeClassification ? SkillsWithBridge : SkillsWithoutBridge;
+        _repoResolver = repoResolver;
     }
 
     public async Task<ClassificationResult> ClassifyAsync(string content, CancellationToken cancellationToken)
@@ -80,6 +83,12 @@ internal sealed partial class AiClassifier : IClassifier
                 throw new InvalidOperationException("schema_violation");
             }
 
+            var resolved = await TryResolveBridgeAsync(payload, content, sw, response, cancellationToken);
+            if (resolved is not null)
+            {
+                return resolved;
+            }
+
             var project = string.Equals(payload.MatchedSkill, "Vikunja", StringComparison.Ordinal)
                 ? payload.Project
                 : null;
@@ -89,16 +98,7 @@ internal sealed partial class AiClassifier : IClassifier
                 : null;
 
             sw.Stop();
-            // Latency (ms) and token counts fit int for any real classify call; casts are intentional.
-            var trace = new ClassifierTrace(
-                ClassifierKind.Ai,
-                (int)sw.ElapsedMilliseconds,
-                _modelInfo.Provider,
-                _modelInfo.Model,
-                (int?)response.Usage?.InputTokenCount,
-                (int?)response.Usage?.OutputTokenCount);
-
-            return new ClassificationResult(payload.Tags, payload.MatchedSkill, payload.Title, project, entities, trace);
+            return new ClassificationResult(payload.Tags, payload.MatchedSkill, payload.Title, project, entities, BuildTrace(sw, response));
         }
         catch (Exception ex)
         {
@@ -109,6 +109,37 @@ internal sealed partial class AiClassifier : IClassifier
             LogFellBack(reason, sw.ElapsedMilliseconds);
             return await _keyword.ClassifyAsync(content, cancellationToken);
         }
+    }
+
+    private async Task<ClassificationResult?> TryResolveBridgeAsync(
+        AiClassificationResponse payload,
+        string content,
+        Stopwatch sw,
+        ChatResponse<AiClassificationResponse> response,
+        CancellationToken cancellationToken)
+    {
+        if (!string.Equals(payload.MatchedSkill, "Bridge", StringComparison.Ordinal) || _repoResolver is null)
+        {
+            return null;
+        }
+
+        var resolution = await _repoResolver.ResolveAsync(content, cancellationToken);
+        if (resolution is null)
+        {
+            // Unresolved → let the caller fall through, producing Bridge with a null alias,
+            // which CaptureEnrichmentConsumer parks as "bridge candidate — repo undetermined".
+            return null;
+        }
+
+        sw.Stop();
+        return new ClassificationResult(
+            payload.Tags,
+            "Bridge",
+            Title: resolution.Title ?? payload.Title,
+            Trace: BuildTrace(sw, response),
+            BridgeAlias: resolution.Repo,
+            BridgeAction: resolution.Action,
+            BridgeBody: resolution.Body);
     }
 
     private async Task<ClassificationResult> ClassifyBridgeAsync(
@@ -134,23 +165,25 @@ internal sealed partial class AiClassifier : IClassifier
         var tags = payload.Tags is { Length: > 0 } ? payload.Tags : ["bridge"];
 
         sw.Stop();
-        var trace = new ClassifierTrace(
+        return new ClassificationResult(
+            tags,
+            "Bridge",
+            Title: payload.Title,
+            Trace: BuildTrace(sw, response),
+            BridgeAlias: alias,
+            BridgeAction: action,
+            BridgeBody: payload.Body);
+    }
+
+    // Latency (ms) and token counts fit int for any real classify call; casts are intentional.
+    private ClassifierTrace BuildTrace<T>(Stopwatch sw, ChatResponse<T> response) =>
+        new(
             ClassifierKind.Ai,
             (int)sw.ElapsedMilliseconds,
             _modelInfo.Provider,
             _modelInfo.Model,
             (int?)response.Usage?.InputTokenCount,
             (int?)response.Usage?.OutputTokenCount);
-
-        return new ClassificationResult(
-            tags,
-            "Bridge",
-            Title: payload.Title,
-            Trace: trace,
-            BridgeAlias: alias,
-            BridgeAction: action,
-            BridgeBody: payload.Body);
-    }
 
     [LoggerMessage(
         EventId = 3010,

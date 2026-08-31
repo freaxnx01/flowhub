@@ -115,6 +115,25 @@ public static class AiServiceCollectionExtensions
 
         services.AddSingleton(new AiModelInfo(outcome.Provider!.Value.ToString(), model));
 
+        // ScopedRepoEmbeddingStore is a singleton adapter that opens a DI scope
+        // per-call to reach the scoped EfRepoEmbeddingStore. It is registered as a
+        // concrete type (not as IRepoEmbeddingStore) so it does not shadow the
+        // scoped store used elsewhere in the app.
+        services.AddSingleton<ScopedRepoEmbeddingStore>();
+        services.AddSingleton<RepoEmbeddingSynchronizer>(sp => new RepoEmbeddingSynchronizer(
+            sp.GetRequiredService<IBridgeCatalog>(),
+            sp.GetRequiredService<ScopedRepoEmbeddingStore>(),
+            sp.GetRequiredService<IEmbeddingService>(),
+            sp.GetRequiredService<ILogger<RepoEmbeddingSynchronizer>>()));
+        services.AddSingleton<RepoResolver>(sp => new RepoResolver(
+            sp.GetRequiredService<IChatClient>(),
+            sp.GetRequiredService<IBridgeCatalog>(),
+            sp.GetRequiredService<ScopedRepoEmbeddingStore>(),
+            sp.GetRequiredService<IEmbeddingService>(),
+            new ChatOptions { MaxOutputTokens = maxTokens, Temperature = 0.2f },
+            sp.GetRequiredService<RepoEmbeddingSynchronizer>(),
+            sp.GetRequiredService<ILogger<RepoResolver>>()));
+
         services.AddSingleton(sp => new AiClassifier(
             sp.GetRequiredService<IChatClient>(),
             sp.GetRequiredService<KeywordClassifier>(),
@@ -123,7 +142,8 @@ public static class AiServiceCollectionExtensions
             sp.GetRequiredService<IVikunjaProjectCatalog>(),
             sp.GetRequiredService<AiModelInfo>(),
             sp.GetRequiredService<IBridgeCatalog>(),
-            allowBridgeClassification));
+            allowBridgeClassification,
+            allowBridgeClassification ? sp.GetRequiredService<RepoResolver>() : null));
         services.AddSingleton<IClassifier>(sp => sp.GetRequiredService<AiClassifier>());
 
         return services;
