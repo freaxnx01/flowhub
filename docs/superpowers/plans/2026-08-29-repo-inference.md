@@ -258,6 +258,11 @@ Refs #38"
 
 ### Task 2: Persist repo embeddings
 
+> **Corrected 2026-08-31.** The original listing used a read-then-write upsert, which is
+> racy on the primary key under concurrent catalogue syncs. Caught by the pre-preview review on
+> PR #51 after it had shipped; fixed there and back-ported here so this plan does not teach the
+> broken pattern. See `60c3210`.
+
 **Files:**
 - Create: `source/FlowHub.Core/Skills/IRepoEmbeddingStore.cs`
 - Create: `source/FlowHub.Persistence/Entities/RepoEmbeddingEntity.cs`
@@ -337,6 +342,50 @@ public sealed class RepoEmbeddingStoreTests : IClassFixture<PostgresFixture>
         await sut.RemoveMissingAsync(["keep"], default);
 
         (await sut.GetHashesAsync(default)).Keys.Should().NotContain("drop");
+    }
+
+    [Fact]
+    public async Task UpsertAsync_ConcurrentCallsForTheSameRepo_AllSucceed()
+    {
+        // Overlapping catalogue syncs are reachable: RepoResolver syncs per classification
+        // and the pipeline consumers run concurrently. A read-then-write would have both
+        // callers INSERT the same primary key and one would fail. Each concurrent writer
+        // needs its own DbContext - a DbContext is not thread-safe.
+        await using var db = await fixture.CreateFreshDbAsync();
+        var connectionString = db.Database.GetConnectionString()!;
+
+        FlowHubDbContext Connect() => new(
+            new DbContextOptionsBuilder<FlowHubDbContext>()
+                .UseNpgsql(connectionString, npgsql => npgsql.UseVector())
+                .Options);
+
+        var writes = Enumerable.Range(0, 8).Select(async i =>
+        {
+            await using var scoped = Connect();
+            await new EfRepoEmbeddingStore(scoped).UpsertAsync("racy", $"hash-{i}", Vec(i), default);
+        });
+
+        var act = async () => await Task.WhenAll(writes);
+
+        await act.Should().NotThrowAsync();
+    }
+
+    [Fact]
+    public async Task NearestAsync_RowWithoutAnEmbedding_IsExcluded()
+    {
+        // The Embedding column is nullable, so a row can exist with a hash but no vector.
+        await using var db = await fixture.CreateFreshDbAsync();
+        var sut = new EfRepoEmbeddingStore(db);
+        await sut.UpsertAsync("embedded", "h", Vec(10f), default);
+        db.RepoEmbeddings.Add(new RepoEmbeddingEntity
+        {
+            RepoName = "pending", ContentHash = "h", Embedding = null, UpdatedAt = DateTimeOffset.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        var hits = await sut.NearestAsync(Vec(10f), 50, default);
+
+        hits.Should().ContainSingle().Which.Should().Be("embedded");
     }
 
     [Fact]
@@ -471,28 +520,22 @@ internal sealed class EfRepoEmbeddingStore : IRepoEmbeddingStore
     public async Task UpsertAsync(
         string repoName, string contentHash, float[] embedding, CancellationToken cancellationToken)
     {
-        var vector = new Vector(embedding);
-        var existing = await _db.RepoEmbeddings
-            .FirstOrDefaultAsync(r => r.RepoName == repoName, cancellationToken);
+        // A read-then-write here is racy on the primary key: overlapping catalogue syncs
+        // (RepoResolver calls SyncAsync per classification, and the pipeline consumers run
+        // concurrently) would both see no row, both INSERT, and one would fail on the PK
+        // instead of overwriting. ON CONFLICT makes last-writer-wins the actual behaviour
+        // rather than the intended one.
+        var vectorLiteral = RepoEmbeddingSql.ToVectorLiteral(embedding);
+        var updatedAt = DateTimeOffset.UtcNow;
 
-        if (existing is null)
-        {
-            _db.RepoEmbeddings.Add(new RepoEmbeddingEntity
-            {
-                RepoName = repoName,
-                ContentHash = contentHash,
-                Embedding = vector,
-                UpdatedAt = DateTimeOffset.UtcNow,
-            });
-        }
-        else
-        {
-            existing.ContentHash = contentHash;
-            existing.Embedding = vector;
-            existing.UpdatedAt = DateTimeOffset.UtcNow;
-        }
-
-        await _db.SaveChangesAsync(cancellationToken);
+        await _db.Database.ExecuteSqlInterpolatedAsync($"""
+            INSERT INTO "RepoEmbeddings" ("RepoName", "ContentHash", "Embedding", "UpdatedAt")
+            VALUES ({repoName}, {contentHash}, {vectorLiteral}::vector, {updatedAt})
+            ON CONFLICT ("RepoName") DO UPDATE SET
+                "ContentHash" = EXCLUDED."ContentHash",
+                "Embedding"   = EXCLUDED."Embedding",
+                "UpdatedAt"   = EXCLUDED."UpdatedAt"
+            """, cancellationToken);
     }
 
     public async Task RemoveMissingAsync(
