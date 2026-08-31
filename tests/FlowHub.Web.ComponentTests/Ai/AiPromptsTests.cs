@@ -87,4 +87,43 @@ public sealed class AiPromptsTests
 
         messages[0].Text.Should().Contain("\"Bridge\"");
     }
+
+    private static readonly (string Name, string? Desc)[] Candidates =
+    [
+        ("game-nibbles", "Faithful browser Nibbles/Snake clone"),
+        ("flowhub", "Capture anything. Let AI file it for you."),
+        ("bare-repo", null),
+    ];
+
+    [Fact]
+    public void BuildRepoConfirmMessages_ListsEveryCandidate()
+    {
+        var messages = AiPrompts.BuildRepoConfirmMessages("the snake game is too fast", Candidates);
+
+        messages[0].Text.Should().Contain("game-nibbles");
+        messages[0].Text.Should().Contain("flowhub");
+        messages[0].Text.Should().Contain("bare-repo");
+    }
+
+    [Fact]
+    public void BuildRepoConfirmMessages_ExplicitlyPermitsNull()
+    {
+        // A model pushed to always choose will file on the wrong repo, which is worse
+        // than not filing. The abstain must be an offered option, not an inferred one.
+        var messages = AiPrompts.BuildRepoConfirmMessages("something", Candidates);
+
+        messages[0].Text.Should().Contain("null");
+    }
+
+    [Fact]
+    public void BuildRepoConfirmMessages_SecondMessageIsRawCapture()
+    {
+        const string content = "the snake game is too fast";
+
+        var messages = AiPrompts.BuildRepoConfirmMessages(content, Candidates);
+
+        messages.Should().HaveCount(2);
+        messages[1].Role.Should().Be(ChatRole.User);
+        messages[1].Text.Should().Be(content);
+    }
 }
