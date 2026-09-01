@@ -1,3 +1,4 @@
+using FlowHub.AI;
 using FlowHub.Core.Captures;
 using FlowHub.Core.Channels;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -12,7 +13,7 @@ public class TelegramUpdateHandlerAttachmentTests
     private static (TelegramUpdateHandler Sut, ICaptureService Captures, ITelegramGateway Gateway) Build(long maxBytes = 2L * 1024 * 1024)
     {
         var captures = Substitute.For<ICaptureService>();
-        captures.SubmitAsync(Arg.Any<string?>(), Arg.Any<ChannelKind>(), Arg.Any<AttachmentInput?>(), Arg.Any<CancellationToken>())
+        captures.SubmitAsync(Arg.Any<string?>(), Arg.Any<ChannelKind>(), Arg.Any<AttachmentInput?>(), Arg.Any<bool>(), Arg.Any<CancellationToken>())
             .Returns(ci => Task.FromResult(new Capture(
                 Guid.NewGuid(), ChannelKind.Telegram, "file.pdf", DateTimeOffset.UtcNow, LifecycleStage.Raw, null)));
         var repo = Substitute.For<ITelegramUpdateRepository>();
@@ -23,9 +24,10 @@ public class TelegramUpdateHandlerAttachmentTests
         uploads.MaxBytes.Returns(maxBytes);
         uploads.AllowedContentTypes.Returns(["application/pdf", "image/png", "image/jpeg"]);
         var options = Options.Create(new TelegramOptions { BotToken = "123:ABC", AllowedUserIds = [AllowedUser] });
+        var speech = Options.Create(new SpeechOptions { MaxSeconds = 300 });
         var reactions = new TelegramReactionService(repo, gateway, NullLogger<TelegramReactionService>.Instance);
 
-        return (new TelegramUpdateHandler(captures, repo, gateway, reactions, uploads, options,
+        return (new TelegramUpdateHandler(captures, repo, gateway, reactions, uploads, options, speech,
             NullLogger<TelegramUpdateHandler>.Instance), captures, gateway);
     }
 
@@ -43,7 +45,7 @@ public class TelegramUpdateHandlerAttachmentTests
         await captures.Received(1).SubmitAsync(
             Arg.Any<string?>(), ChannelKind.Telegram,
             Arg.Is<AttachmentInput>(a => a.FileName == "invoice.pdf" && a.ContentType == "application/pdf" && a.SizeBytes == 16),
-            Arg.Any<CancellationToken>());
+            Arg.Any<bool>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -55,7 +57,7 @@ public class TelegramUpdateHandlerAttachmentTests
 
         await gateway.Received(1).SendTextAsync(55L, Arg.Is<string>(s => s.Contains("10", StringComparison.Ordinal)),
             Arg.Any<CancellationToken>());
-        await captures.DidNotReceiveWithAnyArgs().SubmitAsync(default, default, default, default);
+        await captures.DidNotReceiveWithAnyArgs().SubmitAsync(default, default, default, default, default);
     }
 
     [Fact]
@@ -66,7 +68,7 @@ public class TelegramUpdateHandlerAttachmentTests
         await sut.HandleAsync(FileMessage("archive.zip", "application/zip", 16), CancellationToken.None);
 
         await gateway.Received(1).SendTextAsync(55L, Arg.Any<string>(), Arg.Any<CancellationToken>());
-        await captures.DidNotReceiveWithAnyArgs().SubmitAsync(default, default, default, default);
+        await captures.DidNotReceiveWithAnyArgs().SubmitAsync(default, default, default, default, default);
     }
 
     [Fact]
@@ -78,7 +80,7 @@ public class TelegramUpdateHandlerAttachmentTests
 
         await sut.HandleAsync(FileMessage("gone.pdf", "application/pdf", 16), CancellationToken.None);
 
-        await captures.DidNotReceiveWithAnyArgs().SubmitAsync(default, default, default, default);
+        await captures.DidNotReceiveWithAnyArgs().SubmitAsync(default, default, default, default, default);
     }
 
     [Fact]
@@ -91,6 +93,6 @@ public class TelegramUpdateHandlerAttachmentTests
             CancellationToken.None);
 
         await captures.Received(1).SubmitAsync(
-            "boiler service invoice", ChannelKind.Telegram, Arg.Any<AttachmentInput>(), Arg.Any<CancellationToken>());
+            "boiler service invoice", ChannelKind.Telegram, Arg.Any<AttachmentInput>(), Arg.Any<bool>(), Arg.Any<CancellationToken>());
     }
 }

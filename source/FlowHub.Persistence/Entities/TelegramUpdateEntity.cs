@@ -7,4 +7,5 @@ internal sealed class TelegramUpdateEntity
     public int MessageId { get; set; }
     public Guid? CaptureId { get; set; }
     public DateTimeOffset ProcessedAt { get; set; }
+    public string? FileId { get; set; }
 }

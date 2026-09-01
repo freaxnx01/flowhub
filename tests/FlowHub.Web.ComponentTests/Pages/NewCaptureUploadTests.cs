@@ -42,7 +42,7 @@ public class NewCaptureUploadTests : TestContext
     [Fact]
     public void StagingFileAndTypingACaption_SubmitsTheCaption()
     {
-        _captureService.SubmitAsync(Arg.Any<string?>(), Arg.Any<ChannelKind>(), Arg.Any<AttachmentInput?>(), Arg.Any<CancellationToken>())
+        _captureService.SubmitAsync(Arg.Any<string?>(), Arg.Any<ChannelKind>(), Arg.Any<AttachmentInput?>(), Arg.Any<bool>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(new Capture(
                 Guid.NewGuid(), ChannelKind.Web, "boiler service invoice", DateTimeOffset.UtcNow,
                 LifecycleStage.Raw, null)));
@@ -54,6 +54,6 @@ public class NewCaptureUploadTests : TestContext
         cut.FindAll("button").First(b => b.TextContent.Contains("Submit", StringComparison.Ordinal)).Click();
 
         _captureService.Received(1).SubmitAsync(
-            "boiler service invoice", ChannelKind.Web, Arg.Any<AttachmentInput>(), Arg.Any<CancellationToken>());
+            "boiler service invoice", ChannelKind.Web, Arg.Any<AttachmentInput>(), Arg.Any<bool>(), Arg.Any<CancellationToken>());
     }
 }

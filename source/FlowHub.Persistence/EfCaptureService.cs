@@ -46,11 +46,28 @@ public sealed class EfCaptureService : ICaptureService
     }
 
     public async Task<Capture> SubmitAsync(
-        string? caption, ChannelKind source, AttachmentInput? attachment, CancellationToken cancellationToken = default)
+        string? caption, ChannelKind source, AttachmentInput? attachment,
+        bool needsTranscription = false, CancellationToken cancellationToken = default)
     {
         if (attachment is null)
         {
-            return await SubmitAsync(caption ?? throw new ArgumentNullException(nameof(caption)), source, cancellationToken);
+            var content = caption ?? throw new ArgumentNullException(nameof(caption));
+            if (!needsTranscription)
+            {
+                return await SubmitAsync(content, source, cancellationToken);
+            }
+
+            // Voice memo whose audio the handler chose not to download: the transcription
+            // consumer fetches the audio from Telegram and calls SetTranscriptAsync.
+            var textOnly = new Capture(
+                Guid.NewGuid(), source, content, DateTimeOffset.UtcNow, LifecycleStage.Raw, null);
+            var storedTextOnly = await _repository.AddAsync(textOnly, cancellationToken);
+            await _publishEndpoint.Publish(
+                new CaptureCreated(
+                    storedTextOnly.Id, storedTextOnly.Content, storedTextOnly.Source, storedTextOnly.CreatedAt,
+                    HasAttachment: false, NeedsTranscription: true),
+                cancellationToken);
+            return storedTextOnly;
         }
 
         var fileName = Path.GetFileName(attachment.FileName);
@@ -63,17 +80,19 @@ public sealed class EfCaptureService : ICaptureService
         // it lives on the Attachment above, so this replaces a duplicated value rather
         // than displacing one. Content is what the classifier and the embedder read.
         // Whitespace-only counts as absent so a stray space cannot blank a Capture.
-        var content = string.IsNullOrWhiteSpace(caption) ? fileName : caption.Trim();
+        var attContent = string.IsNullOrWhiteSpace(caption) ? fileName : caption.Trim();
 
         var capture = new Capture(
-            Guid.NewGuid(), source, content, DateTimeOffset.UtcNow,
+            Guid.NewGuid(), source, attContent, DateTimeOffset.UtcNow,
             LifecycleStage.Raw, MatchedSkill: null, Attachment: att);
 
         try
         {
             var saved = await _repository.AddAsync(capture, cancellationToken);
             await _publishEndpoint.Publish(
-                new CaptureCreated(saved.Id, saved.Content, saved.Source, saved.CreatedAt, HasAttachment: true),
+                new CaptureCreated(
+                    saved.Id, saved.Content, saved.Source, saved.CreatedAt,
+                    HasAttachment: true, NeedsTranscription: needsTranscription),
                 cancellationToken);
             return saved;
         }
@@ -82,6 +101,16 @@ public sealed class EfCaptureService : ICaptureService
             await _attachmentStorage.DeleteAsync(relativePath, CancellationToken.None);
             throw;
         }
+    }
+
+    public async Task<Capture> SetTranscriptAsync(Guid id, string transcript, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(transcript);
+        var capture = await _repository.GetByIdAsync(id, cancellationToken)
+            ?? throw new KeyNotFoundException($"Capture {id} not found.");
+        var updated = capture with { Content = transcript };
+        await _repository.UpdateAsync(updated, cancellationToken);
+        return updated;
     }
 
     public async Task MarkClassifiedAsync(

@@ -38,19 +38,28 @@ public sealed partial class CaptureEnrichmentConsumer : IConsumer<CaptureCreated
         var msg = context.Message;
         var ct = context.CancellationToken;
 
+        // A Capture still awaiting its transcript has placeholder content and an audio
+        // attachment. Classifying it would classify the placeholder, and falling into
+        // the HasAttachment branch below would file a voice memo in Paperless. The
+        // transcription consumer re-publishes without this flag when the text is ready.
+        if (msg.NeedsTranscription)
+        {
+            return;
+        }
+
         if (msg.HasAttachment)
         {
-            await _captureService.MarkClassifiedAsync(msg.CaptureId, "Paperless", cancellationToken: ct);
-            await context.Publish(new CaptureClassified(
-                msg.CaptureId,
-                Tags: ["document"],
-                MatchedSkill: "Paperless",
-                ClassifiedAt: DateTimeOffset.UtcNow), ct);
+            await RouteAttachmentToPaperlessAsync(context, msg, ct);
             return;
         }
 
         var result = await _classifier.ClassifyAsync(msg.Content, ct);
+        await ApplyClassificationAsync(context, msg, result, ct);
+    }
 
+    private async Task ApplyClassificationAsync(
+        ConsumeContext<CaptureCreated> context, CaptureCreated msg, ClassificationResult result, CancellationToken ct)
+    {
         // Bridge with no determinable target → park for triage before any publish or
         // network call (spec decision #6). Two distinct causes, two distinct reasons:
         // no alias means the LLM proposed Bridge but no repo is known (issue #38);
@@ -100,7 +109,18 @@ public sealed partial class CaptureEnrichmentConsumer : IConsumer<CaptureCreated
             enrichment?.Description,
             result.BridgeAlias,
             result.BridgeAction,
-            result.BridgeBody));
+            result.BridgeBody), ct);
+    }
+
+    private async Task RouteAttachmentToPaperlessAsync(
+        ConsumeContext<CaptureCreated> context, CaptureCreated msg, CancellationToken ct)
+    {
+        await _captureService.MarkClassifiedAsync(msg.CaptureId, "Paperless", cancellationToken: ct);
+        await context.Publish(new CaptureClassified(
+            msg.CaptureId,
+            Tags: ["document"],
+            MatchedSkill: "Paperless",
+            ClassifiedAt: DateTimeOffset.UtcNow), ct);
     }
 
     private static string BridgeUndeterminedReason(ClassificationResult result) =>

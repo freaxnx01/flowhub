@@ -116,11 +116,36 @@ public sealed class CaptureServiceStub : ICaptureService
     }
 
     public async Task<Capture> SubmitAsync(
-        string? caption, ChannelKind source, AttachmentInput? attachment, CancellationToken cancellationToken = default)
+        string? caption, ChannelKind source, AttachmentInput? attachment,
+        bool needsTranscription = false, CancellationToken cancellationToken = default)
     {
         if (attachment is null)
         {
-            return await SubmitAsync(caption ?? throw new ArgumentNullException(nameof(caption)), source, cancellationToken);
+            var text = caption ?? throw new ArgumentNullException(nameof(caption));
+            if (!needsTranscription)
+            {
+                return await SubmitAsync(text, source, cancellationToken);
+            }
+
+            var placeholder = new Capture(
+                Id: Guid.NewGuid(),
+                Source: source,
+                Content: text,
+                CreatedAt: DateTimeOffset.UtcNow,
+                Stage: LifecycleStage.Raw,
+                MatchedSkill: null);
+
+            lock (_lock)
+            {
+                _captures.Add(placeholder);
+            }
+
+            await _publishEndpoint.Publish(
+                new CaptureCreated(
+                    placeholder.Id, placeholder.Content, placeholder.Source, placeholder.CreatedAt,
+                    HasAttachment: false, NeedsTranscription: true),
+                cancellationToken);
+            return placeholder;
         }
 
         var fileName = Path.GetFileName(attachment.FileName);
@@ -145,10 +170,29 @@ public sealed class CaptureServiceStub : ICaptureService
         }
 
         await _publishEndpoint.Publish(
-            new CaptureCreated(capture.Id, capture.Content, capture.Source, capture.CreatedAt, HasAttachment: true),
+            new CaptureCreated(
+                capture.Id, capture.Content, capture.Source, capture.CreatedAt,
+                HasAttachment: true, NeedsTranscription: needsTranscription),
             cancellationToken);
 
         return capture;
+    }
+
+    public Task<Capture> SetTranscriptAsync(Guid id, string transcript, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(transcript);
+        Capture updated;
+        lock (_lock)
+        {
+            var index = _captures.FindIndex(c => c.Id == id);
+            if (index < 0)
+            {
+                throw new KeyNotFoundException($"Capture {id} not found.");
+            }
+            updated = _captures[index] with { Content = transcript };
+            _captures[index] = updated;
+        }
+        return Task.FromResult(updated);
     }
 
     public Task MarkClassifiedAsync(Guid id, string matchedSkill, string? title = null, string? vikunjaProject = null, string? enrichmentDescription = null, FlowHub.Core.Classification.ClassifierTrace? trace = null, CancellationToken cancellationToken = default) =>

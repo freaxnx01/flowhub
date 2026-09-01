@@ -103,7 +103,7 @@ public sealed class CaptureEnrichmentConsumerTests
         var capture = await captureService.SubmitAsync(
             caption: null, ChannelKind.Web,
             new AttachmentInput { Content = bytes, FileName = "scan.pdf", ContentType = "application/pdf", SizeBytes = 3 },
-            default);
+            cancellationToken: default);
 
         (await harness.Published.Any<CaptureClassified>(
             x => x.Context.Message.CaptureId == capture.Id
@@ -112,6 +112,28 @@ public sealed class CaptureEnrichmentConsumerTests
 
         var stored = await captureService.GetByIdAsync(capture.Id, default);
         stored!.MatchedSkill.Should().Be("Paperless");
+    }
+
+    [Fact]
+    public async Task Consume_NeedsTranscription_DoesNotClassifyOrPaperlessRoute()
+    {
+        var classifier = Substitute.For<IClassifier>();
+        await using var provider = PipelineTestBase.Build(
+            configure: s => s.AddSingleton(classifier),
+            configureBus: x => x.AddConsumer<CaptureEnrichmentConsumer>());
+
+        var harness = provider.GetRequiredService<ITestHarness>();
+        await harness.Start();
+
+        await harness.Bus.Publish(new CaptureCreated(
+            Guid.NewGuid(), "[voice message]", ChannelKind.Telegram, DateTimeOffset.UtcNow,
+            HasAttachment: true, NeedsTranscription: true));
+
+        (await harness.Consumed.Any<CaptureCreated>()).Should().BeTrue();
+        // Neither path may run: not classification, and not the Paperless shortcut
+        // that any attachment would otherwise take.
+        await classifier.DidNotReceiveWithAnyArgs().ClassifyAsync(default!, default);
+        (await harness.Published.Any<CaptureClassified>()).Should().BeFalse();
     }
 
     private static IClassifier StubClassifier(ClassificationResult result)

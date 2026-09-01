@@ -26,6 +26,7 @@ for continuity.
   original message is marked with a reaction when its Capture resolves (#20).
 - Classifier can route a capture to Bridge when `Ai:EnableBridgeClassification` is enabled (default off). A Bridge result with no repo parks as Unhandled for triage. (#37)
 - Repo inference for Bridge captures that carry no alias: cosine shortlist over the bridge catalogue, confirmed by the model, with an abstain routed to `ideas-lab` as an idea. Active only when `Ai:EnableBridgeClassification` is enabled. (#38)
+- Telegram voice and audio messages are mapped and submitted for transcription instead of being refused. Recordings longer than `Speech:MaxSeconds` are refused before any download, and the handler never downloads or transcribes inline so the poll loop stays unblocked. `CaptureEnrichmentConsumer` returns early on `NeedsTranscription`, so a voice memo is never routed to Paperless. (#59)
 
 ### Changed
 

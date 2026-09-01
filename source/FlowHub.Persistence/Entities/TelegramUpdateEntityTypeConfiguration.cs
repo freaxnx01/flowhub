@@ -10,6 +10,7 @@ internal sealed class TelegramUpdateEntityTypeConfiguration : IEntityTypeConfigu
         builder.ToTable("TelegramUpdates");
         builder.HasKey(t => t.UpdateId);
         builder.Property(t => t.UpdateId).ValueGeneratedNever();
+        builder.Property(t => t.FileId).HasMaxLength(256);
         builder.HasIndex(t => t.CaptureId);
         builder.HasIndex(t => t.ProcessedAt);
     }

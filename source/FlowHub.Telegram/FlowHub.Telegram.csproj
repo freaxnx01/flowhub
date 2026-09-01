@@ -16,6 +16,11 @@
 
   <ItemGroup>
     <ProjectReference Include="..\FlowHub.Core\FlowHub.Core.csproj" />
+    <ProjectReference Include="..\FlowHub.AI\FlowHub.AI.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="FlowHub.Telegram.Tests" />
   </ItemGroup>
 
 </Project>

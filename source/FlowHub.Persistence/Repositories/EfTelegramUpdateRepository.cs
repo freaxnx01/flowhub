@@ -27,6 +27,7 @@ internal sealed class EfTelegramUpdateRepository : ITelegramUpdateRepository
             MessageId = update.MessageId,
             CaptureId = update.CaptureId,
             ProcessedAt = update.ProcessedAt,
+            FileId = update.FileId,
         });
         await _db.SaveChangesAsync(cancellationToken);
     }
@@ -51,5 +52,6 @@ internal sealed class EfTelegramUpdateRepository : ITelegramUpdateRepository
         ChatId: e.ChatId,
         MessageId: e.MessageId,
         CaptureId: e.CaptureId,
-        ProcessedAt: e.ProcessedAt);
+        ProcessedAt: e.ProcessedAt,
+        FileId: e.FileId);
 }

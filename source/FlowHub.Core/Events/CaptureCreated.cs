@@ -7,4 +7,5 @@ public sealed record CaptureCreated(
     string Content,
     ChannelKind Source,
     DateTimeOffset CreatedAt,
-    bool HasAttachment = false);
+    bool HasAttachment = false,
+    bool NeedsTranscription = false);

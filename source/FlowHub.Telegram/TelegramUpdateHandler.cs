@@ -1,3 +1,4 @@
+using FlowHub.AI;
 using FlowHub.Core.Captures;
 using FlowHub.Core.Channels;
 using Microsoft.Extensions.Logging;
@@ -18,6 +19,7 @@ public sealed partial class TelegramUpdateHandler
     private readonly TelegramReactionService _reactions;
     private readonly IUploadPolicy _uploads;
     private readonly TelegramOptions _options;
+    private readonly SpeechOptions _speech;
     private readonly ILogger<TelegramUpdateHandler> _logger;
 
     public TelegramUpdateHandler(
@@ -27,6 +29,7 @@ public sealed partial class TelegramUpdateHandler
         TelegramReactionService reactions,
         IUploadPolicy uploads,
         IOptions<TelegramOptions> options,
+        IOptions<SpeechOptions> speech,
         ILogger<TelegramUpdateHandler> logger)
     {
         _captures = captures;
@@ -35,6 +38,7 @@ public sealed partial class TelegramUpdateHandler
         _reactions = reactions;
         _uploads = uploads;
         _options = options.Value;
+        _speech = speech.Value;
         _logger = logger;
     }
 
@@ -56,6 +60,12 @@ public sealed partial class TelegramUpdateHandler
             return;
         }
 
+        if (message.File is { DurationSeconds: > 0 } audio)
+        {
+            await HandleAudioAsync(message, audio, cancellationToken);
+            return;
+        }
+
         if (message.File is not null)
         {
             await HandleFileAsync(message, message.File, cancellationToken);
@@ -71,9 +81,37 @@ public sealed partial class TelegramUpdateHandler
             return;
         }
 
-        var capture = await _captures.SubmitAsync(message.Text, ChannelKind.Telegram, null, cancellationToken);
+        var capture = await _captures.SubmitAsync(message.Text, ChannelKind.Telegram, null, cancellationToken: cancellationToken);
         await RecordAsync(message, capture.Id, cancellationToken);
         await ReactIfAlreadyResolvedAsync(capture.Id, cancellationToken);
+    }
+
+    private async Task HandleAudioAsync(TelegramMessage message, TelegramFile audio, CancellationToken cancellationToken)
+    {
+        if (audio.DurationSeconds > _speech.MaxSeconds)
+        {
+            await _gateway.SendTextAsync(message.ChatId,
+                $"That recording is too long — the limit is {_speech.MaxSeconds} seconds.",
+                cancellationToken);
+            await RecordAsync(message, captureId: null, cancellationToken);
+            return;
+        }
+
+        if (!_speech.IsConfigured)
+        {
+            await _gateway.SendTextAsync(message.ChatId,
+                "Voice messages are not supported yet — send text, a photo, or a document.",
+                cancellationToken);
+            await RecordAsync(message, captureId: null, cancellationToken);
+            return;
+        }
+
+        // Submitted without the audio: the transcription consumer fetches it. The
+        // handler must not download here — the poll loop is single-threaded (D3).
+        var voiceCapture = await _captures.SubmitAsync(
+            "[voice message]", ChannelKind.Telegram, attachment: null,
+            needsTranscription: true, cancellationToken);
+        await RecordAsync(message, voiceCapture.Id, cancellationToken);
     }
 
     private async Task HandleFileAsync(TelegramMessage message, TelegramFile file, CancellationToken cancellationToken)
@@ -104,7 +142,7 @@ public sealed partial class TelegramUpdateHandler
                 SizeBytes = file.SizeBytes,
             };
 
-            var capture = await _captures.SubmitAsync(message.Text, ChannelKind.Telegram, input, cancellationToken);
+            var capture = await _captures.SubmitAsync(message.Text, ChannelKind.Telegram, input, cancellationToken: cancellationToken);
             await RecordAsync(message, capture.Id, cancellationToken);
             await ReactIfAlreadyResolvedAsync(capture.Id, cancellationToken);
         }
@@ -143,7 +181,9 @@ public sealed partial class TelegramUpdateHandler
 
     private Task RecordAsync(TelegramMessage message, Guid? captureId, CancellationToken cancellationToken) =>
         _updates.RecordAsync(
-            new TelegramUpdate(message.UpdateId, message.ChatId, message.MessageId, captureId, DateTimeOffset.UtcNow),
+            new TelegramUpdate(
+                message.UpdateId, message.ChatId, message.MessageId, captureId, DateTimeOffset.UtcNow,
+                FileId: message.File?.FileId),
             cancellationToken);
 
     [LoggerMessage(EventId = 5001, Level = LogLevel.Debug,

@@ -70,7 +70,7 @@ internal static class CaptureWriteEndpoints
                 ContentType = file.ContentType,
                 SizeBytes = file.Length,
             },
-            ct);
+            cancellationToken: ct);
 
         return TypedResults.Created($"/api/v1/captures/{capture.Id}", capture);
     }

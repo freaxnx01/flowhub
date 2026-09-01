@@ -1,3 +1,4 @@
+using FlowHub.AI;
 using FlowHub.Core.Captures;
 using FlowHub.Core.Channels;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -15,19 +16,20 @@ public class TelegramUpdateHandlerTests
     private static (TelegramUpdateHandler Sut, ICaptureService Captures, ITelegramUpdateRepository Repo, ITelegramGateway Gateway) Build()
     {
         var captures = Substitute.For<ICaptureService>();
-        captures.SubmitAsync(Arg.Any<string?>(), Arg.Any<ChannelKind>(), Arg.Any<AttachmentInput?>(), Arg.Any<CancellationToken>())
+        captures.SubmitAsync(Arg.Any<string?>(), Arg.Any<ChannelKind>(), Arg.Any<AttachmentInput?>(), Arg.Any<bool>(), Arg.Any<CancellationToken>())
             .Returns(ci => Task.FromResult(new Capture(
                 Guid.NewGuid(), ci.ArgAt<ChannelKind>(1), ci.ArgAt<string?>(0) ?? "", DateTimeOffset.UtcNow,
                 LifecycleStage.Raw, null)));
         var repo = Substitute.For<ITelegramUpdateRepository>();
         var gateway = Substitute.For<ITelegramGateway>();
         var options = Options.Create(new TelegramOptions { BotToken = "123:ABC", AllowedUserIds = [AllowedUser] });
+        var speech = Options.Create(new SpeechOptions { MaxSeconds = 300 });
         var uploads = Substitute.For<IUploadPolicy>();
         uploads.MaxBytes.Returns(2L * 1024 * 1024);
         uploads.AllowedContentTypes.Returns(["application/pdf", "image/png", "image/jpeg"]);
         var reactions = new TelegramReactionService(repo, gateway, NullLogger<TelegramReactionService>.Instance);
 
-        var sut = new TelegramUpdateHandler(captures, repo, gateway, reactions, uploads, options,
+        var sut = new TelegramUpdateHandler(captures, repo, gateway, reactions, uploads, options, speech,
             NullLogger<TelegramUpdateHandler>.Instance);
         return (sut, captures, repo, gateway);
     }
@@ -41,7 +43,7 @@ public class TelegramUpdateHandlerTests
         // fires first and finds no coordinates; the handler must re-check afterwards.
         var (sut, captures, repo, gateway) = Build();
         var captureId = Guid.NewGuid();
-        captures.SubmitAsync(Arg.Any<string?>(), Arg.Any<ChannelKind>(), Arg.Any<AttachmentInput?>(), Arg.Any<CancellationToken>())
+        captures.SubmitAsync(Arg.Any<string?>(), Arg.Any<ChannelKind>(), Arg.Any<AttachmentInput?>(), Arg.Any<bool>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(new Capture(
                 captureId, ChannelKind.Telegram, "done already", DateTimeOffset.UtcNow,
                 LifecycleStage.Raw, null)));
@@ -66,7 +68,7 @@ public class TelegramUpdateHandlerTests
         // message whose outcome is not known yet.
         var (sut, captures, repo, gateway) = Build();
         var captureId = Guid.NewGuid();
-        captures.SubmitAsync(Arg.Any<string?>(), Arg.Any<ChannelKind>(), Arg.Any<AttachmentInput?>(), Arg.Any<CancellationToken>())
+        captures.SubmitAsync(Arg.Any<string?>(), Arg.Any<ChannelKind>(), Arg.Any<AttachmentInput?>(), Arg.Any<bool>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(new Capture(
                 captureId, ChannelKind.Telegram, "in flight", DateTimeOffset.UtcNow, LifecycleStage.Raw, null)));
         captures.GetByIdAsync(captureId, Arg.Any<CancellationToken>())
@@ -88,7 +90,7 @@ public class TelegramUpdateHandlerTests
         await sut.HandleAsync(TextMessage("https://example.com/article"), CancellationToken.None);
 
         await captures.Received(1).SubmitAsync(
-            "https://example.com/article", ChannelKind.Telegram, null, Arg.Any<CancellationToken>());
+            "https://example.com/article", ChannelKind.Telegram, null, Arg.Any<bool>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -110,7 +112,7 @@ public class TelegramUpdateHandlerTests
 
         await sut.HandleAsync(TextMessage("spam", from: 99L), CancellationToken.None);
 
-        await captures.DidNotReceiveWithAnyArgs().SubmitAsync(default, default, default, default);
+        await captures.DidNotReceiveWithAnyArgs().SubmitAsync(default, default, default, default, default);
         await repo.Received(1).RecordAsync(
             Arg.Is<TelegramUpdate>(u => u.CaptureId == null), Arg.Any<CancellationToken>());
         await gateway.DidNotReceiveWithAnyArgs().SendTextAsync(default, default!, default);
@@ -124,7 +126,7 @@ public class TelegramUpdateHandlerTests
 
         await sut.HandleAsync(TextMessage("replayed"), CancellationToken.None);
 
-        await captures.DidNotReceiveWithAnyArgs().SubmitAsync(default, default, default, default);
+        await captures.DidNotReceiveWithAnyArgs().SubmitAsync(default, default, default, default, default);
         await repo.DidNotReceiveWithAnyArgs().RecordAsync(default!, default);
     }
 
@@ -139,7 +141,7 @@ public class TelegramUpdateHandlerTests
         await gateway.Received(1).SendTextAsync(55L,
             Arg.Is<string>(s => s.Contains("not supported", StringComparison.OrdinalIgnoreCase)),
             Arg.Any<CancellationToken>());
-        await captures.DidNotReceiveWithAnyArgs().SubmitAsync(default, default, default, default);
+        await captures.DidNotReceiveWithAnyArgs().SubmitAsync(default, default, default, default, default);
         await repo.Received(1).RecordAsync(Arg.Any<TelegramUpdate>(), Arg.Any<CancellationToken>());
     }
 
@@ -147,7 +149,7 @@ public class TelegramUpdateHandlerTests
     public async Task HandleAsync_SubmitThrows_DoesNotRecordUpdate()
     {
         var (sut, captures, repo, _) = Build();
-        captures.SubmitAsync(Arg.Any<string?>(), Arg.Any<ChannelKind>(), Arg.Any<AttachmentInput?>(), Arg.Any<CancellationToken>())
+        captures.SubmitAsync(Arg.Any<string?>(), Arg.Any<ChannelKind>(), Arg.Any<AttachmentInput?>(), Arg.Any<bool>(), Arg.Any<CancellationToken>())
             .Returns<Task<Capture>>(_ => throw new InvalidOperationException("db down"));
 
         var act = async () => await sut.HandleAsync(TextMessage("boom"), CancellationToken.None);
