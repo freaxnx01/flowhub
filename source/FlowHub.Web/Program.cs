@@ -89,6 +89,9 @@ builder.Services.AddSingleton<FlowHub.Core.Captures.IUploadPolicy, FlowHub.Web.U
 builder.Services.AddFlowHubAi(builder.Configuration);
 builder.Services.AddFlowHubEmbeddings(builder.Configuration);
 
+// Speech-to-text — dormant unless Speech__ApiKey is set (design D1).
+builder.Services.AddFlowHubSpeech(builder.Configuration);
+
 // Beta MVP — real skill integrations behind ISkillIntegration. AddFlowHubSkills mirrors
 // AddFlowHubAi: silent fallback if Skills:<X>:BaseUrl or :ApiToken is missing.
 builder.Services.AddFlowHubSkills(builder.Configuration);
