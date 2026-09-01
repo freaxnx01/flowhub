@@ -21,7 +21,14 @@ public interface ICaptureService
         string? caption,
         ChannelKind source,
         AttachmentInput? attachment,
+        bool needsTranscription = false,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Replaces the placeholder content of a Capture awaiting transcription with its
+    /// transcript. Deliberately narrow: this is not a general content mutator.
+    /// </summary>
+    Task<Capture> SetTranscriptAsync(Guid id, string transcript, CancellationToken cancellationToken = default);
 
     Task MarkClassifiedAsync(Guid id, string matchedSkill, string? title = null, string? vikunjaProject = null, string? enrichmentDescription = null, FlowHub.Core.Classification.ClassifierTrace? trace = null, CancellationToken cancellationToken = default);
 

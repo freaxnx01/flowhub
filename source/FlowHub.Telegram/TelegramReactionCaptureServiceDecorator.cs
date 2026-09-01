@@ -34,8 +34,11 @@ public sealed class TelegramReactionCaptureServiceDecorator : ICaptureService
     public Task<Capture> SubmitAsync(string content, ChannelKind source, CancellationToken cancellationToken = default) =>
         _inner.SubmitAsync(content, source, cancellationToken);
 
-    public Task<Capture> SubmitAsync(string? caption, ChannelKind source, AttachmentInput? attachment, CancellationToken cancellationToken = default) =>
-        _inner.SubmitAsync(caption, source, attachment, cancellationToken);
+    public Task<Capture> SubmitAsync(string? caption, ChannelKind source, AttachmentInput? attachment, bool needsTranscription = false, CancellationToken cancellationToken = default) =>
+        _inner.SubmitAsync(caption, source, attachment, needsTranscription, cancellationToken);
+
+    public Task<Capture> SetTranscriptAsync(Guid id, string transcript, CancellationToken cancellationToken = default) =>
+        _inner.SetTranscriptAsync(id, transcript, cancellationToken);
 
     public Task MarkClassifiedAsync(Guid id, string matchedSkill, string? title = null, string? vikunjaProject = null, string? enrichmentDescription = null, ClassifierTrace? trace = null, CancellationToken cancellationToken = default) =>
         _inner.MarkClassifiedAsync(id, matchedSkill, title, vikunjaProject, enrichmentDescription, trace, cancellationToken);

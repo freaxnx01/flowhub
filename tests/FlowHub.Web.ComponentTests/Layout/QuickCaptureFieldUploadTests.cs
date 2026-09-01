@@ -17,7 +17,7 @@ public class QuickCaptureFieldUploadTests : TestContext
     public async Task StagingValidFile_AndSubmitting_PassesAttachmentToCaptureService()
     {
         var capture = Substitute.For<ICaptureService>();
-        capture.SubmitAsync(Arg.Any<string?>(), ChannelKind.Web, Arg.Any<AttachmentInput?>(), Arg.Any<CancellationToken>())
+        capture.SubmitAsync(Arg.Any<string?>(), ChannelKind.Web, Arg.Any<AttachmentInput?>(), Arg.Any<bool>(), Arg.Any<CancellationToken>())
             .Returns(ci => Task.FromResult(new Capture(
                 Guid.NewGuid(), ChannelKind.Web, ci.ArgAt<AttachmentInput>(2)!.FileName,
                 DateTimeOffset.UtcNow, LifecycleStage.Raw, null)));
@@ -38,7 +38,7 @@ public class QuickCaptureFieldUploadTests : TestContext
         await capture.Received(1).SubmitAsync(
             Arg.Any<string?>(), ChannelKind.Web,
             Arg.Is<AttachmentInput?>(a => a != null && a.FileName == "invoice.pdf" && a.SizeBytes == 8),
-            Arg.Any<CancellationToken>());
+            Arg.Any<bool>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -57,7 +57,7 @@ public class QuickCaptureFieldUploadTests : TestContext
         cut.FindComponent<InputFile>().UploadFiles(file);
 
         cut.Markup.Should().Contain("too large");
-        capture.DidNotReceiveWithAnyArgs().SubmitAsync(default, default, default, default);
+        capture.DidNotReceiveWithAnyArgs().SubmitAsync(default, default, default, default, default);
     }
 
     [Fact]
@@ -78,7 +78,7 @@ public class QuickCaptureFieldUploadTests : TestContext
         cut.FindComponent<InputFile>().UploadFiles(file);
 
         cut.Markup.Should().Contain("Type application/octet-stream not allowed");
-        capture.DidNotReceiveWithAnyArgs().SubmitAsync(default, default, default, default);
+        capture.DidNotReceiveWithAnyArgs().SubmitAsync(default, default, default, default, default);
     }
 
     [Fact]
@@ -87,7 +87,7 @@ public class QuickCaptureFieldUploadTests : TestContext
         // The quick-add field is the other Web submit path. Typing a note and then
         // dropping a file must not discard the note — same bug as #31's NewCapture case.
         var capture = Substitute.For<ICaptureService>();
-        capture.SubmitAsync(Arg.Any<string?>(), ChannelKind.Web, Arg.Any<AttachmentInput?>(), Arg.Any<CancellationToken>())
+        capture.SubmitAsync(Arg.Any<string?>(), ChannelKind.Web, Arg.Any<AttachmentInput?>(), Arg.Any<bool>(), Arg.Any<CancellationToken>())
             .Returns(ci => Task.FromResult(new Capture(
                 Guid.NewGuid(), ChannelKind.Web, ci.ArgAt<string?>(0) ?? "",
                 DateTimeOffset.UtcNow, LifecycleStage.Raw, null)));
@@ -107,14 +107,14 @@ public class QuickCaptureFieldUploadTests : TestContext
         await cut.InvokeAsync(() => cut.Find("button[aria-label='Submit capture']").Click());
 
         await capture.Received(1).SubmitAsync(
-            "boiler service invoice", ChannelKind.Web, Arg.Any<AttachmentInput?>(), Arg.Any<CancellationToken>());
+            "boiler service invoice", ChannelKind.Web, Arg.Any<AttachmentInput?>(), Arg.Any<bool>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
     public async Task StagingFileWithNoTypedText_SubmitsNullCaption()
     {
         var capture = Substitute.For<ICaptureService>();
-        capture.SubmitAsync(Arg.Any<string?>(), ChannelKind.Web, Arg.Any<AttachmentInput?>(), Arg.Any<CancellationToken>())
+        capture.SubmitAsync(Arg.Any<string?>(), ChannelKind.Web, Arg.Any<AttachmentInput?>(), Arg.Any<bool>(), Arg.Any<CancellationToken>())
             .Returns(ci => Task.FromResult(new Capture(
                 Guid.NewGuid(), ChannelKind.Web, "invoice.pdf",
                 DateTimeOffset.UtcNow, LifecycleStage.Raw, null)));
@@ -133,7 +133,7 @@ public class QuickCaptureFieldUploadTests : TestContext
         await cut.InvokeAsync(() => cut.Find("button[aria-label='Submit capture']").Click());
 
         await capture.Received(1).SubmitAsync(
-            null, ChannelKind.Web, Arg.Any<AttachmentInput?>(), Arg.Any<CancellationToken>());
+            null, ChannelKind.Web, Arg.Any<AttachmentInput?>(), Arg.Any<bool>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]

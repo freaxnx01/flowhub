@@ -11,9 +11,15 @@ namespace FlowHub.Core.Channels;
 /// <param name="MessageId">Message to react to.</param>
 /// <param name="CaptureId">The Capture created, or null when the update was rejected or unsupported.</param>
 /// <param name="ProcessedAt">When FlowHub finished handling it.</param>
+/// <param name="FileId">
+/// Telegram file id of the attached audio, when the update carried a voice or audio
+/// memo the handler deferred to the transcription consumer; null otherwise. The
+/// consumer downloads by this id, so it must survive across the poll-loop boundary.
+/// </param>
 public sealed record TelegramUpdate(
     long UpdateId,
     long ChatId,
     int MessageId,
     Guid? CaptureId,
-    DateTimeOffset ProcessedAt);
+    DateTimeOffset ProcessedAt,
+    string? FileId = null);

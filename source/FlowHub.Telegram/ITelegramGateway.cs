@@ -21,7 +21,9 @@ public interface ITelegramGateway
 /// <param name="FileName">Best available name for the file.</param>
 /// <param name="ContentType">MIME type as reported by Telegram, or inferred for photos.</param>
 /// <param name="SizeBytes">Size reported by Telegram.</param>
-public sealed record TelegramFile(string FileId, string FileName, string ContentType, long SizeBytes);
+/// <param name="DurationSeconds">Playback length for voice and audio; 0 for other file types.</param>
+public sealed record TelegramFile(
+    string FileId, string FileName, string ContentType, long SizeBytes, int DurationSeconds = 0);
 
 /// <summary>An inbound message, mapped off Telegram.Bot's types at the edge.</summary>
 /// <param name="UpdateId">Telegram update id — the dedup key.</param>

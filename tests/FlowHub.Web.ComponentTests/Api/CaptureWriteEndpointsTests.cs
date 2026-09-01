@@ -90,7 +90,7 @@ public sealed class CaptureWriteEndpointsTests : IClassFixture<WebApplicationFac
             Stage: LifecycleStage.Raw,
             MatchedSkill: null);
         var captures = Substitute.For<ICaptureService>();
-        captures.SubmitAsync(Arg.Any<string?>(), Arg.Any<ChannelKind>(), Arg.Any<AttachmentInput>(), Arg.Any<CancellationToken>())
+        captures.SubmitAsync(Arg.Any<string?>(), Arg.Any<ChannelKind>(), Arg.Any<AttachmentInput>(), Arg.Any<bool>(), Arg.Any<CancellationToken>())
                 .Returns(Task.FromResult(capture));
 
         var client = _factory.WithWebHostBuilder(b =>
@@ -121,6 +121,7 @@ public sealed class CaptureWriteEndpointsTests : IClassFixture<WebApplicationFac
             null,
             ChannelKind.Api,
             Arg.Any<AttachmentInput>(),
+            Arg.Any<bool>(),
             Arg.Any<CancellationToken>());
     }
 
