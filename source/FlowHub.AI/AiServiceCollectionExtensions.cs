@@ -220,7 +220,16 @@ public static class AiServiceCollectionExtensions
             Endpoint = endpoint,
             NetworkTimeout = TimeSpan.FromSeconds(options.TimeoutSeconds),
         };
-        var audioClient = new OpenAIClient(new ApiKeyCredential(options.ApiKey!), clientOptions)
+        // Local copy so the compiler narrows it from the IsConfigured guard above,
+        // rather than suppressing the warning with `!` — same approach as
+        // AddFlowHubEmbeddings, and the house rule forbids an unexplained `!`.
+        var apiKey = options.ApiKey;
+        if (string.IsNullOrWhiteSpace(apiKey))
+        {
+            return services;
+        }
+
+        var audioClient = new OpenAIClient(new ApiKeyCredential(apiKey), clientOptions)
             .GetAudioClient(options.Model);
 
         services.AddSingleton<ISpeechToText>(sp => new AiSpeechToText(

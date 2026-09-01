@@ -31,7 +31,14 @@ public sealed partial class AiSpeechToText : ISpeechToText
             var text = result.Value?.Text;
             return string.IsNullOrWhiteSpace(text) ? null : text.Trim();
         }
-        catch (Exception ex) when (ex is HttpRequestException or InvalidOperationException or TaskCanceledException)
+        // A TaskCanceledException with the token actually cancelled is caller intent —
+        // pipeline shutdown or a per-message timeout — and must propagate so it surfaces
+        // as a retryable fault rather than a terminal Orphan. The same exception with a
+        // live token is an HTTP timeout, which is an ordinary transcription failure.
+        // Matches RepoResolver.cs:97 and Enrichers/ZitateEnricher.cs:69-72.
+        catch (Exception ex) when (
+            ex is HttpRequestException or InvalidOperationException or TaskCanceledException
+            && !cancellationToken.IsCancellationRequested)
         {
             LogTranscriptionFailed(ex, fileName);
             return null;
