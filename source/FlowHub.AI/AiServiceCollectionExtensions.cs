@@ -190,6 +190,45 @@ public static class AiServiceCollectionExtensions
         return services;
     }
 
+    /// <summary>
+    /// Registers speech-to-text when <c>Speech:ApiKey</c> is set. The provider is
+    /// whatever <c>Speech:BaseUrl</c> points at — a cloud endpoint or a local whisper
+    /// server — because both implement /v1/audio/transcriptions (design D1).
+    /// </summary>
+    public static IServiceCollection AddFlowHubSpeech(
+        this IServiceCollection services,
+        IConfiguration configuration)
+    {
+        var speechSection = configuration.GetSection(SpeechOptions.SectionName);
+        var options = speechSection.Get<SpeechOptions>() ?? new SpeechOptions();
+
+        // Options are bound even when the feature is off, so MaxSeconds is always
+        // resolvable — the handler's duration check must work with STT unconfigured.
+        services.Configure<SpeechOptions>(o => speechSection.Bind(o));
+
+        if (!options.IsConfigured)
+        {
+            return services;
+        }
+
+        var endpoint = new Uri(string.IsNullOrWhiteSpace(options.BaseUrl)
+            ? "https://api.openai.com/v1"
+            : options.BaseUrl);
+
+        var clientOptions = new OpenAIClientOptions
+        {
+            Endpoint = endpoint,
+            NetworkTimeout = TimeSpan.FromSeconds(options.TimeoutSeconds),
+        };
+        var audioClient = new OpenAIClient(new ApiKeyCredential(options.ApiKey!), clientOptions)
+            .GetAudioClient(options.Model);
+
+        services.AddSingleton<ISpeechToText>(sp => new AiSpeechToText(
+            audioClient, sp.GetRequiredService<ILogger<AiSpeechToText>>()));
+
+        return services;
+    }
+
     private static AiRegistrationOutcome ResolveOutcome(IConfiguration configuration)
     {
         var raw = configuration["Ai:Provider"];
