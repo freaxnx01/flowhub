@@ -96,9 +96,11 @@ internal static class ProgramRegistration
     /// <summary>
     /// Block 3 Slice B — MassTransit pipeline (consumers + retry policies +
     /// transport selection). The demo notification consumer is added only when
-    /// <paramref name="demoNotifyEnabled"/>.
+    /// <paramref name="demoNotifyEnabled"/>, and the transcription consumer only when
+    /// <paramref name="speechConfigured"/> (its constructor requires ISpeechToText,
+    /// which is unregistered when Speech is unconfigured).
     /// </summary>
-    public static void AddFlowHubMessaging(this WebApplicationBuilder builder, bool demoNotifyEnabled)
+    public static void AddFlowHubMessaging(this WebApplicationBuilder builder, bool demoNotifyEnabled, bool speechConfigured)
     {
         builder.Services.AddMassTransit(x =>
         {
@@ -106,6 +108,11 @@ internal static class ProgramRegistration
 
             x.AddConsumer<CaptureEnrichmentConsumer>(c =>
                 c.UseMessageRetry(r => r.Intervals(100, 500)));
+
+            if (speechConfigured)
+            {
+                x.AddConsumer<CaptureTranscriptionConsumer>();
+            }
 
             x.AddConsumer<CaptureEmbeddingConsumer>(c =>
                 c.UseMessageRetry(r => r.Intervals(500, 2000, 5000)));

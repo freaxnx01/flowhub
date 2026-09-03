@@ -91,6 +91,9 @@ builder.Services.AddFlowHubEmbeddings(builder.Configuration);
 
 // Speech-to-text — dormant unless Speech__ApiKey is set (design D1).
 builder.Services.AddFlowHubSpeech(builder.Configuration);
+var speechConfigured = builder.Configuration
+    .GetSection(FlowHub.AI.SpeechOptions.SectionName)
+    .Get<FlowHub.AI.SpeechOptions>()?.IsConfigured ?? false;
 
 // Beta MVP — real skill integrations behind ISkillIntegration. AddFlowHubSkills mirrors
 // AddFlowHubAi: silent fallback if Skills:<X>:BaseUrl or :ApiToken is missing.
@@ -106,7 +109,7 @@ builder.Services.Configure<FlowHub.Web.Demo.DemoTraceOptions>(
 var demoNotifyEnabled = builder.AddFlowHubDemoNotifications();
 
 // Block 3 Slice B — MassTransit pipeline (consumers, retries, transport) — see ProgramRegistration.
-builder.AddFlowHubMessaging(demoNotifyEnabled);
+builder.AddFlowHubMessaging(demoNotifyEnabled, speechConfigured);
 
 // Block 3 Slice A — REST API surface for non-UI consumers.
 builder.Services.AddFlowHubApi();
