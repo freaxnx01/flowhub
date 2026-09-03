@@ -1,4 +1,5 @@
 using System.Net;
+using FlowHub.Core.Channels;
 using FlowHub.Core.Events;
 using MassTransit;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -67,6 +68,7 @@ public sealed class CaptureRetryEndpointTests : IClassFixture<WebApplicationFact
         _factory.WithWebHostBuilder(b => b.ConfigureServices(services =>
         {
             Replace(services, captures);
+            Replace(services, NoTelegramUpdates());
         }));
 
     private WebApplicationFactory<Program> WithCapturesAndBus(ICaptureService captures, IBus bus) =>
@@ -74,7 +76,20 @@ public sealed class CaptureRetryEndpointTests : IClassFixture<WebApplicationFact
         {
             Replace(services, captures);
             Replace(services, bus);
+            // The retry endpoint reads the recorded Telegram file id to decide whether a
+            // Capture is still awaiting a transcript (#60). This host does not run
+            // persistence, so the port has to be supplied; returning null means "not a
+            // voice capture", which is what these non-voice cases expect.
+            Replace(services, NoTelegramUpdates());
         }));
+
+    private static ITelegramUpdateRepository NoTelegramUpdates()
+    {
+        var updates = Substitute.For<ITelegramUpdateRepository>();
+        updates.FindByCaptureIdAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>())
+            .Returns((TelegramUpdate?)null);
+        return updates;
+    }
 
     private static void Replace<T>(IServiceCollection services, T impl) where T : class
     {

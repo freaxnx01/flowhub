@@ -122,7 +122,7 @@ public sealed partial class TelegramUpdateHandler
         // Submitted without the audio: the transcription consumer fetches it. The
         // handler must not download here — the poll loop is single-threaded (D3).
         var voiceCapture = await _captures.SubmitAsync(
-            "[voice message]", ChannelKind.Telegram, attachment: null,
+            VoiceCapture.PlaceholderContent, ChannelKind.Telegram, attachment: null,
             needsTranscription: true, cancellationToken);
         await RecordAsync(message, voiceCapture.Id, cancellationToken);
     }

@@ -96,4 +96,87 @@ public sealed class CaptureTranscriptionConsumerTests
 
         await stt.DidNotReceiveWithAnyArgs().TranscribeAsync(default!, default!, default);
     }
+
+    [Fact]
+    public async Task Consume_NoTelegramFileRecorded_MarksOrphanAndDoesNotRepublish()
+    {
+        var (stt, gateway, repo) = Stubs("unused");
+        repo.FindByCaptureIdAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>())
+            .Returns((TelegramUpdate?)null);
+        var captures = Substitute.For<ICaptureService>();
+        await using var provider = PipelineTestBase.Build(
+            configure: s => { s.AddSingleton(stt); s.AddSingleton(gateway); s.AddSingleton(repo); s.AddSingleton(captures); },
+            configureBus: x => x.AddConsumer<CaptureTranscriptionConsumer>());
+        var harness = provider.GetRequiredService<ITestHarness>();
+        await harness.Start();
+        var captureId = Guid.NewGuid();
+
+        await harness.Bus.Publish(new CaptureCreated(
+            captureId, VoiceCapture.PlaceholderContent, ChannelKind.Telegram, DateTimeOffset.UtcNow,
+            HasAttachment: false, NeedsTranscription: true));
+
+        // Publish returns before the consumer runs — wait for consumption, as the
+        // sibling tests do, or the assertion races the pipeline.
+        (await harness.Consumed.Any<CaptureCreated>(x => x.Context.Message.CaptureId == captureId))
+            .Should().BeTrue();
+
+        await captures.Received(1).MarkOrphanAsync(captureId, Arg.Any<string>(), Arg.Any<CancellationToken>());
+        await stt.DidNotReceiveWithAnyArgs().TranscribeAsync(default!, default!, default);
+    }
+
+    [Fact]
+    public async Task Consume_DownloadReturnsNull_MarksOrphanAndDoesNotTranscribe()
+    {
+        var (stt, gateway, repo) = Stubs("unused");
+        gateway.DownloadFileAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(_ => Task.FromResult<Stream?>(null));
+        var captures = Substitute.For<ICaptureService>();
+        await using var provider = PipelineTestBase.Build(
+            configure: s => { s.AddSingleton(stt); s.AddSingleton(gateway); s.AddSingleton(repo); s.AddSingleton(captures); },
+            configureBus: x => x.AddConsumer<CaptureTranscriptionConsumer>());
+        var harness = provider.GetRequiredService<ITestHarness>();
+        await harness.Start();
+        var captureId = Guid.NewGuid();
+
+        await harness.Bus.Publish(new CaptureCreated(
+            captureId, VoiceCapture.PlaceholderContent, ChannelKind.Telegram, DateTimeOffset.UtcNow,
+            HasAttachment: false, NeedsTranscription: true));
+
+        // Publish returns before the consumer runs — wait for consumption, as the
+        // sibling tests do, or the assertion races the pipeline.
+        (await harness.Consumed.Any<CaptureCreated>(x => x.Context.Message.CaptureId == captureId))
+            .Should().BeTrue();
+
+        await captures.Received(1).MarkOrphanAsync(captureId, Arg.Any<string>(), Arg.Any<CancellationToken>());
+        await stt.DidNotReceiveWithAnyArgs().TranscribeAsync(default!, default!, default);
+    }
+
+    [Fact]
+    public async Task Consume_ReplyFails_StillMarksOrphan()
+    {
+        // The chat reply is best-effort; a Telegram outage must not stop the capture
+        // reaching a terminal stage, or it would sit in Raw with no signal anywhere.
+        var (stt, gateway, repo) = Stubs(null);
+        gateway.SendTextAsync(Arg.Any<long>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns<Task>(_ => throw new HttpRequestException("telegram down"));
+        var captures = Substitute.For<ICaptureService>();
+        await using var provider = PipelineTestBase.Build(
+            configure: s => { s.AddSingleton(stt); s.AddSingleton(gateway); s.AddSingleton(repo); s.AddSingleton(captures); },
+            configureBus: x => x.AddConsumer<CaptureTranscriptionConsumer>());
+        var harness = provider.GetRequiredService<ITestHarness>();
+        await harness.Start();
+        var captureId = Guid.NewGuid();
+
+        await harness.Bus.Publish(new CaptureCreated(
+            captureId, VoiceCapture.PlaceholderContent, ChannelKind.Telegram, DateTimeOffset.UtcNow,
+            HasAttachment: false, NeedsTranscription: true));
+
+        // Publish returns before the consumer runs — wait for consumption, as the
+        // sibling tests do, or the assertion races the pipeline.
+        (await harness.Consumed.Any<CaptureCreated>(x => x.Context.Message.CaptureId == captureId))
+            .Should().BeTrue();
+
+        await captures.Received(1).MarkOrphanAsync(captureId, Arg.Any<string>(), Arg.Any<CancellationToken>());
+    }
+
 }
