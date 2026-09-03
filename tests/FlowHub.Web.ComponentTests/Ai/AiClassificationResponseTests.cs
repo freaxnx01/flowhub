@@ -18,13 +18,19 @@ public sealed class AiClassificationResponseTests
     }
 
     [Fact]
-    public void MatchedSkill_AllowedValuesEnumeratesWallabagVikunjaEmpty()
+    public void MatchedSkill_AllowedValuesEnumeratesEverySkillTheModelMayReturn()
     {
+        // This attribute is what Microsoft.Extensions.AI turns into the structured-output
+        // schema, so it is the real constraint on the model — the system prompt only
+        // advises. A skill missing here cannot be returned however the prompt is worded,
+        // and the model silently answers with the next-best option instead. #37 added
+        // "Bridge" to the prompt and to AiClassifier's allow-list but not here, so on the
+        // 0.4.0 deployment every dev capture came back "Vikunja" with nothing to notice.
         var prop = typeof(AiClassificationResponse).GetProperty(nameof(AiClassificationResponse.MatchedSkill))!;
         var allowed = prop.GetCustomAttribute<AllowedValuesAttribute>();
 
         allowed.Should().NotBeNull();
-        allowed!.Values.Should().BeEquivalentTo(new object[] { "Wallabag", "Vikunja", "" });
+        allowed!.Values.Should().BeEquivalentTo(new object[] { "Bridge", "Wallabag", "Vikunja", "" });
     }
 
     [Fact]

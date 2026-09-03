@@ -10,6 +10,14 @@ for continuity.
 
 ## [Unreleased]
 
+### Fixed
+
+- The classifier can actually return `Bridge`: `AiClassificationResponse` constrains the
+  model's structured output, and `"Bridge"` was missing from its `AllowedValues`, so the
+  schema silently forbade the answer the prompt was asking for. Every dev capture came
+  back `Vikunja` instead, with no error. Also sharpens the Bridge/Vikunja wording, which
+  overlapped enough that `Game:`-prefixed captures went to Vikunja (#37).
+
 ## [0.4.0] - 2026-09-01
 
 ### Added

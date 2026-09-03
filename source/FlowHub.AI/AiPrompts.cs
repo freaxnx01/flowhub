@@ -15,13 +15,24 @@ internal static class AiPrompts
             ? "Inbox"
             : string.Join(", ", vikunjaBuckets);
 
-        var bridgeOption = allowBridge
-            ? """
-
-                    "Bridge"    – the snippet is an actionable task, bug report, or feature
-                                  request about one of the operator's own software projects
-            """.TrimEnd('\n')
-            : "";
+        // Bridge and Vikunja overlapped: every Bridge case is also literally "a task
+        // or todo", so a model reading top-down had no reason to prefer the narrower
+        // option and routed every dev note to Vikunja. Listing Bridge first, stating
+        // the precedence explicitly, and excluding own-code from Vikunja makes them
+        // alternatives rather than a subset. The disabled branch is byte-identical to
+        // the pre-Bridge prompt — asserted by a test, because drift here changes
+        // classification for every capture.
+        var skillOptions = allowBridge
+            ? "    \"Bridge\"    – the snippet is work on software the operator BUILDS: a bug\n"
+            + "                  report, feature request, dev task, or an idea for a tool or\n"
+            + "                  game to build. Something merely to watch, read, buy or play\n"
+            + "                  is NOT this. When a snippet fits both this and \"Vikunja\",\n"
+            + "                  choose \"Bridge\".\n"
+            + "    \"Vikunja\"   – any OTHER task, todo, or structured piece of content that\n"
+            + "                  belongs in a Vikunja project (quote, movie, book, …), i.e.\n"
+            + "                  one not about the operator's own code"
+            : "    \"Vikunja\"   – the snippet is a task, todo, OR a structured piece of content\n"
+            + "                  that belongs in a Vikunja project (quote, movie, book, …)";
 
         return string.Create(CultureInfo.InvariantCulture, $$"""
             You classify user-captured snippets for a personal knowledge tool called FlowHub.
@@ -30,8 +41,7 @@ internal static class AiPrompts
             - tags: 1–5 short lowercase tags describing the snippet
             - matched_skill: which downstream skill should handle it. Choose exactly ONE:
                 "Wallabag"  – the snippet is a URL or article worth saving for later reading
-                "Vikunja"   – the snippet is a task, todo, OR a structured piece of content
-                              that belongs in a Vikunja project (quote, movie, book, …){{bridgeOption}}
+            {{skillOptions}}
                 ""          – none of the above; it will be marked as Orphan
             - project: when matched_skill="Vikunja", pick the best matching project from
               this list. If unsure, pick "Inbox".
