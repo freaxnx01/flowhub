@@ -50,6 +50,22 @@ public sealed class AiPromptsTests
     }
 
     [Fact]
+    public void BuildSystemPrompt_BridgeDisabled_MatchesThePreBridgeWording()
+    {
+        // The sibling test compares two calls of the same function, so it cannot catch a
+        // change to the disabled prompt itself. This pins the exact pre-Bridge wording:
+        // that prompt classifies every capture on this deployment, and silent drift there
+        // changes behaviour with nothing to notice.
+        var prompt = AiPrompts.BuildSystemPrompt(DefaultBuckets);
+
+        prompt.Should().Contain(
+            "    \"Vikunja\"   – the snippet is a task, todo, OR a structured piece of content\n"
+            + "                  that belongs in a Vikunja project (quote, movie, book, …)");
+        prompt.Should().NotContain("OTHER task");
+        prompt.Should().NotContain("own code");
+    }
+
+    [Fact]
     public void BuildSystemPrompt_BridgeDisabled_IsIdenticalToDefault()
     {
         // Prompt drift silently changes classification for every capture, not just
@@ -125,5 +141,19 @@ public sealed class AiPromptsTests
         messages.Should().HaveCount(2);
         messages[1].Role.Should().Be(ChatRole.User);
         messages[1].Text.Should().Be(content);
+    }
+
+    [Fact]
+    public void BuildSystemPrompt_BridgeEnabled_ListsBridgeBeforeVikunjaAndStatesPrecedence()
+    {
+        // Bridge used to be listed after a Vikunja option that subsumed it ("a task, todo"),
+        // and llama-3.1-70b routed every dev note to Vikunja. Order plus an explicit
+        // tie-break is what makes them alternatives rather than a subset.
+        var prompt = AiPrompts.BuildSystemPrompt(DefaultBuckets, allowBridge: true);
+
+        prompt.IndexOf("\"Bridge\"", StringComparison.Ordinal)
+            .Should().BeLessThan(prompt.IndexOf("\"Vikunja\"", StringComparison.Ordinal));
+        prompt.Should().Contain("choose \"Bridge\"");
+        prompt.Should().Contain("OTHER task");
     }
 }
