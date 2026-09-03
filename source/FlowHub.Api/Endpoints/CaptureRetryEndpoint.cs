@@ -1,4 +1,5 @@
 using FlowHub.Core.Captures;
+using FlowHub.Core.Channels;
 using FlowHub.Core.Events;
 using MassTransit;
 using Microsoft.AspNetCore.Builder;
@@ -24,6 +25,7 @@ internal static class CaptureRetryEndpoint
     internal static async Task<Results<Accepted<Capture>, ProblemHttpResult>> RetryAsync(
         Guid id,
         ICaptureService captureService,
+        ITelegramUpdateRepository telegramUpdates,
         IBus bus,
         HttpContext httpContext,
         CancellationToken ct)
@@ -55,13 +57,25 @@ internal static class CaptureRetryEndpoint
         // in-memory MassTransit consumer has already classified the capture before we read it back.
         var reset = capture with { Stage = LifecycleStage.Raw, FailureReason = null };
 
-        // HasAttachment must be re-derived: it defaults to false, and consumers branch on
-        // it — CaptureEnrichmentConsumer routes attachment-bearing Captures to Paperless
-        // without classifying. Dropping it here silently reclassified retried scans (#34).
+        // Every flag on CaptureCreated must be re-derived here: each one defaults to
+        // false, consumers branch on them, and a dropped flag silently changes how a
+        // retried Capture is routed. HasAttachment was #34; NeedsTranscription is the
+        // same bug class, found by review on #60.
+        //
+        // A voice Capture still carrying the placeholder has no transcript yet, so a
+        // retry has to re-attempt transcription rather than hand the placeholder to the
+        // classifier. The durable signal is the recorded Telegram file id — the audio
+        // itself is never stored (design D5).
+        var telegramUpdate = await telegramUpdates.FindByCaptureIdAsync(id, ct);
+        var awaitingTranscript =
+            telegramUpdate?.FileId is not null
+            && string.Equals(capture.Content, VoiceCapture.PlaceholderContent, StringComparison.Ordinal);
+
         await bus.Publish(
             new CaptureCreated(
                 capture.Id, capture.Content, capture.Source, capture.CreatedAt,
-                HasAttachment: capture.Attachment is not null),
+                HasAttachment: capture.Attachment is not null,
+                NeedsTranscription: awaitingTranscript),
             ct);
 
         return TypedResults.Accepted($"/api/v1/captures/{id}", reset);

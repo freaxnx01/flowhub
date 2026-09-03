@@ -111,7 +111,11 @@ internal static class ProgramRegistration
 
             if (speechConfigured)
             {
-                x.AddConsumer<CaptureTranscriptionConsumer>();
+                // Same retry policy as the enrichment consumer: a download or provider
+                // call is a network hop, and without this a single transient blip
+                // orphans the capture instead of retrying twice first.
+                x.AddConsumer<CaptureTranscriptionConsumer>(c =>
+                    c.UseMessageRetry(r => r.Intervals(100, 500)));
             }
 
             x.AddConsumer<CaptureEmbeddingConsumer>(c =>
