@@ -10,7 +10,7 @@ graph TD
         Web["FlowHub.Web<br/>Blazor Interactive Server + REST API host"]
         Core["FlowHub.Core<br/>Domain types + driving ports"]
         Api["FlowHub.Api<br/>REST endpoints (in-process library)"]
-        AI["FlowHub.AI<br/>AI classification<br/>(cloud LLM; Ollama geplant)"]
+        AI["FlowHub.AI<br/>AI classification + speech-to-text<br/>(cloud LLM; Ollama geplant)"]
         Persistence["FlowHub.Persistence<br/>EF Core + PostgreSQL + pgvector"]
         Skills["FlowHub.Skills<br/>Wallabag + Vikunja adapters"]
         Telegram["FlowHub.Telegram<br/>Telegram bot channel (geplant)"]
@@ -64,7 +64,7 @@ an intentional, not-yet-implemented placeholder.
   - `FlowHub.Web` — Blazor Web App (Interactive Server) + the REST API host
   - `FlowHub.Core` — domain types and driving/driven ports
   - `FlowHub.Api` — REST endpoint contracts for non-UI consumers
-  - `FlowHub.AI` — LLM-backed classifier behind the `IClassifier` port (provider abstraction + keyword fallback)
+  - `FlowHub.AI` — LLM-backed classifier behind the `IClassifier` port (provider abstraction + keyword fallback), plus speech-to-text behind `ISpeechToText` (dormant unless `Speech:ApiKey` is set; the provider is chosen by `Speech:BaseUrl`, so a cloud endpoint or a local whisper server both work)
   - `FlowHub.Persistence` — EF Core + PostgreSQL repositories and migrations
   - `FlowHub.Skills` — Wallabag and Vikunja `ISkillIntegration` adapters
   - `FlowHub.Telegram` — inbound Telegram Channel (long-polling `IHostedService`,

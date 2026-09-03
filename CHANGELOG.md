@@ -10,6 +10,12 @@ for continuity.
 
 ## [Unreleased]
 
+### Added
+
+- Telegram voice memos are transcribed to text and captured like any other message,
+  when `Speech__ApiKey` is configured. The provider is chosen by `Speech__BaseUrl`,
+  so a cloud endpoint or a local whisper server both work (#21).
+
 ### Fixed
 
 - The classifier can actually return `Bridge`: `AiClassificationResponse` constrains the

@@ -43,6 +43,10 @@ dashboard's *Needs attention* card.
 
 Type: `FlowHub.Core.Captures.LifecycleStage`
 
+A voice Capture is created `Raw` with placeholder content and a transcription flag;
+its transcript replaces the placeholder before classification runs. A failed
+transcription ends at `Orphan`.
+
 ### Channel
 
 An **inbound source of Captures** — the route content enters FlowHub through. A
