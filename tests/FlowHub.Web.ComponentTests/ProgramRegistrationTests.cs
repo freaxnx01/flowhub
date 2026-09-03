@@ -141,7 +141,7 @@ public sealed class ProgramRegistrationTests
     {
         var builder = BuildWith();
 
-        builder.AddFlowHubMessaging(demoNotifyEnabled: false);
+        builder.AddFlowHubMessaging(demoNotifyEnabled: false, speechConfigured: false);
 
         // MassTransit registers IBusControl; the pipeline consumers are added as scoped IConsumer<T>.
         builder.Services.Should().Contain(d => d.ServiceType == typeof(IBusControl));
@@ -151,6 +151,8 @@ public sealed class ProgramRegistrationTests
         builder.Services.Should().Contain(d => d.ServiceType == typeof(LifecycleFaultObserver));
         // demoNotifyEnabled=false → the ntfy consumer is *not* registered.
         builder.Services.Should().NotContain(d => d.ServiceType == typeof(CaptureNotificationConsumer));
+        // speechConfigured=false → the transcription consumer is *not* registered.
+        builder.Services.Should().NotContain(d => d.ServiceType == typeof(CaptureTranscriptionConsumer));
     }
 
     [Fact]
@@ -158,9 +160,19 @@ public sealed class ProgramRegistrationTests
     {
         var builder = BuildWith();
 
-        builder.AddFlowHubMessaging(demoNotifyEnabled: true);
+        builder.AddFlowHubMessaging(demoNotifyEnabled: true, speechConfigured: false);
 
         builder.Services.Should().Contain(d => d.ServiceType == typeof(CaptureNotificationConsumer));
+    }
+
+    [Fact]
+    public void AddFlowHubMessaging_WithSpeechConfigured_RegistersCaptureTranscriptionConsumer()
+    {
+        var builder = BuildWith();
+
+        builder.AddFlowHubMessaging(demoNotifyEnabled: false, speechConfigured: true);
+
+        builder.Services.Should().Contain(d => d.ServiceType == typeof(CaptureTranscriptionConsumer));
     }
 
     [Fact]
@@ -177,7 +189,7 @@ public sealed class ProgramRegistrationTests
             ["Bus:RabbitMq:Password"]    = "shh",
         });
 
-        var act = () => builder.AddFlowHubMessaging(demoNotifyEnabled: false);
+        var act = () => builder.AddFlowHubMessaging(demoNotifyEnabled: false, speechConfigured: false);
 
         act.Should().NotThrow();
         builder.Services.Should().Contain(d => d.ServiceType == typeof(IBusControl));
@@ -194,7 +206,7 @@ public sealed class ProgramRegistrationTests
             ["Bus:RabbitMq:Host"] = "rabbit.example.com",
         });
 
-        var act = () => builder.AddFlowHubMessaging(demoNotifyEnabled: false);
+        var act = () => builder.AddFlowHubMessaging(demoNotifyEnabled: false, speechConfigured: false);
 
         act.Should().NotThrow();
     }
