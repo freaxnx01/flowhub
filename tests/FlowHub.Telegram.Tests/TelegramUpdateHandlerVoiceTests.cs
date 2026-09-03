@@ -84,4 +84,20 @@ public class TelegramUpdateHandlerVoiceTests
             Arg.Any<CancellationToken>());
         await captures.DidNotReceiveWithAnyArgs().SubmitAsync(default, default, default, default, default);
     }
+
+    [Fact]
+    public async Task HandleAsync_VoiceOverTheSizeCap_RepliesAndSubmitsNothing()
+    {
+        // Duration is not a proxy for size: a short high-bitrate recording can still be
+        // large, and it would otherwise be queued for a download with no size guard.
+        var (sut, captures, gateway) = Build();
+        var big = new TelegramMessage(9L, 55L, 4, AllowedUser, null,
+            new TelegramFile("voice-abc", "voice-4.ogg", "audio/ogg", 50_000_000, 30));
+
+        await sut.HandleAsync(big, CancellationToken.None);
+
+        await gateway.Received(1).SendTextAsync(55L, Arg.Any<string>(), Arg.Any<CancellationToken>());
+        await captures.DidNotReceiveWithAnyArgs().SubmitAsync(default, default, default, default, default);
+    }
+
 }

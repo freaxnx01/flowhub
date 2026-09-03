@@ -57,6 +57,10 @@ public sealed class EfCaptureService : ICaptureService
                 return await SubmitAsync(content, source, cancellationToken);
             }
 
+            // Validated like the sibling text overload: a blank placeholder would produce a
+            // Capture with no content and nothing queued to replace it.
+            ArgumentException.ThrowIfNullOrWhiteSpace(content);
+
             // Voice memo whose audio the handler chose not to download: the transcription
             // consumer fetches the audio from Telegram and calls SetTranscriptAsync.
             var textOnly = new Capture(
