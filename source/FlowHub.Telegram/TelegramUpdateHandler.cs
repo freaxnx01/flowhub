@@ -97,6 +97,19 @@ public sealed partial class TelegramUpdateHandler
             return;
         }
 
+        // Duration is not a proxy for size — a short high-bitrate recording can still be
+        // large, and it would otherwise be queued for a download with no size guard at
+        // all. Reuses the upload policy's cap so audio is bounded the same way documents
+        // and photos already are in HandleFileAsync.
+        if (audio.SizeBytes > _uploads.MaxBytes)
+        {
+            await _gateway.SendTextAsync(message.ChatId,
+                $"That recording is too large — the limit is {_uploads.MaxBytes} bytes.",
+                cancellationToken);
+            await RecordAsync(message, captureId: null, cancellationToken);
+            return;
+        }
+
         if (!_speech.IsConfigured)
         {
             await _gateway.SendTextAsync(message.ChatId,

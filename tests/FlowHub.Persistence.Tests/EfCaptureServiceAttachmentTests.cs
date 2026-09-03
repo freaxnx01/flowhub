@@ -182,4 +182,21 @@ public class EfCaptureServiceAttachmentTests
         capture.Content.Should().Be("innocent.pdf");
         capture.Attachment!.FileName.Should().Be("innocent.pdf");
     }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task SubmitAsync_NeedsTranscriptionWithBlankPlaceholder_Throws(string placeholder)
+    {
+        // The sibling text overload rejects blank content via ArgumentException; this path
+        // accepted it silently, so a blank placeholder would have produced a Capture with
+        // no content and no transcript to replace it.
+        var (sut, _) = BuildSut();
+
+        var act = async () => await sut.SubmitAsync(
+            placeholder, ChannelKind.Telegram, attachment: null, needsTranscription: true);
+
+        await act.Should().ThrowAsync<ArgumentException>();
+    }
+
 }
