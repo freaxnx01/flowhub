@@ -344,4 +344,41 @@ public sealed class CaptureServiceStubTests
         capture.Title.Should().Be("Example");
         capture.ExternalRef.Should().Be("wal-42");
     }
+
+    [Fact]
+    public async Task SetTranscriptAsync_ReplacesTheContentOfTheCapture()
+    {
+        var sut = new CaptureServiceStub(NoopPublishEndpoint.Instance);
+        var capture = await sut.SubmitAsync("[voice message]", ChannelKind.Telegram, default);
+
+        var updated = await sut.SetTranscriptAsync(capture.Id, "buy milk on the way home");
+
+        updated.Content.Should().Be("buy milk on the way home");
+        (await sut.GetByIdAsync(capture.Id))!.Content.Should().Be("buy milk on the way home");
+    }
+
+    [Fact]
+    public async Task SetTranscriptAsync_UnknownCapture_Throws()
+    {
+        var sut = new CaptureServiceStub(NoopPublishEndpoint.Instance);
+
+        var act = async () => await sut.SetTranscriptAsync(Guid.NewGuid(), "anything");
+
+        await act.Should().ThrowAsync<KeyNotFoundException>();
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task SetTranscriptAsync_BlankTranscript_Throws(string transcript)
+    {
+        // A blank transcript would erase the placeholder and leave nothing behind.
+        var sut = new CaptureServiceStub(NoopPublishEndpoint.Instance);
+        var capture = await sut.SubmitAsync("[voice message]", ChannelKind.Telegram, default);
+
+        var act = async () => await sut.SetTranscriptAsync(capture.Id, transcript);
+
+        await act.Should().ThrowAsync<ArgumentException>();
+    }
+
 }
