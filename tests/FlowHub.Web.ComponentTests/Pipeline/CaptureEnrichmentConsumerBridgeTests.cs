@@ -45,6 +45,35 @@ public sealed class CaptureEnrichmentConsumerBridgeTests
     }
 
     [Fact]
+    public async Task Consume_BridgeIssueWithInferredTarget_PublishesClassifiedWithBridgeTarget()
+    {
+        var classifier = ClassifierReturning(new ClassificationResult(
+            ["bridge"], "Bridge", Title: "Login 500",
+            BridgeAction: BridgeAction.Issue, BridgeBody: "the login 500s",
+            BridgeTarget: "freaxnx01/flowhub"));
+
+        await using var provider = PipelineTestBase.Build(
+            configure: s => s.AddSingleton(classifier),
+            configureBus: x => x.AddConsumer<CaptureEnrichmentConsumer>());
+
+        var harness = provider.GetRequiredService<ITestHarness>();
+        await harness.Start();
+
+        var captureService = provider.GetRequiredService<ICaptureService>();
+        var capture = await captureService.SubmitAsync("the login 500s", ChannelKind.Web, default);
+
+        await harness.Bus.Publish(new CaptureCreated(capture.Id, "the login 500s", ChannelKind.Web, DateTimeOffset.UtcNow));
+
+        (await harness.Published.Any<CaptureClassified>(x =>
+            x.Context.Message.CaptureId == capture.Id
+            && x.Context.Message.MatchedSkill == "Bridge"
+            && x.Context.Message.BridgeTarget == "freaxnx01/flowhub"
+            && x.Context.Message.BridgeAlias == null
+            && x.Context.Message.BridgeAction == BridgeAction.Issue
+            && x.Context.Message.BridgeBody == "the login 500s")).Should().BeTrue();
+    }
+
+    [Fact]
     public async Task Consume_BridgeUnknown_MarksUnhandledAndDoesNotPublish()
     {
         var classifier = ClassifierReturning(new ClassificationResult(
