@@ -60,8 +60,24 @@ public sealed class AiClassifierRepoInferenceTests
         var result = await SutWithResolver().ClassifyAsync("the snake game is too fast", default);
 
         result.MatchedSkill.Should().Be("Bridge");
-        result.BridgeAlias.Should().Be("game-nibbles");
+        result.BridgeTarget.Should().Be("freaxnx01/game-nibbles");
         result.BridgeAction.Should().Be(BridgeAction.Issue);
+    }
+
+    [Fact]
+    public async Task ClassifyAsync_InferredRepo_SetsTargetAndLeavesAliasNull()
+    {
+        // The alias field means "shorthand the operator typed". An inferred repo is not
+        // that, and bridge resolves the two differently.
+        _chat.GetResponseAsync(Arg.Any<IEnumerable<ChatMessage>>(), Arg.Any<ChatOptions?>(), Arg.Any<CancellationToken>())
+            .Returns(
+                JsonResponse(new { tags = new[] { "dev" }, matched_skill = "Bridge", title = "t", project = (string?)null, entities = (object?)null }),
+                JsonResponse(new { repo = "game-nibbles", action = "issue", title = "Snake too fast", body = "It speeds up." }));
+
+        var result = await SutWithResolver().ClassifyAsync("the snake game is too fast", default);
+
+        result.BridgeTarget.Should().Be("freaxnx01/game-nibbles");
+        result.BridgeAlias.Should().BeNull();
     }
 
     [Fact]

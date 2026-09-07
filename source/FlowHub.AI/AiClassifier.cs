@@ -137,9 +137,9 @@ internal sealed partial class AiClassifier : IClassifier
             "Bridge",
             Title: resolution.Title ?? payload.Title,
             Trace: BuildTrace(sw, response),
-            BridgeAlias: resolution.Repo,
             BridgeAction: resolution.Action,
-            BridgeBody: resolution.Body);
+            BridgeBody: resolution.Body,
+            BridgeTarget: resolution.Repo);
     }
 
     private async Task<ClassificationResult> ClassifyBridgeAsync(

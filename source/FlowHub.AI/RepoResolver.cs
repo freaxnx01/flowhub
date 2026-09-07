@@ -17,7 +17,7 @@ internal sealed record RepoResolution(string Repo, BridgeAction Action, string? 
 /// </summary>
 internal sealed partial class RepoResolver
 {
-    internal const string IdeaFallbackRepo = "ideas-lab";
+    internal const string IdeaFallbackRepo = "freaxnx01/ideas-lab";
     private const int ShortlistSize = 5;
 
     private readonly IChatClient _chat;
@@ -86,13 +86,23 @@ internal sealed partial class RepoResolver
             }
 
             // The catalogue is authoritative: only a name we offered is acceptable.
-            if (!shortlist.Any(r => string.Equals(r.Name, payload.Repo, StringComparison.Ordinal)))
+            var chosen = shortlist.FirstOrDefault(r =>
+                string.Equals(r.Name, payload.Repo, StringComparison.Ordinal));
+            if (chosen is null)
             {
                 LogUnlistedRepo(payload.Repo);
                 return null;
             }
 
-            return new RepoResolution(payload.Repo, action, payload.Title, payload.Body);
+            // Bridge resolves an unqualified name against .bridge-alias files, which no repo
+            // has — an owner-qualified target is what its capture endpoints actually take.
+            if (string.IsNullOrWhiteSpace(chosen.Owner))
+            {
+                LogUnqualifiableRepo(chosen.Name);
+                return null;
+            }
+
+            return new RepoResolution($"{chosen.Owner}/{chosen.Name}", action, payload.Title, payload.Body);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -158,4 +168,8 @@ internal sealed partial class RepoResolver
     [LoggerMessage(EventId = 3022, Level = LogLevel.Warning,
         Message = "Repo resolution failed (reason={Reason}); parking for triage")]
     private partial void LogResolveFailed(string reason);
+
+    [LoggerMessage(EventId = 3023, Level = LogLevel.Warning,
+        Message = "Repo {RepoName} has no owner in the catalogue; cannot build a target — parking for triage")]
+    private partial void LogUnqualifiableRepo(string repoName);
 }
