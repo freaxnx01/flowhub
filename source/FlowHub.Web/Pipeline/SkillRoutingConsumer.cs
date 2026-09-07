@@ -58,6 +58,7 @@ public sealed partial class SkillRoutingConsumer : IConsumer<CaptureClassified>
             BridgeAlias = msg.BridgeAlias,
             BridgeAction = msg.BridgeAction,
             BridgeBody = msg.BridgeBody,
+            BridgeTarget = msg.BridgeTarget,
         };
 
         await _captureService.MarkRoutedAsync(msg.CaptureId, ct);

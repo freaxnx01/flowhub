@@ -150,6 +150,106 @@ public sealed class BridgeSkillIntegrationTests
         mock.VerifyNoOutstandingExpectation();
     }
 
+    private static Capture TargetCapture(BridgeAction action, string target = "freaxnx01/bridge",
+        string? title = "Login 500", string? body = "the login 500s") =>
+        new(Guid.NewGuid(), ChannelKind.Web, body ?? string.Empty, DateTimeOffset.UtcNow,
+            LifecycleStage.Routed, "Bridge", Title: title, BridgeAction: action,
+            BridgeBody: body, BridgeTarget: target);
+
+    [Fact]
+    public async Task HandleAsync_IssueWithTarget_PostsOwnerAndRepoNotAlias()
+    {
+        var (sut, mock) = Build();
+        mock.Expect(HttpMethod.Post, $"{BaseUrl}/api/capture/issue")
+            .WithHeaders("Authorization", $"Bearer {Token}")
+            .WithPartialContent("\"owner\":\"freaxnx01\"")
+            .WithPartialContent("\"repo\":\"bridge\"")
+            .WithPartialContent("\"title\":\"Login 500\"")
+            .WithPartialContent("\"body\":\"the login 500s\"")
+            .Respond("application/json", """{"url":"https://example.test/issues/1"}""");
+
+        var result = await sut.HandleAsync(TargetCapture(BridgeAction.Issue), default);
+
+        result.Success.Should().BeTrue();
+        mock.VerifyNoOutstandingExpectation();
+    }
+
+    [Fact]
+    public async Task HandleAsync_IssueWithTarget_DoesNotIncludeAliasField()
+    {
+        var (sut, mock) = Build();
+        mock.When(HttpMethod.Post, $"{BaseUrl}/api/capture/issue")
+            .With(req =>
+            {
+                var body = req.Content!.ReadAsStringAsync().Result;
+                return !body.Contains("\"alias\"", StringComparison.Ordinal);
+            })
+            .Respond("application/json", """{"url":"https://example.test/issues/1"}""");
+
+        var result = await sut.HandleAsync(TargetCapture(BridgeAction.Issue), default);
+
+        result.Success.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task HandleAsync_IdeaWithTarget_PostsTargetNotAlias()
+    {
+        var (sut, mock) = Build();
+        mock.Expect(HttpMethod.Post, $"{BaseUrl}/api/capture/idea")
+            .WithHeaders("Authorization", $"Bearer {Token}")
+            .WithPartialContent("\"target\":\"freaxnx01/bridge\"")
+            .WithPartialContent("\"text\":\"the login 500s\"")
+            .Respond("application/json", """{"url":"https://example.test/ideas.md"}""");
+
+        var result = await sut.HandleAsync(TargetCapture(BridgeAction.Idea), default);
+
+        result.Success.Should().BeTrue();
+        mock.VerifyNoOutstandingExpectation();
+    }
+
+    [Fact]
+    public async Task HandleAsync_IdeaWithTarget_DoesNotIncludeAliasField()
+    {
+        var (sut, mock) = Build();
+        mock.When(HttpMethod.Post, $"{BaseUrl}/api/capture/idea")
+            .With(req =>
+            {
+                var body = req.Content!.ReadAsStringAsync().Result;
+                return !body.Contains("\"alias\"", StringComparison.Ordinal);
+            })
+            .Respond("application/json", """{"url":"https://example.test/ideas.md"}""");
+
+        var result = await sut.HandleAsync(TargetCapture(BridgeAction.Idea), default);
+
+        result.Success.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task HandleAsync_NeitherAliasNorTarget_ThrowsAndPostsNothing()
+    {
+        var (sut, mock) = Build();
+        var capture = TargetCapture(BridgeAction.Issue) with { BridgeAlias = null, BridgeTarget = null };
+
+        var act = async () => await sut.HandleAsync(capture, default);
+
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*alias or target*");
+        mock.GetMatchCount(mock.When("*")).Should().Be(0);
+    }
+
+    [Fact]
+    public async Task HandleAsync_TargetWithoutASlash_Throws()
+    {
+        // The resolver always owner-qualifies, so a bare name here is a programming error.
+        // Posting owner="" would create an issue on the wrong place or 404 confusingly.
+        var (sut, _) = Build();
+
+        var act = async () => await sut.HandleAsync(TargetCapture(BridgeAction.Issue, target: "bridge"), default);
+
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*owner/repo*");
+    }
+
     [Fact]
     public async Task HandleAsync_IdeaWithEmptyBody_FallsBackToContentAsText()
     {

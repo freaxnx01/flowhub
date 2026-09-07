@@ -15,7 +15,7 @@ public sealed class RepoEmbeddingSynchronizerTests
         new(_catalog, _store, _embeddings, NullLogger<RepoEmbeddingSynchronizer>.Instance);
 
     private static BridgeRepo Repo(string name, string? desc = null) =>
-        new(name, null, desc, [], null);
+        new(name, null, null, desc, [], null);
 
     [Fact]
     public async Task SyncAsync_NewRepo_EmbedsAndUpserts()

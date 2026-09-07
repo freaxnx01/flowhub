@@ -45,4 +45,38 @@ public sealed class SkillRoutingConsumerBridgeTests
 
         (await captureService.GetByIdAsync(capture.Id, default))!.Stage.Should().Be(LifecycleStage.Completed);
     }
+
+    [Fact]
+    public async Task Consume_BridgeTargetOnTheEvent_ReachesTheIntegration()
+    {
+        // BridgeTarget is transient event-only, like BridgeAlias: the routing consumer is
+        // the only thing that puts it on the Capture handed to the skill. If it is not
+        // copied here the integration sees null and cannot build the payload.
+        Capture? seen = null;
+        var integration = Substitute.For<ISkillIntegration>();
+        integration.Name.Returns("Bridge");
+        integration.HandleAsync(Arg.Any<Capture>(), Arg.Any<CancellationToken>())
+            .Returns(ci => { seen = ci.Arg<Capture>(); return Task.FromResult(new SkillResult(true, "https://forge/issue/1")); });
+
+        await using var provider = PipelineTestBase.Build(
+            configure: s => s.AddSingleton(integration),
+            configureBus: x => x.AddConsumer<SkillRoutingConsumer>());
+
+        var harness = provider.GetRequiredService<ITestHarness>();
+        await harness.Start();
+
+        var captureService = provider.GetRequiredService<ICaptureService>();
+        var capture = await captureService.SubmitAsync("bridge mcp from outside LAN?", ChannelKind.Web, default);
+        await captureService.MarkClassifiedAsync(capture.Id, "Bridge", title: "Expose MCP to WAN", default);
+
+        await harness.Bus.Publish(new CaptureClassified(
+            capture.Id, ["bridge"], "Bridge", DateTimeOffset.UtcNow,
+            BridgeAction: BridgeAction.Issue, BridgeBody: "how", BridgeTarget: "freaxnx01/bridge"));
+
+        (await harness.Consumed.Any<CaptureClassified>(x => x.Context.Message.CaptureId == capture.Id))
+            .Should().BeTrue();
+
+        seen.Should().NotBeNull();
+        seen!.BridgeTarget.Should().Be("freaxnx01/bridge");
+    }
 }

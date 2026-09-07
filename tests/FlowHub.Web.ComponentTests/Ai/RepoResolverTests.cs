@@ -19,8 +19,8 @@ public sealed class RepoResolverTests
     {
         _catalog.GetReposAsync(Arg.Any<CancellationToken>()).Returns(
         [
-            new BridgeRepo("game-nibbles", null, "Faithful browser Nibbles/Snake clone", [], null),
-            new BridgeRepo("flowhub", null, "Capture anything.", [], null),
+            new BridgeRepo("game-nibbles", "freaxnx01", null, "Faithful browser Nibbles/Snake clone", [], null),
+            new BridgeRepo("flowhub", "freaxnx01", null, "Capture anything.", [], null),
         ]);
         _store.GetHashesAsync(Arg.Any<CancellationToken>()).Returns(new Dictionary<string, string>());
         _embeddings.GenerateAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(new float[384]);
@@ -39,26 +39,44 @@ public sealed class RepoResolverTests
             .Returns(new ChatResponse(new ChatMessage(ChatRole.Assistant, JsonSerializer.Serialize(payload))));
 
     [Fact]
-    public async Task ResolveAsync_ModelPicksAListedRepo_ReturnsIt()
+    public async Task ResolveAsync_ModelPicksAListedRepo_ReturnsAnOwnerQualifiedTarget()
     {
         ChatReturns(new { repo = "game-nibbles", action = "issue", title = "Snake too fast", body = "It speeds up." });
 
         var result = await Sut().ResolveAsync("the snake game is too fast", default);
 
-        result!.Repo.Should().Be("game-nibbles");
+        result!.Repo.Should().Be("freaxnx01/game-nibbles");
         result.Action.Should().Be(BridgeAction.Issue);
         result.Title.Should().Be("Snake too fast");
     }
 
     [Fact]
-    public async Task ResolveAsync_ModelAbstains_RoutesToIdeasLabAsIdea()
+    public async Task ResolveAsync_ModelAbstains_TargetsIdeasLabOwnerQualified()
     {
         ChatReturns(new { repo = (string?)null, action = "idea", title = "Minigolf game", body = "Browser minigolf." });
 
         var result = await Sut().ResolveAsync("Game browser Minigolf", default);
 
-        result!.Repo.Should().Be("ideas-lab");
+        result!.Repo.Should().Be("freaxnx01/ideas-lab");
         result.Action.Should().Be(BridgeAction.Idea);
+    }
+
+    [Fact]
+    public async Task ResolveAsync_CatalogueEntryHasNoOwner_ReturnsNull()
+    {
+        // Without an owner the target cannot be qualified, and posting a bare name is what
+        // this issue exists to stop. Park instead.
+        _catalog.GetReposAsync(Arg.Any<CancellationToken>()).Returns(
+        [
+            new BridgeRepo("orphan-repo", null, null, "no owner", [], null),
+        ]);
+        _store.NearestAsync(Arg.Any<float[]>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
+            .Returns(["orphan-repo"]);
+        ChatReturns(new { repo = "orphan-repo", action = "issue", title = "t", body = "b" });
+
+        var result = await Sut().ResolveAsync("something about orphan-repo", default);
+
+        result.Should().BeNull();
     }
 
     [Fact]
@@ -81,7 +99,7 @@ public sealed class RepoResolverTests
 
         var result = await Sut().ResolveAsync("nibbles snake clone is broken", default);
 
-        result!.Repo.Should().Be("game-nibbles");
+        result!.Repo.Should().Be("freaxnx01/game-nibbles");
     }
 
     [Fact]

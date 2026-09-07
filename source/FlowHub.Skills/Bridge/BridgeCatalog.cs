@@ -114,6 +114,7 @@ public sealed partial class BridgeCatalog : IBridgeCatalog, IDisposable
             .Select(r => new BridgeRepo(
                 // Safe: the Where above filters out null/whitespace names.
                 r.Name!.Trim(),
+                string.IsNullOrWhiteSpace(r.Owner) ? null : r.Owner.Trim(),
                 string.IsNullOrWhiteSpace(r.Alias) ? null : r.Alias.Trim().ToLowerInvariant(),
                 string.IsNullOrWhiteSpace(r.Desc) ? null : r.Desc.Trim(),
                 (IReadOnlyList<string>)(r.Topics ?? Array.Empty<string>()),
@@ -124,6 +125,7 @@ public sealed partial class BridgeCatalog : IBridgeCatalog, IDisposable
 
     private sealed record BridgeRepoDto(
         string? Name,
+        string? Owner,
         string? Alias,
         string? Desc,
         string[]? Topics,

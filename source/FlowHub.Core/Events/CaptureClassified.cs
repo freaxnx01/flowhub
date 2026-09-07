@@ -11,4 +11,5 @@ public sealed record CaptureClassified(
     string? EnrichmentDescription = null,
     string? BridgeAlias = null,
     BridgeAction BridgeAction = BridgeAction.Unknown,
-    string? BridgeBody = null);
+    string? BridgeBody = null,
+    string? BridgeTarget = null);
