@@ -21,6 +21,7 @@ public interface IBridgeCatalog
 /// <summary>One repository from bridge's <c>GET /api/repos</c> catalogue.</summary>
 public sealed record BridgeRepo(
     string Name,
+    string? Owner,
     string? Alias,
     string? Desc,
     IReadOnlyList<string> Topics,

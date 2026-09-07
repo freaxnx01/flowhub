@@ -26,7 +26,7 @@ public sealed class AiClassifierRepoInferenceTests
                 new HashSet<string>(StringComparer.Ordinal)));
         _bridge.GetReposAsync(Arg.Any<CancellationToken>()).Returns(
         [
-            new BridgeRepo("game-nibbles", null, "Faithful browser Nibbles/Snake clone", [], null),
+            new BridgeRepo("game-nibbles", "freaxnx01", null, "Faithful browser Nibbles/Snake clone", [], null),
         ]);
         _store.GetHashesAsync(Arg.Any<CancellationToken>()).Returns(new Dictionary<string, string>());
         _embeddings.GenerateAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(new float[384]);

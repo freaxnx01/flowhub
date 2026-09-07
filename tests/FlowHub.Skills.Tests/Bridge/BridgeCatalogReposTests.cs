@@ -12,8 +12,8 @@ public sealed class BridgeCatalogReposTests
 
     private const string Payload = """
         [
-          {"name":"flowhub","alias":"fh","desc":"Capture anything.","topics":["dotnet"],"last_used":"2026-08-20T10:00:00Z"},
-          {"name":"game-nibbles","desc":"Faithful browser Nibbles/Snake clone"},
+          {"name":"flowhub","owner":"freaxnx01","alias":"fh","desc":"Capture anything.","topics":["dotnet"],"last_used":"2026-08-20T10:00:00Z"},
+          {"name":"game-nibbles","owner":"freaxnx01","desc":"Faithful browser Nibbles/Snake clone"},
           {"name":"bare-repo"}
         ]
         """;
@@ -77,6 +77,34 @@ public sealed class BridgeCatalogReposTests
         await sut.GetReposAsync(default);
 
         mock.GetMatchCount(request).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task GetReposAsync_MapsOwner()
+    {
+        // /api/repos has always returned owner; the DTO dropped it, exactly as it dropped
+        // desc before bridge#252. Repo inference needs it to build an owner-qualified target.
+        var mock = new MockHttpMessageHandler();
+        mock.When(HttpMethod.Get, $"{BaseUrl}/api/repos")
+            .Respond("application/json", Payload);
+        var sut = Build(mock, new MutableTimeProvider(DateTimeOffset.UtcNow));
+
+        var repos = await sut.GetReposAsync(default);
+
+        repos.Single(r => r.Name == "flowhub").Owner.Should().Be("freaxnx01");
+    }
+
+    [Fact]
+    public async Task GetReposAsync_MissingOwner_IsNull()
+    {
+        var mock = new MockHttpMessageHandler();
+        mock.When(HttpMethod.Get, $"{BaseUrl}/api/repos")
+            .Respond("application/json", Payload);
+        var sut = Build(mock, new MutableTimeProvider(DateTimeOffset.UtcNow));
+
+        var repos = await sut.GetReposAsync(default);
+
+        repos.Single(r => r.Name == "bare-repo").Owner.Should().BeNull();
     }
 
     [Fact]

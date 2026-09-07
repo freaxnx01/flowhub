@@ -19,8 +19,8 @@ public sealed class RepoResolverTests
     {
         _catalog.GetReposAsync(Arg.Any<CancellationToken>()).Returns(
         [
-            new BridgeRepo("game-nibbles", null, "Faithful browser Nibbles/Snake clone", [], null),
-            new BridgeRepo("flowhub", null, "Capture anything.", [], null),
+            new BridgeRepo("game-nibbles", "freaxnx01", null, "Faithful browser Nibbles/Snake clone", [], null),
+            new BridgeRepo("flowhub", "freaxnx01", null, "Capture anything.", [], null),
         ]);
         _store.GetHashesAsync(Arg.Any<CancellationToken>()).Returns(new Dictionary<string, string>());
         _embeddings.GenerateAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(new float[384]);
