@@ -10,6 +10,8 @@ for continuity.
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-09-07
+
 ### Added
 
 - Telegram voice memos are transcribed to text and captured like any other message,
