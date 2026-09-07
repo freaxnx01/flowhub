@@ -21,4 +21,5 @@ public sealed record Capture(
     FlowHub.Core.Classification.ClassifierTrace? ClassifierTrace = null,
     string? BridgeAlias = null,
     FlowHub.Core.Classification.BridgeAction BridgeAction = FlowHub.Core.Classification.BridgeAction.Unknown,
-    string? BridgeBody = null);
+    string? BridgeBody = null,
+    string? BridgeTarget = null);

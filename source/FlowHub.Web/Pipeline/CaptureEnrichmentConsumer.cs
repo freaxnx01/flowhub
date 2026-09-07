@@ -109,7 +109,8 @@ public sealed partial class CaptureEnrichmentConsumer : IConsumer<CaptureCreated
             enrichment?.Description,
             result.BridgeAlias,
             result.BridgeAction,
-            result.BridgeBody), ct);
+            result.BridgeBody,
+            result.BridgeTarget), ct);
     }
 
     private async Task RouteAttachmentToPaperlessAsync(
