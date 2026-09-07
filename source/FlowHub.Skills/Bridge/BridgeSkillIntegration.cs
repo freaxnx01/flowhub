@@ -12,8 +12,12 @@ namespace FlowHub.Skills.Bridge;
 /// <summary>
 /// Routes a Bridge-classified capture to the <c>bridge</c> REST API: creates an issue
 /// (<c>POST /api/capture/issue</c>) or appends to the repo's ideas.md
-/// (<c>POST /api/capture/idea</c>), with bridge resolving the alias internally. Failure is
-/// signalled by throwing, per the ISkillIntegration convention.
+/// (<c>POST /api/capture/idea</c>). The payload shape depends on which locator is set on
+/// the capture: an alias (<c>{"alias",…}</c>, resolved by bridge from a <c>.bridge-alias</c>
+/// file) is what the operator typed as a shorthand, while an owner-qualified target
+/// (<c>{"owner","repo",…}</c> for issues, <c>{"target",…}</c> for ideas) is what repo
+/// inference resolved. Failure is signalled by throwing, per the ISkillIntegration
+/// convention.
 /// </summary>
 public sealed class BridgeSkillIntegration : ISkillIntegration
 {
@@ -38,9 +42,12 @@ public sealed class BridgeSkillIntegration : ISkillIntegration
 
     public async Task<SkillResult> HandleAsync(Capture capture, CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(capture.BridgeAlias))
+        var hasTarget = !string.IsNullOrWhiteSpace(capture.BridgeTarget);
+        var hasAlias = !string.IsNullOrWhiteSpace(capture.BridgeAlias);
+        if (!hasTarget && !hasAlias)
         {
-            throw new InvalidOperationException($"Capture {capture.Id} routed to Bridge without an alias.");
+            throw new InvalidOperationException(
+                $"Capture {capture.Id} routed to Bridge without an alias or target.");
         }
 
         return capture.BridgeAction switch
@@ -52,20 +59,55 @@ public sealed class BridgeSkillIntegration : ISkillIntegration
         };
     }
 
-    private static object IssueBody(Capture capture) => new
+    /// <summary>
+    /// Bridge takes an owner-qualified target as owner+repo on the issue endpoint but as a
+    /// single "target" string on the idea endpoint — see bridge/internal/api/capture.go.
+    /// </summary>
+    private static (string Owner, string Repo) SplitTarget(Capture capture)
     {
-        alias = capture.BridgeAlias,
-        title = !string.IsNullOrWhiteSpace(capture.Title)
-            ? capture.Title!.Trim()
-            : Truncate(capture.BridgeBody ?? capture.Content, FallbackTitleMaxLength),
-        body = capture.BridgeBody ?? string.Empty,
-    };
+        var target = capture.BridgeTarget!;
+        var slash = target.IndexOf('/', StringComparison.Ordinal);
+        if (slash <= 0 || slash == target.Length - 1)
+        {
+            throw new InvalidOperationException(
+                $"Capture {capture.Id} has a Bridge target '{target}' that is not owner/repo.");
+        }
 
-    private static object IdeaBody(Capture capture) => new
+        return (target[..slash], target[(slash + 1)..]);
+    }
+
+    private static object IssueBody(Capture capture)
     {
-        alias = capture.BridgeAlias,
-        text = !string.IsNullOrWhiteSpace(capture.BridgeBody) ? capture.BridgeBody!.Trim() : capture.Content.Trim(),
-    };
+        var title = !string.IsNullOrWhiteSpace(capture.Title)
+            ? capture.Title!.Trim()
+            : Truncate(capture.BridgeBody ?? capture.Content, FallbackTitleMaxLength);
+        var body = capture.BridgeBody ?? string.Empty;
+
+        if (string.IsNullOrWhiteSpace(capture.BridgeTarget))
+        {
+            return new { alias = capture.BridgeAlias, title, body };
+        }
+
+        var (owner, repo) = SplitTarget(capture);
+        return new { owner, repo, title, body };
+    }
+
+    private static object IdeaBody(Capture capture)
+    {
+        var text = !string.IsNullOrWhiteSpace(capture.BridgeBody)
+            ? capture.BridgeBody!.Trim()
+            : capture.Content.Trim();
+
+        if (string.IsNullOrWhiteSpace(capture.BridgeTarget))
+        {
+            return new { alias = capture.BridgeAlias, text };
+        }
+
+        // Validate the shape even though the idea endpoint takes it joined, so a malformed
+        // target fails the same way on both paths rather than reaching bridge.
+        _ = SplitTarget(capture);
+        return new { target = capture.BridgeTarget, text };
+    }
 
     private async Task<SkillResult> SendAsync(string path, object body, CancellationToken cancellationToken)
     {
