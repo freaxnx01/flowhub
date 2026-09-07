@@ -23,6 +23,7 @@ for continuity.
   schema silently forbade the answer the prompt was asking for. Every dev capture came
   back `Vikunja` instead, with no error. Also sharpens the Bridge/Vikunja wording, which
   overlapped enough that `Game:`-prefixed captures went to Vikunja (#37).
+- An inferred repo is sent to bridge as `owner`/`repo` (issue) or `target` (idea) instead of as an `alias`, which bridge resolves against `.bridge-alias` files that no repo has — every inferred route previously failed with `404 unknown alias`. (#66)
 
 ## [0.4.0] - 2026-09-01
 
