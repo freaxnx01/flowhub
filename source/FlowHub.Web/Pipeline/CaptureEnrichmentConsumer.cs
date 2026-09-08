@@ -60,6 +60,21 @@ public sealed partial class CaptureEnrichmentConsumer : IConsumer<CaptureCreated
     private async Task ApplyClassificationAsync(
         ConsumeContext<CaptureCreated> context, CaptureCreated msg, ClassificationResult result, CancellationToken ct)
     {
+        // An unresolvable shorthand token means the classification cannot be trusted,
+        // whatever skill it named. A confident wrong route looks handled; a parked
+        // capture does not. This check runs before Bridge and Orphan branches so that
+        // an unknown token overrides any downstream inference.
+        if (result.UnknownShorthand is { Count: > 0 } unknown)
+        {
+            var joined = string.Join(", ", unknown);
+            await _captureService.MarkUnhandledAsync(
+                msg.CaptureId,
+                $"unknown shorthand — {joined}",
+                ct);
+            LogUnknownShorthand(msg.CaptureId, joined);
+            return;
+        }
+
         // Bridge with no determinable target → park for triage before any publish or
         // network call (spec decision #6). Two distinct causes, two distinct reasons:
         // no alias means the LLM proposed Bridge but no repo is known (issue #38);
@@ -140,4 +155,10 @@ public sealed partial class CaptureEnrichmentConsumer : IConsumer<CaptureCreated
         Level = LogLevel.Information,
         Message = "Capture {CaptureId} bridge action undetermined (alias={Alias}) — marked Unhandled for triage")]
     private partial void LogBridgeUndetermined(Guid captureId, string alias);
+
+    [LoggerMessage(
+        EventId = 1005,
+        Level = LogLevel.Information,
+        Message = "Capture {CaptureId} parked — unknown shorthand: {Tokens}")]
+    private partial void LogUnknownShorthand(Guid captureId, string tokens);
 }

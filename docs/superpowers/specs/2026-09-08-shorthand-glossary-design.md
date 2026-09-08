@@ -117,7 +117,14 @@ When a prefix's glossary value is **owner-qualified** (contains `/`), the resolv
 inference at all**. This is strictly better than the #38 embedding-plus-LLM path for
 these captures: it is deterministic, free, and cannot abstain.
 
-An owner-qualified prefix also **forces `MatchedSkill` to `Bridge`**. The operator naming
+An owner-qualified prefix also **forces `MatchedSkill` to `Bridge`** — but only when
+Bridge classification is enabled. Gating this on `_allowBridgeClassification` was missed
+in the first draft and caught in review: every other path checks `_allowedSkills`, and a
+glossary entry must not become a way around a feature flag on a deployment with no bridge
+wired up. Flag off → the prefix still supplies prompt context and a `prefix` entity, it
+just cannot select the Bridge skill.
+
+Otherwise, an owner-qualified prefix forces `MatchedSkill` to `Bridge`. The operator naming
 a repo is explicit intent; letting the model still answer `Vikunja` would discard it. The
 model is left to decide only issue-vs-idea, as it already does on the alias path.
 
@@ -164,8 +171,19 @@ glossary and logs once — never an exception into the classification path.
   entries can share a name. Resolution is by token; the entity carries the name, which
   is what makes aliases collapse correctly downstream.
 - **Acronyms** match on a word boundary, case-insensitively.
-- **`>` disambiguation:** if the next token resolves to a person, the operator is
-  `recommend-to`; otherwise `in-style-of`.
+- **`>` yields `recommend-to` only**, and only when a known person token follows a
+  whitespace-delimited `>` in a capture that does not look like code.
+
+  The first draft also emitted `in-style-of` when a *thing* followed. Review killed it,
+  correctly: no lexical rule separates that from an ordinary comparison (`if (a > b)`),
+  and the captures that genuinely mean it (`Game: buggy > micro machines`) carry a prefix
+  marker, which short-circuits before operator resolution is ever reached. The branch was
+  unreachable where it mattered and produced false positives everywhere else.
+
+  A related hazard, worth stating: **single-letter person tokens collide with variable
+  names** — `j` is both a person marker here and the classic loop variable. Hence the
+  code-shaped-text guard (`;`, `{`, `=>`, `==`, balanced parens) before operator
+  resolution.
 - **Prefix markers** match at the start of the capture, case-insensitively, and mark the
   remainder as subject matter — no person, acronym or operator resolution runs inside it.
   If the prefix's value is owner-qualified (`owner/repo`), it also yields a

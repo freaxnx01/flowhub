@@ -9,7 +9,9 @@ namespace FlowHub.AI;
 internal static class AiPrompts
 {
     internal static string BuildSystemPrompt(
-        IReadOnlyCollection<string> vikunjaBuckets, bool allowBridge = false)
+        IReadOnlyCollection<string> vikunjaBuckets,
+        bool allowBridge = false,
+        string glossaryContext = "")
     {
         var bucketLine = vikunjaBuckets.Count == 0
             ? "Inbox"
@@ -34,7 +36,7 @@ internal static class AiPrompts
             : "    \"Vikunja\"   – the snippet is a task, todo, OR a structured piece of content\n"
             + "                  that belongs in a Vikunja project (quote, movie, book, …)";
 
-        return string.Create(CultureInfo.InvariantCulture, $$"""
+        var prompt = string.Create(CultureInfo.InvariantCulture, $$"""
             You classify user-captured snippets for a personal knowledge tool called FlowHub.
 
             For each capture, return:
@@ -56,12 +58,22 @@ internal static class AiPrompts
 
             Reply ONLY via the structured response schema. Never include explanations.
             """);
+
+        // Appended, never interleaved: an empty glossary must leave the prompt
+        // byte-identical to the pre-glossary output.
+        return string.IsNullOrWhiteSpace(glossaryContext)
+            ? prompt
+            : prompt + "\n\nThe operator writes in private shorthand. For this capture:\n"
+                     + glossaryContext;
     }
 
     internal static IList<ChatMessage> BuildMessages(
-        string content, IReadOnlyCollection<string> vikunjaBuckets, bool allowBridge = false) =>
+        string content,
+        IReadOnlyCollection<string> vikunjaBuckets,
+        bool allowBridge = false,
+        string glossaryContext = "") =>
     [
-        new ChatMessage(ChatRole.System, BuildSystemPrompt(vikunjaBuckets, allowBridge)),
+        new ChatMessage(ChatRole.System, BuildSystemPrompt(vikunjaBuckets, allowBridge, glossaryContext)),
         new ChatMessage(ChatRole.User, content),
     ];
 

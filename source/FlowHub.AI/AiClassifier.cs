@@ -28,6 +28,7 @@ internal sealed partial class AiClassifier : IClassifier
     private readonly bool _allowBridgeClassification;
     private readonly string[] _allowedSkills;
     private readonly RepoResolver? _repoResolver;
+    private readonly IGlossary _glossary;
 
     public AiClassifier(
         IChatClient chat,
@@ -38,7 +39,8 @@ internal sealed partial class AiClassifier : IClassifier
         AiModelInfo modelInfo,
         IBridgeCatalog bridgeCatalog,
         bool allowBridgeClassification = false,
-        RepoResolver? repoResolver = null)
+        RepoResolver? repoResolver = null,
+        IGlossary? glossary = null)
     {
         _chat = chat;
         _keyword = keyword;
@@ -50,6 +52,7 @@ internal sealed partial class AiClassifier : IClassifier
         _allowBridgeClassification = allowBridgeClassification;
         _allowedSkills = allowBridgeClassification ? SkillsWithBridge : SkillsWithoutBridge;
         _repoResolver = repoResolver;
+        _glossary = glossary ?? new EmptyGlossary();
     }
 
     public async Task<ClassificationResult> ClassifyAsync(string content, CancellationToken cancellationToken)
@@ -68,37 +71,21 @@ internal sealed partial class AiClassifier : IClassifier
             var catalog = await _catalog.GetAsync(cancellationToken);
             var buckets = catalog.Keys.ToArray();
 
-            var response = await _chat.GetResponseAsync<AiClassificationResponse>(
-                AiPrompts.BuildMessages(content, buckets, _allowBridgeClassification),
-                _options,
-                cancellationToken: cancellationToken);
+            var glossary = await _glossary.GetAsync(cancellationToken);
+            var shorthand = ShorthandResolver.Resolve(content, glossary);
 
-            if (!response.TryGetResult(out var payload))
+            // D5: an owner-qualified prefix names a repo — that is explicit operator intent.
+            // Route directly to Bridge and skip both LLM classification and repo inference.
+            // Gated on the Bridge feature flag: every other path checks _allowedSkills, and
+            // a glossary entry must not become a way around a flag on a deployment with no
+            // bridge wired up. Flag off → fall through; the prefix still supplies prompt
+            // context and a "prefix" entity, it just cannot select the Bridge skill.
+            if (shorthand.BridgeTarget is not null && _allowBridgeClassification)
             {
-                throw new InvalidOperationException("schema_violation");
+                return BuildOwnerQualifiedBridgeResult(shorthand, sw);
             }
 
-            if (Array.IndexOf(_allowedSkills, payload.MatchedSkill) < 0)
-            {
-                throw new InvalidOperationException("schema_violation");
-            }
-
-            var resolved = await TryResolveBridgeAsync(payload, content, sw, response, cancellationToken);
-            if (resolved is not null)
-            {
-                return resolved;
-            }
-
-            var project = string.Equals(payload.MatchedSkill, "Vikunja", StringComparison.Ordinal)
-                ? payload.Project
-                : null;
-
-            IReadOnlyDictionary<string, string>? entities = payload.Entities is { Count: > 0 }
-                ? payload.Entities
-                : null;
-
-            sw.Stop();
-            return new ClassificationResult(payload.Tags, payload.MatchedSkill, payload.Title, project, entities, BuildTrace(sw, response));
+            return await ClassifyWithModelAsync(content, buckets, shorthand, sw, cancellationToken);
         }
         catch (Exception ex)
         {
@@ -109,6 +96,73 @@ internal sealed partial class AiClassifier : IClassifier
             LogFellBack(reason, sw.ElapsedMilliseconds);
             return await _keyword.ClassifyAsync(content, cancellationToken);
         }
+    }
+
+    private ClassificationResult BuildOwnerQualifiedBridgeResult(ResolvedShorthand shorthand, Stopwatch sw)
+    {
+        sw.Stop();
+        return new ClassificationResult(
+            Tags: ["bridge"],
+            MatchedSkill: "Bridge",
+            Title: null,
+            Entities: shorthand.Entities.Count > 0 ? shorthand.Entities : null,
+            Trace: new ClassifierTrace(
+                ClassifierKind.Ai,
+                (int)sw.ElapsedMilliseconds,
+                _modelInfo.Provider,
+                _modelInfo.Model,
+                null,
+                null),
+            BridgeAction: BridgeAction.Unknown,
+            BridgeTarget: shorthand.BridgeTarget,
+            UnknownShorthand: shorthand.UnknownTokens.Count > 0 ? shorthand.UnknownTokens : null);
+    }
+
+    private async Task<ClassificationResult> ClassifyWithModelAsync(
+        string content,
+        string[] buckets,
+        ResolvedShorthand shorthand,
+        Stopwatch sw,
+        CancellationToken cancellationToken)
+    {
+        var response = await _chat.GetResponseAsync<AiClassificationResponse>(
+            AiPrompts.BuildMessages(content, buckets, _allowBridgeClassification, shorthand.PromptContext),
+            _options,
+            cancellationToken: cancellationToken);
+
+        if (!response.TryGetResult(out var payload))
+        {
+            throw new InvalidOperationException("schema_violation");
+        }
+
+        if (Array.IndexOf(_allowedSkills, payload.MatchedSkill) < 0)
+        {
+            throw new InvalidOperationException("schema_violation");
+        }
+
+        IReadOnlyList<string>? unknown = shorthand.UnknownTokens.Count > 0 ? shorthand.UnknownTokens : null;
+
+        var resolved = await TryResolveBridgeAsync(payload, content, sw, response, cancellationToken);
+        if (resolved is not null)
+        {
+            return resolved with { UnknownShorthand = unknown };
+        }
+
+        var project = string.Equals(payload.MatchedSkill, "Vikunja", StringComparison.Ordinal)
+            ? payload.Project
+            : null;
+
+        var entities = MergeEntities(shorthand.Entities, payload.Entities);
+
+        sw.Stop();
+        return new ClassificationResult(
+            payload.Tags,
+            payload.MatchedSkill,
+            payload.Title,
+            project,
+            entities,
+            BuildTrace(sw, response),
+            UnknownShorthand: unknown);
     }
 
     private async Task<ClassificationResult?> TryResolveBridgeAsync(
@@ -173,6 +227,27 @@ internal sealed partial class AiClassifier : IClassifier
             BridgeAlias: alias,
             BridgeAction: action,
             BridgeBody: payload.Body);
+    }
+
+    private static Dictionary<string, string>? MergeEntities(
+        IReadOnlyDictionary<string, string> resolved,
+        IReadOnlyDictionary<string, string>? fromModel)
+    {
+        if (resolved.Count == 0 && fromModel is not { Count: > 0 })
+        {
+            return null;
+        }
+
+        var merged = new Dictionary<string, string>(resolved, StringComparer.Ordinal);
+        if (fromModel is not null)
+        {
+            foreach (var (key, value) in fromModel)
+            {
+                merged[key] = value;
+            }
+        }
+
+        return merged;
     }
 
     // Latency (ms) and token counts fit int for any real classify call; casts are intentional.

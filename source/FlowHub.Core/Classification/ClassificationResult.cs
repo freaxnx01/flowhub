@@ -17,4 +17,5 @@ public sealed record ClassificationResult(
     string? BridgeAlias = null,
     BridgeAction BridgeAction = BridgeAction.Unknown,
     string? BridgeBody = null,
-    string? BridgeTarget = null);
+    string? BridgeTarget = null,
+    IReadOnlyList<string>? UnknownShorthand = null);
