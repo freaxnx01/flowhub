@@ -57,7 +57,10 @@ Ai__Glossary__RefreshInterval=00:05:00
   "people":    { "<token>": "<display name>" },
   "acronyms":  { "<TOKEN>": "<expansion>" },
   "operators": { ">": "recommend-to|in-style-of", "->": "produces" },
-  "prefixes":  { "Game:": "<routing target>", "Acronym Quiz:": "<routing target>" }
+  "prefixes":  {
+    "Acronym Quiz:": "<owner>/game-acronym-quiz",
+    "Quicktask:": "a quick task"
+  }
 }
 ```
 
@@ -89,8 +92,10 @@ The same acronym plays three different roles, and only the first may be resolved
 | **subject** — the capture is *about* the token | `Acronym Quiz: SPQR` | **do not resolve**; it is content |
 | **definition** — the capture introduces a token and its expansion | `TTFT Time to first Token` | do not resolve; it is *glossary input* |
 
-Resolving a subject-role token corrupts the capture: expanding `SPQR` turns a piece of
-quiz content into a routing signal about Roman history.
+Resolving a subject-role token corrupts the capture. `Acronym Quiz: SPQR` does not mean
+"classify something about Roman history" and it is not quiz content to be filed — it is a
+**feature request against a specific repo**: *add this acronym to the acronym-quiz game*.
+Expanding `SPQR` destroys exactly the part that is the payload.
 
 **Rule:** text following a **prefix marker** is subject matter — suppress shorthand
 resolution within it. The prefix itself is resolved (and routes the capture); everything
@@ -100,6 +105,31 @@ mangled content.
 
 Definition-role captures are recognised only well enough to **not** resolve them. Feeding
 them back into the glossary automatically is a follow-up, not part of this issue.
+
+### D5 — A prefix may name a repo, and then routing is deterministic
+
+The operator maintains a large family of `game-*` repos, and prefix markers map onto them
+directly: `Acronym Quiz:` → `<owner>/game-acronym-quiz`, `Geo quiz` →
+`<owner>/game-geography-quiz`. The capture is a feature request against that repo.
+
+When a prefix's glossary value is **owner-qualified** (contains `/`), the resolver sets
+`BridgeTarget` from it and the capture routes to Bridge **without invoking repo
+inference at all**. This is strictly better than the #38 embedding-plus-LLM path for
+these captures: it is deterministic, free, and cannot abstain.
+
+An owner-qualified prefix also **forces `MatchedSkill` to `Bridge`**. The operator naming
+a repo is explicit intent; letting the model still answer `Vikunja` would discard it. The
+model is left to decide only issue-vs-idea, as it already does on the alias path.
+
+When the value is not owner-qualified it is an ordinary routing hint for the model, as
+in D3.
+
+```
+"Acronym Quiz: SPQR"
+  ↓ prefix "Acronym Quiz:" → "<owner>/game-acronym-quiz" (owner-qualified)
+  BridgeTarget = "<owner>/game-acronym-quiz"; repo inference skipped
+  body = "SPQR"   ← subject matter, unresolved
+```
 
 ### D4 — Empty glossary must be byte-identical to today
 
@@ -126,14 +156,20 @@ glossary and logs once — never an exception into the classification path.
 
 ## Resolution rules
 
-- **Person tokens** match on a word boundary, case-insensitively, in three positions:
-  trailing (`Röstifarm nat`), leading (`J reisen boombox`) and possessive
-  (`Reiseliste j: boombox`).
+- **Person tokens** match on a word boundary, case-insensitively, in four positions:
+  trailing, leading, possessive (`<token>:`), and **after a marker preposition** —
+  `für <token>` and `> <token>`. The corpus uses German and English interchangeably, so
+  the preposition list is glossary data, not code.
+- **Several tokens may alias one person.** `people` is token → display name, so two
+  entries can share a name. Resolution is by token; the entity carries the name, which
+  is what makes aliases collapse correctly downstream.
 - **Acronyms** match on a word boundary, case-insensitively.
 - **`>` disambiguation:** if the next token resolves to a person, the operator is
   `recommend-to`; otherwise `in-style-of`.
 - **Prefix markers** match at the start of the capture, case-insensitively, and mark the
   remainder as subject matter — no person, acronym or operator resolution runs inside it.
+  If the prefix's value is owner-qualified (`owner/repo`), it also yields a
+  `BridgeTarget` and suppresses repo inference (D5).
 - **Unknown-token detection is deliberately narrow** — a *trailing* alphabetic token of
   three characters or fewer that is not a known glossary key. Narrow on purpose: a broad
   rule would park a large fraction of the corpus on ordinary short words.
