@@ -10,6 +10,15 @@ for continuity.
 
 ## [Unreleased]
 
+### Added
+
+- The classifier resolves the operator's private shorthand — person markers, domain
+  acronyms, prefix markers and the overloaded `>` operator — from a glossary file
+  supplied by the deployment (`Ai__Glossary__Path`). Resolved meanings reach the model
+  as context and the capture as entities. A capture whose trailing shorthand is not in
+  the glossary is parked rather than guessed at. With no glossary configured the system
+  prompt is byte-identical to before, so behaviour is unchanged. (#83)
+
 ## [0.5.0] - 2026-09-07
 
 ### Added
