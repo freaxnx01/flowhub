@@ -10,6 +10,8 @@ for continuity.
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-09-08
+
 ### Added
 
 - The classifier resolves the operator's private shorthand — person markers, domain
