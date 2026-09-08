@@ -90,10 +90,14 @@ public sealed class ShorthandResolverTests
     }
 
     [Fact]
-    public void Resolve_GreaterThanBeforeAThing_MeansInStyleOf()
+    public void Resolve_GreaterThanBeforeAThing_EmitsNoOperatorEntity()
     {
+        // Deliberate narrowing after review: "in the style of" is indistinguishable from
+        // an ordinary comparison, and the captures that actually mean it carry a prefix
+        // marker, which short-circuits before operator resolution. Emitting nothing beats
+        // emitting a guess that skews the prompt.
         ShorthandResolver.Resolve("Game: buggy > micro machines", Glossary)
-            .Entities.Should().ContainKey("operator").WhoseValue.Should().Be("in-style-of");
+            .Entities.Should().NotContainKey("operator");
     }
 
     [Fact]
@@ -150,5 +154,25 @@ public sealed class ShorthandResolverTests
 
         context.Should().Contain("ZZZ").And.Contain("Zed Zed Zed");
         context.Should().Contain("aa").And.Contain("Person A");
+    }
+
+    [Theory]
+    [InlineData("refactor a->b in the parser")]      // arrow
+    [InlineData("if (a > b) return;")]                // comparison inside code
+    [InlineData("map x => x.Name")]                   // lambda
+    [InlineData("compare 5 >= 3")]                    // relational
+    public void Resolve_GreaterThanThatIsNotAnOperator_DoesNotEmitAnOperatorEntity(string content)
+    {
+        // A bare ">" appears in code snippets and arrows all over the corpus. Emitting an
+        // operator entity for those injects misleading context into the prompt.
+        ShorthandResolver.Resolve(content, Glossary)
+            .Entities.Should().NotContainKey("operator");
+    }
+
+    [Fact]
+    public void Resolve_WhitespaceDelimitedGreaterThan_IsStillAnOperator()
+    {
+        ShorthandResolver.Resolve("ZZZ 1800 > aa", Glossary)
+            .Entities.Should().ContainKey("operator").WhoseValue.Should().Be("recommend-to");
     }
 }

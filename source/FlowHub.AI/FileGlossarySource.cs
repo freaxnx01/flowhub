@@ -19,8 +19,11 @@ internal sealed partial class FileGlossarySource : IGlossary, IDisposable
     private readonly TimeProvider _time;
     private readonly SemaphoreSlim _gate = new(1, 1);
 
-    private GlossarySnapshot? _cache;
-    private DateTimeOffset _readAt;
+    // Snapshot and its timestamp live in one immutable object behind a single reference,
+    // so the lock-free fast path is one atomic read. Two separate fields could not be
+    // read consistently outside the gate — DateTimeOffset is a multi-field struct, so a
+    // torn read of the timestamp was possible while ReloadAsync wrote it under the lock.
+    private CacheEntry? _cache;
 
     public FileGlossarySource(
         IOptions<GlossaryOptions> options,
@@ -39,11 +42,11 @@ internal sealed partial class FileGlossarySource : IGlossary, IDisposable
             return GlossarySnapshot.Empty;
         }
 
-        // IsFresh returns true only when _cache is non-null, so the non-null forgiving
-        // operator is safe here — this comment documents the invariant per house rule.
-        if (IsFresh(_time.GetUtcNow()))
+        var cached = Volatile.Read(ref _cache);
+        if (IsFresh(cached, _time.GetUtcNow()))
         {
-            return _cache!;
+            // IsFresh returns true only for a non-null entry — invariant documented per house rule.
+            return cached!.Snapshot;
         }
 
         await _gate.WaitAsync(cancellationToken);
@@ -52,9 +55,10 @@ internal sealed partial class FileGlossarySource : IGlossary, IDisposable
             // Re-read the clock inside the lock: a waiter that blocked through
             // another thread's successful read must see the fresh _readAt.
             var now = _time.GetUtcNow();
-            if (IsFresh(now))
+            cached = Volatile.Read(ref _cache);
+            if (IsFresh(cached, now))
             {
-                return _cache!;
+                return cached!.Snapshot;
             }
 
             return await ReloadAsync(now, cancellationToken);
@@ -65,8 +69,8 @@ internal sealed partial class FileGlossarySource : IGlossary, IDisposable
         }
     }
 
-    private bool IsFresh(DateTimeOffset now) =>
-        _cache is not null && now - _readAt < _options.RefreshInterval;
+    private bool IsFresh(CacheEntry? entry, DateTimeOffset now) =>
+        entry is not null && now - entry.ReadAt < _options.RefreshInterval;
 
     private async Task<GlossarySnapshot> ReloadAsync(DateTimeOffset now, CancellationToken cancellationToken)
     {
@@ -77,29 +81,32 @@ internal sealed partial class FileGlossarySource : IGlossary, IDisposable
             var dto = JsonSerializer.Deserialize<GlossaryDto>(json, JsonOptions)
                 ?? throw new JsonException("glossary document was null");
 
-            _cache = new GlossarySnapshot(
+            var snapshot = new GlossarySnapshot(
                 dto.People ?? new Dictionary<string, string>(),
                 dto.Acronyms ?? new Dictionary<string, string>(),
                 dto.Prefixes ?? new Dictionary<string, string>());
-            _readAt = now;
-            return _cache;
+            Volatile.Write(ref _cache, new CacheEntry(snapshot, now));
+            return snapshot;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException)
         {
-            _readAt = now;
-            if (_cache is not null)
+            var previous = Volatile.Read(ref _cache);
+            if (previous is not null)
             {
                 LogReloadFailedKeepingCache(ex.GetType().Name);
-                return _cache;
+                Volatile.Write(ref _cache, previous with { ReadAt = now });
+                return previous.Snapshot;
             }
 
             LogFirstReadFailed(ex.GetType().Name);
-            _cache = GlossarySnapshot.Empty;
-            return _cache;
+            Volatile.Write(ref _cache, new CacheEntry(GlossarySnapshot.Empty, now));
+            return GlossarySnapshot.Empty;
         }
     }
 
     public void Dispose() => _gate.Dispose();
+
+    private sealed record CacheEntry(GlossarySnapshot Snapshot, DateTimeOffset ReadAt);
 
     private sealed record GlossaryDto(
         [property: JsonPropertyName("people")] Dictionary<string, string>? People,

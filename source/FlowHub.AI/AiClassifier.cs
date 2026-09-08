@@ -76,7 +76,11 @@ internal sealed partial class AiClassifier : IClassifier
 
             // D5: an owner-qualified prefix names a repo — that is explicit operator intent.
             // Route directly to Bridge and skip both LLM classification and repo inference.
-            if (shorthand.BridgeTarget is not null)
+            // Gated on the Bridge feature flag: every other path checks _allowedSkills, and
+            // a glossary entry must not become a way around a flag on a deployment with no
+            // bridge wired up. Flag off → fall through; the prefix still supplies prompt
+            // context and a "prefix" entity, it just cannot select the Bridge skill.
+            if (shorthand.BridgeTarget is not null && _allowBridgeClassification)
             {
                 return BuildOwnerQualifiedBridgeResult(shorthand, sw);
             }

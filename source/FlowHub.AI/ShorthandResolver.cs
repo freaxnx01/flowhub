@@ -117,13 +117,66 @@ internal static class ShorthandResolver
         return null;
     }
 
+    /// <summary>
+    /// Finds a ">" that is actually the operator, not part of a code snippet. The corpus
+    /// contains arrows ("a->b"), lambdas ("x => y") and comparisons ("a > b" inside code),
+    /// and emitting an operator entity for those injects misleading prompt context.
+    /// The operator form is whitespace-delimited and not adjacent to -, =, &lt; or >.
+    /// </summary>
+    /// <summary>
+    /// Person tokens are one to three characters, so a single-letter token collides with
+    /// ordinary variable names — "j" is both a person marker here and the classic loop
+    /// variable. A capture carrying code punctuation is not shorthand, so operator
+    /// resolution is skipped rather than guessing.
+    /// </summary>
+    private static bool LooksLikeCode(string content) =>
+        content.Contains(';', StringComparison.Ordinal)
+        || content.Contains('{', StringComparison.Ordinal)
+        || content.Contains("=>", StringComparison.Ordinal)
+        || content.Contains("==", StringComparison.Ordinal)
+        || (content.Contains('(', StringComparison.Ordinal) && content.Contains(')', StringComparison.Ordinal));
+
+    private static int FindStandaloneGreaterThan(string content)
+    {
+        for (var i = 0; i < content.Length; i++)
+        {
+            if (content[i] == '>' && IsStandaloneAt(content, i))
+            {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
+    private static bool IsStandaloneAt(string content, int i)
+    {
+        if (i == 0)
+        {
+            return false;
+        }
+
+        var prev = content[i - 1];
+        var next = i + 1 < content.Length ? content[i + 1] : ' ';
+
+        return char.IsWhiteSpace(prev)
+            && char.IsWhiteSpace(next)
+            && prev is not ('-' or '=' or '<' or '>')
+            && next is not ('=' or '>');
+    }
+
     private static void ResolveGreaterThanOperator(
         string content,
         GlossarySnapshot glossary,
         Dictionary<string, string> entities,
         StringBuilder context)
     {
-        var idx = content.IndexOf('>', StringComparison.Ordinal);
+        if (LooksLikeCode(content))
+        {
+            return;
+        }
+
+        var idx = FindStandaloneGreaterThan(content);
         if (idx < 0)
         {
             return;
@@ -134,10 +187,17 @@ internal static class ShorthandResolver
             after.StartsWith(t, StringComparison.OrdinalIgnoreCase)
             && (after.Length == t.Length || !char.IsLetter(after[t.Length])));
 
-        entities["operator"] = followedByPerson ? "recommend-to" : "in-style-of";
-        context.Append(followedByPerson
-            ? "\">\" before a person means: recommend this to that person. "
-            : "\">\" before a thing means: in the style of that thing. ");
+        // Only "recommend-to" is emitted. "In the style of" cannot be told apart from an
+        // ordinary comparison ("if (a > b)") by any lexical rule, and its real home —
+        // "Game: buggy > micro machines" — short-circuits at the prefix before ever
+        // reaching here. Guessing it produced false positives and nothing else.
+        if (!followedByPerson)
+        {
+            return;
+        }
+
+        entities["operator"] = "recommend-to";
+        context.Append("\">\" before a person means: recommend this to that person. ");
     }
 
     private static IReadOnlyList<string> FindUnknownTokens(
