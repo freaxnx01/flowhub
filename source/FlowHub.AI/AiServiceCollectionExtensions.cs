@@ -8,6 +8,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using OpenAI;
 using System.ClientModel;
 
@@ -70,6 +71,22 @@ public static class AiServiceCollectionExtensions
         });
         services.TryAddSingleton<IVikunjaProjectCatalog>(sp =>
             new EnricherBucketCatalog(sp.GetServices<IEnricher>(), sp.GetRequiredService<VikunjaFallback>().Name));
+
+        // IGlossary: TryAdd an empty default so an unconfigured deployment keeps the
+        // pre-glossary behaviour. When Ai:Glossary:Path is set, a FileGlossarySource
+        // is provided instead. TimeProvider is registered by the host, so we resolve it.
+        var glossarySection = configuration.GetSection(GlossaryOptions.SectionName);
+        services.Configure<GlossaryOptions>(o => glossarySection.Bind(o));
+        services.TryAddSingleton<IGlossary>(sp =>
+        {
+            var options = sp.GetRequiredService<IOptions<GlossaryOptions>>();
+            return string.IsNullOrWhiteSpace(options.Value.Path)
+                ? new EmptyGlossary()
+                : new FileGlossarySource(
+                    options,
+                    sp.GetRequiredService<ILogger<FileGlossarySource>>(),
+                    sp.GetRequiredService<TimeProvider>());
+        });
 
         // IBridgeCatalog: TryAdd an empty no-op so the classifiers resolve even when the
         // Bridge skill isn't configured. AddBridge (FlowHub.Skills) AddSingletons the real
@@ -143,7 +160,8 @@ public static class AiServiceCollectionExtensions
             sp.GetRequiredService<AiModelInfo>(),
             sp.GetRequiredService<IBridgeCatalog>(),
             allowBridgeClassification,
-            allowBridgeClassification ? sp.GetRequiredService<RepoResolver>() : null));
+            allowBridgeClassification ? sp.GetRequiredService<RepoResolver>() : null,
+            sp.GetRequiredService<IGlossary>()));
         services.AddSingleton<IClassifier>(sp => sp.GetRequiredService<AiClassifier>());
 
         return services;
