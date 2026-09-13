@@ -10,7 +10,7 @@ using Microsoft.Extensions.Logging;
 
 namespace FlowHub.Api.Endpoints;
 
-internal static partial class CapturePreviewEndpoint
+internal static class CapturePreviewEndpoint
 {
     public static void MapCapturePreviewEndpoint(this RouteGroupBuilder captures)
     {
@@ -84,14 +84,18 @@ internal static partial class CapturePreviewEndpoint
         }
         catch (HttpRequestException ex)
         {
-            LogCatalogueUnavailable(logger, ex.GetType().Name);
+            LogCatalogueUnavailable(logger, ex.GetType().Name, ex);
             return (null, false);
         }
     }
 
-    [LoggerMessage(
-        EventId = 1400,
-        Level = LogLevel.Warning,
-        Message = "Vikunja catalogue unavailable during preview ({Reason}); project reported as unresolved")]
-    private static partial void LogCatalogueUnavailable(ILogger logger, string reason);
+    // Hand-written delegate rather than [LoggerMessage]: the source generator's output
+    // in this assembly stops coverlet instrumenting FlowHub.Api entirely on the CI
+    // runner — the whole assembly reports no coverage data. Same allocation-free
+    // behaviour, satisfies CA1848, no generator involved.
+    private static readonly Action<ILogger, string, Exception?> LogCatalogueUnavailable =
+        LoggerMessage.Define<string>(
+            LogLevel.Warning,
+            new EventId(1400, nameof(LogCatalogueUnavailable)),
+            "Vikunja catalogue unavailable during preview ({Reason}); project reported as unresolved");
 }
