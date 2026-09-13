@@ -10,6 +10,8 @@ for continuity.
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-09-13
+
 ### Added
 
 - `POST /api/v1/captures/preview` returns what a capture's classification *would* decide —
