@@ -199,4 +199,25 @@ public sealed class CapturePreviewEndpointTests : IClassFixture<WebApplicationFa
         }
         services.AddSingleton(impl);
     }
+
+    [Fact]
+    public async Task Preview_UnexpectedCatalogueFailure_IsNotSwallowed()
+    {
+        // Only an unreachable catalogue is tolerated. A genuine bug in resolution must
+        // surface, not be reported as "unresolved" with no diagnostic trail.
+        var classifier = Substitute.For<IClassifier>();
+        classifier.ClassifyAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(new ClassificationResult(Tags: ["t"], MatchedSkill: "Vikunja", VikunjaProject: "Inbox"));
+
+        var catalog = Substitute.For<IVikunjaProjectCatalog>();
+        catalog.GetAsync(Arg.Any<CancellationToken>())
+            .Returns<IReadOnlyDictionary<string, int>>(_ => throw new InvalidOperationException("bug"));
+
+        using var client = CreateClient(classifier, projectCatalog: catalog);
+
+        var response = await client.PostAsJsonAsync("/api/v1/captures/preview",
+            new { content = "x", source = "Web" });
+
+        response.StatusCode.Should().Be(HttpStatusCode.InternalServerError);
+    }
 }

@@ -6,10 +6,11 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.Logging;
 
 namespace FlowHub.Api.Endpoints;
 
-internal static class CapturePreviewEndpoint
+internal static partial class CapturePreviewEndpoint
 {
     public static void MapCapturePreviewEndpoint(this RouteGroupBuilder captures)
     {
@@ -24,6 +25,7 @@ internal static class CapturePreviewEndpoint
         IValidator<CreateCaptureRequest> validator,
         IClassifier classifier,
         IVikunjaProjectCatalog projects,
+        ILoggerFactory loggerFactory,
         CancellationToken ct)
     {
         var validation = await validator.ValidateAsync(request, ct);
@@ -38,7 +40,8 @@ internal static class CapturePreviewEndpoint
         // Classify only. No ICaptureService, no bus, no persistence — see D2.
         var result = await classifier.ClassifyAsync(request.Content, ct);
 
-        var (projectId, resolved) = await ResolveProjectAsync(projects, result.VikunjaProject, ct);
+        var logger = loggerFactory.CreateLogger(typeof(CapturePreviewEndpoint).FullName!);
+        var (projectId, resolved) = await ResolveProjectAsync(projects, result.VikunjaProject, logger, ct);
 
         return TypedResults.Ok(new CapturePreviewResponse(
             result.MatchedSkill,
@@ -57,15 +60,17 @@ internal static class CapturePreviewEndpoint
     }
 
     /// <summary>
-    /// Read-only catalogue lookup. A preview must never fail because Vikunja is down, so
-    /// an unreachable catalogue reports "unresolved" rather than throwing. The catch is
-    /// deliberately broad — the catalogue is an HTTP call behind an interface, its
-    /// failure modes are not enumerable from here, and the spec (D3) requires a preview
-    /// to survive any of them. <see cref="OperationCanceledException"/> is excluded so
-    /// cancellation still propagates.
+    /// Read-only catalogue lookup. An unreachable Vikunja reports "unresolved" rather
+    /// than failing the preview.
+    ///
+    /// Only <see cref="HttpRequestException"/> is caught, and it is logged. The real
+    /// <c>VikunjaProjectCatalog</c> already handles unreachability internally — keeping
+    /// its last good snapshot and logging — so a broader catch here would mostly be
+    /// hiding genuine bugs in resolution behind a silent "unresolved", with no
+    /// diagnostic trail. Anything else propagates and becomes a 500, which is correct.
     /// </summary>
     private static async Task<(int? Id, bool Resolved)> ResolveProjectAsync(
-        IVikunjaProjectCatalog projects, string? name, CancellationToken ct)
+        IVikunjaProjectCatalog projects, string? name, ILogger logger, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(name))
         {
@@ -77,9 +82,16 @@ internal static class CapturePreviewEndpoint
             var catalog = await projects.GetAsync(ct);
             return catalog.TryGetValue(name, out var id) ? (id, true) : (null, false);
         }
-        catch (Exception ex) when (ex is not OperationCanceledException)
+        catch (HttpRequestException ex)
         {
+            LogCatalogueUnavailable(logger, ex.GetType().Name);
             return (null, false);
         }
     }
+
+    [LoggerMessage(
+        EventId = 1400,
+        Level = LogLevel.Warning,
+        Message = "Vikunja catalogue unavailable during preview ({Reason}); project reported as unresolved")]
+    private static partial void LogCatalogueUnavailable(ILogger logger, string reason);
 }

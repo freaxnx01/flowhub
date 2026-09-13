@@ -107,7 +107,8 @@ rows without special-casing absence.
 |---|---|
 | Invalid request body | 400 `ValidationProblem`, same validator as submit |
 | Classifier throws | `AiClassifier` already falls back to `KeywordClassifier`; the preview reports whatever comes back, with the trace showing which ran |
-| Vikunja catalogue unreachable | `vikunjaProjectId: null`, `vikunjaProjectResolved: false` — the preview still returns |
+| Vikunja catalogue unreachable (`HttpRequestException`) | `vikunjaProjectId: null`, `vikunjaProjectResolved: false`, logged at warning — the preview still returns |
+| Any other resolution failure | propagates → 500. **Amended after review:** the first draft caught every exception here. That violates the repo's "catch specific exception types" rule, and — since `VikunjaProjectCatalog` already handles unreachability internally with its own logging and fallback — a broad catch would mostly have hidden genuine resolution bugs behind a silent "unresolved" with no diagnostic trail. |
 | No Vikunja configured | same as above; the preview is not an error |
 
 A preview never fails because a downstream service is unavailable. It is a read-only
