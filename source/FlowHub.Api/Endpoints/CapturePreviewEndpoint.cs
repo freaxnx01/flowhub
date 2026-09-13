@@ -20,7 +20,7 @@ internal static partial class CapturePreviewEndpoint
             .ProducesValidationProblem();
     }
 
-    private static async Task<Results<Ok<CapturePreviewResponse>, ValidationProblem>> PreviewAsync(
+    internal static async Task<Results<Ok<CapturePreviewResponse>, ValidationProblem>> PreviewAsync(
         CreateCaptureRequest request,
         IValidator<CreateCaptureRequest> validator,
         IClassifier classifier,
