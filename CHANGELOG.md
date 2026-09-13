@@ -10,6 +10,14 @@ for continuity.
 
 ## [Unreleased]
 
+### Added
+
+- `POST /api/v1/captures/preview` returns what a capture's classification *would* decide —
+  matched skill, Vikunja project with its resolved id, Bridge target, tags, title, entities
+  and the classifier trace — while writing nothing at all: no capture, no event, no
+  downstream call. `vikunjaProjectResolved: false` surfaces a classifier naming a project
+  that does not exist, which today silently falls back to the Inbox. (#11)
+
 ## [0.6.0] - 2026-09-08
 
 ### Added
