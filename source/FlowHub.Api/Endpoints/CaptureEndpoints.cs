@@ -17,6 +17,7 @@ public static class CaptureEndpoints
         captures.MapCaptureReadEndpoints();
         captures.MapCaptureWriteEndpoints();
         captures.MapCaptureRetryEndpoint();
+        captures.MapCapturePreviewEndpoint();
 
         app.MapSearchEndpoints();
         app.MapAdminEndpoints();
