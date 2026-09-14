@@ -452,3 +452,4 @@ source/FlowHub.Web/App_Data/uploads/
 # Windows / file-manager cruft (NTFS mark-of-the-web ADS, trashed files)
 *:Zone.Identifier
 .trashed-*
+.claude/handoffs.md
