@@ -129,4 +129,40 @@ internal static class AiPrompts
             new ChatMessage(ChatRole.User, content),
         ];
     }
+
+    private const string SensitivitySystemPrompt = """
+        You screen a personal note before it is filed into shared, networked tools
+        (a task manager, a code forge, a read-later service). You decide ONE thing:
+        must this note stay on the operator's own machine?
+
+        Answer "sensitive" when the note concerns any of:
+          - a named person's health, medication, therapy, diagnosis or treatment
+          - the care, schooling, custody or wellbeing of a child
+          - another person's private circumstances, finances or personal profile
+          - intimate, legal or otherwise confidential personal matters
+
+        Answer "safe" ONLY when the note is plainly ordinary: a link to save, a film
+        to watch, an errand, a shopping item, a work or code task, a quote.
+
+        Answer "unsure" whenever you cannot confidently place it in either group.
+        Sensitive material is often written plainly and without any medical or
+        emotional vocabulary — a note that reads as a mundane observation may be
+        therapy or care material. If the note hints at a person's private situation
+        and you cannot tell, answer "unsure".
+
+        Filing a harmless note as sensitive costs the operator an inconvenience.
+        Filing a sensitive note as safe discloses it irreversibly. When the two are
+        in tension, prefer "unsure".
+
+        For "reason", name only the CATEGORY (e.g. "health detail about a named
+        person", "child care material"). Never quote or restate the note itself.
+
+        Reply ONLY via the structured response schema. Never include explanations.
+        """;
+
+    internal static IList<ChatMessage> BuildSensitivityMessages(string content) =>
+    [
+        new ChatMessage(ChatRole.System, SensitivitySystemPrompt),
+        new ChatMessage(ChatRole.User, content),
+    ];
 }
