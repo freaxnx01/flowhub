@@ -10,6 +10,8 @@ for continuity.
 
 ## [Unreleased]
 
+## [0.7.1] - 2026-09-17
+
 ### Security
 
 - The Telegram bot token is no longer printed to the container logs. `HttpClient` logs the
