@@ -17,6 +17,7 @@ Follow this classification in order. The **first** match wins.
 | `triage ...` | `/flowhub-triage` | everything after "triage" |
 | `issue ...` | `/flowhub-issue` | everything after "issue" |
 | `capture ...` | `/flowhub-capture` | everything after "capture" |
+| `review ...` | `/flowhub-review` | everything after "review" |
 
 If `$ARGUMENTS` starts with one of these words, strip it and follow the named skill's canonical body in `.ai/skills/flowhub-<name>.md`.
 
@@ -50,6 +51,7 @@ If no explicit sub-command and no repo name match:
 | `https://exlibris.ch/.../harari` | no match | `/flowhub-capture https://exlibris.ch/.../harari` |
 | `Inception (rewatch)` | no match | `/flowhub-capture Inception (rewatch)` |
 | `capture Buy milk` | explicit `capture` | `/flowhub-capture Buy milk` |
+| `review --limit 20` | explicit `review` | `/flowhub-review --limit 20` |
 
 ---
 
@@ -76,6 +78,7 @@ Sub-commands:
   triage [--limit N]         — triage Vikunja inbox
   issue <project> <text>     — create issue on a repo's forge
   capture <url-or-text>      — capture to Vikunja inbox
+  review [--limit N]         — review how recent captures were classified & routed
 
 Or just provide free-form input:
   /flowhub Quicktask fix search  → detected as repo issue, creates GitHub issue
