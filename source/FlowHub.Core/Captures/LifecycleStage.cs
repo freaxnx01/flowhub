@@ -23,4 +23,12 @@ public enum LifecycleStage
 
     /// <summary>No matching Skill — triggers a Skill suggestion.</summary>
     Unhandled,
+
+    /// <summary>
+    /// Judged sensitive by the pre-pass — withheld from every Integration and never
+    /// classified. Terminal and deliberately absent from CaptureRetryEndpoint's
+    /// RetryableStages: a retry out of this stage is the irreversible disclosure
+    /// this stage exists to prevent (issue #93).
+    /// </summary>
+    Withheld,
 }

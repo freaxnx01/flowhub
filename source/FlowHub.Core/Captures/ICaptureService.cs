@@ -40,6 +40,12 @@ public interface ICaptureService
 
     Task MarkUnhandledAsync(Guid id, string reason, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Parks a capture judged sensitive. Terminal — unlike <see cref="MarkUnhandledAsync"/>
+    /// this stage is not retryable.
+    /// </summary>
+    Task MarkWithheldAsync(Guid id, string reason, CancellationToken cancellationToken = default);
+
     Task<CapturePage> ListAsync(CaptureFilter filter, CancellationToken cancellationToken = default);
 
     Task ResetForRetryAsync(Guid id, CancellationToken cancellationToken = default);
