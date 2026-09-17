@@ -10,6 +10,55 @@ for continuity.
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-09-17
+
+### Added
+
+- **core:** add terminal Withheld lifecycle stage
+- **ai:** add three-way sensitivity screen with a total adapter
+- **pipeline:** withhold sensitive captures before classification
+- **ai:** register the sensitivity screen, fail closed without AI
+- **api:** surface the sensitivity verdict in capture preview
+
+### CI/CD
+
+- **agent:** raise the attempt cap to 3 so #93 can be redispatched (#104)
+
+### Documentation
+
+- **spec:** sensitive captures must park, not route (#93)
+- **plan:** implementation plan for sensitive capture parking (#93)
+- **spec+plan:** amend guard scope after PR #99 review (#93)
+- **plan:** make Amendment 1 correct for a fresh-branch dispatch (#93)
+- **plan:** split #93 — fold corrections inline, extract visibility work
+- **todo:** record the Wallabag/Paperless decision and the token follow-up
+- **todo:** record the #93 session — shipped but not deployed
+
+### Fixed
+
+- **pipeline:** scope the sensitivity guard by destination, not position
+
+### Testing
+
+- **ai:** synthesised sensitivity fixtures incl. the unmarked case
+
+### Security
+
+- Captures judged sensitive are now **withheld instead of routed**. A dedicated
+  three-way pre-pass runs before classification; `Sensitive` and `Unsure` both park the
+  capture in a new terminal `Withheld` stage with a reason, and no Integration runs.
+  Previewing a real backlog had surfaced therapy notes, a child's care journal,
+  medication details and a third party's personal profile all classified as ordinary
+  tasks and assigned to shared projects — replaying that would have disclosed them
+  irreversibly.
+- The screen **fails closed**: every provider, schema, parse or timeout failure yields
+  `Unsure`, which parks. `Withheld` is deliberately absent from the retry endpoint's
+  allowed stages, so a parked capture cannot be routed by a retry. A deployment with no
+  AI provider configured parks every capture rather than routing unscreened.
+- The guard is scoped by **destination audience**: it covers Vikunja (projects shared
+  with family) and the forge (public), and deliberately not the attachment path to
+  Paperless, which is the operator's private archive.
+
 ## [0.7.1] - 2026-09-17
 
 ### Security
