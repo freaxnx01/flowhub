@@ -99,6 +99,12 @@ jobs:
         freaxnx01-agent-pipeline[bot]
       pre-preview: true
       max-turns: 300
+      # Attempt 2 on #93 failed with error_max_turns on scope that has since
+      # been split out into #103. check-attempt-cap.sh counts `## ai-implement
+      # run` comments, not scope, so the default of 2 would re-park the issue
+      # before the agent starts. Raised by one so a materially smaller issue
+      # gets the run it deserves.
+      max-attempts: 3
       # Wall-clock cap on the claude process itself — distinct from
       # timeout-minutes above, which caps the job. Left unset it defaults to 10
       # minutes, and #20 was killed at exit 124 on task 3 of 7 with turns barely
