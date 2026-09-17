@@ -109,6 +109,7 @@ public static class AiServiceCollectionExtensions
         if (!outcome.UsesAi)
         {
             services.AddSingleton<IClassifier>(sp => sp.GetRequiredService<KeywordClassifier>());
+            services.AddSingleton<ISensitivityScreen>(_ => new NotConfiguredSensitivityScreen());
             return services;
         }
 
@@ -163,6 +164,14 @@ public static class AiServiceCollectionExtensions
             allowBridgeClassification ? sp.GetRequiredService<RepoResolver>() : null,
             sp.GetRequiredService<IGlossary>()));
         services.AddSingleton<IClassifier>(sp => sp.GetRequiredService<AiClassifier>());
+
+        // Its own ChatOptions instance: the screen answers one yes/no question and does
+        // not need the classifier's output budget.
+        services.AddSingleton<ISensitivityScreen>(sp => new AiSensitivityScreen(
+            sp.GetRequiredService<IChatClient>(),
+            sp.GetRequiredService<ILogger<AiSensitivityScreen>>(),
+            new ChatOptions { MaxOutputTokens = 200, Temperature = 0.2f },
+            sp.GetRequiredService<AiModelInfo>()));
 
         return services;
     }
