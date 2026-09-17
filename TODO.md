@@ -2,6 +2,39 @@
 
 Open operational items for the freshly-split `flowhub` product repo.
 
+## Session 2026-09-17 (#93 sensitive-capture parking) — shipped, but not yet deployed
+
+- [ ] **Cut a release and redeploy CT 136 — the privacy guard is NOT live.** #93 merged to
+      `main` (PR #105), but CT 136 runs `ghcr.io/freaxnx01/flowhub:0.7.1`, which predates
+      it. Until a release ships and is redeployed, captures are still routed unscreened.
+      **This gates emptying the Telegram chat and replaying any export** — that is the
+      exact disclosure path #93 exists to close, and the survey found therapy notes, a
+      child's care journal and a third party's profile in the backlog.
+- [ ] **Dispatch #103** (operator visibility for `Withheld`, CHANGELOG, dead code). It was
+      split out of #93 because the combined plan exceeded the 160-turn ceiling. Its
+      dependency is now on `main`, so it is unblocked — it carries its own dependency
+      check and will stop if `LifecycleStage.Withheld` is missing.
+- [ ] **Decide whether `MAX_ATTEMPTS` stays at 3.** #104 raised it 2 → 3 repo-wide so #93
+      could be redispatched. #93 was then finished by hand instead, so the raise is
+      unused — revert to 2 if it was meant as a one-off.
+- [ ] **agent-workflow#366** — a local session and the pipeline both implemented #93 at
+      once (~$2 wasted, two competing PRs). `agent-implement.yml:378` already serialises
+      pipeline-vs-pipeline; the gap is a claim visible *outside* Actions. Needs enrichment.
+
+### Notes worth keeping
+
+- **Four of five failures this session were spec/plan defects, not agent code.** Scoping
+  the guard by pipeline position rather than destination audience; a test that passed
+  because the consumer never constructed; an "apply on top of the existing
+  implementation" instruction that is false on a fresh branch; and task headings that
+  `classify-turns.sh` does not count. The pipeline reads these documents literally.
+- **`classify-turns.sh` counts `^### Task` headings only** and caps at **160 turns** for
+  six or more tasks. A plan beyond ~6 tasks must be split at authoring time, and a
+  heading that does not match that pattern is silently not budgeted for.
+- **A closed PR's branch is auto-deleted here**, but its commits stay reachable via
+  `git fetch origin refs/pull/<N>/head` — that is how #99's work was recovered.
+
+
 - [ ] **Re-add GitHub Actions secrets** the workflows need:
   - `EMBEDDINGS__APIKEY` — embeddings provider key (semantic search)
   - `Ai__Anthropic__ApiKey` / `Ai__OpenRouter__ApiKey` — LLM provider keys
@@ -36,7 +69,8 @@ Open operational items for the freshly-split `flowhub` product repo.
 
 - [ ] **Paperless — deliberately left unconfigured until #96 is fixed.** An attachment
       currently overrides the capture's text and forces Paperless
-      (`CaptureEnrichmentConsumer.cs:50-54`), so configuring it now would turn today's
+      (`CaptureEnrichmentConsumer.cs:53`, moved by #93 — the sensitivity screen now runs
+      *after* that branch per spec D7, so #96 is unchanged), so configuring it now would turn today's
       visible stalls into silently misfiled documents. Only ~6.9% of traffic, so waiting is
       cheap. Keys when it's time: `Skills__Paperless__{BaseUrl,ApiToken}` (`dms.home`).
 - [ ] **Confirm the rotated Telegram bot token reached CT 136.** The token was rotated on
