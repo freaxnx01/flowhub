@@ -64,6 +64,12 @@ public sealed class TelegramReactionCaptureServiceDecorator : ICaptureService
         await _reactions.ApplyAsync(id, LifecycleStage.Unhandled, cancellationToken);
     }
 
+    public async Task MarkWithheldAsync(Guid id, string reason, CancellationToken cancellationToken = default)
+    {
+        await _inner.MarkWithheldAsync(id, reason, cancellationToken);
+        await _reactions.ApplyAsync(id, LifecycleStage.Withheld, cancellationToken);
+    }
+
     public Task<CapturePage> ListAsync(CaptureFilter filter, CancellationToken cancellationToken = default) =>
         _inner.ListAsync(filter, cancellationToken);
 

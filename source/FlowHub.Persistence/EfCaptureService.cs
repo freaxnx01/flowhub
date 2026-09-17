@@ -169,6 +169,15 @@ public sealed class EfCaptureService : ICaptureService
             cancellationToken);
     }
 
+    public async Task MarkWithheldAsync(Guid id, string reason, CancellationToken cancellationToken = default)
+    {
+        var capture = await _repository.GetByIdAsync(id, cancellationToken)
+            ?? throw new KeyNotFoundException($"Capture {id} not found.");
+        await _repository.UpdateAsync(
+            capture with { Stage = LifecycleStage.Withheld, FailureReason = reason },
+            cancellationToken);
+    }
+
     public async Task ResetForRetryAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var capture = await _repository.GetByIdAsync(id, cancellationToken)
