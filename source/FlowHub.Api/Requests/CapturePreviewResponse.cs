@@ -30,4 +30,6 @@ public sealed record CapturePreviewResponse(
     BridgeAction BridgeAction,
     string? BridgeBody,
     IReadOnlyList<string>? UnknownShorthand,
-    ClassifierTrace? Trace);
+    ClassifierTrace? Trace,
+    Sensitivity Sensitivity,
+    string? SensitivityReason);
