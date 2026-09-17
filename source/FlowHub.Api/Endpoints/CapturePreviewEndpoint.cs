@@ -23,6 +23,7 @@ internal static class CapturePreviewEndpoint
     internal static async Task<Results<Ok<CapturePreviewResponse>, ValidationProblem>> PreviewAsync(
         CreateCaptureRequest request,
         IValidator<CreateCaptureRequest> validator,
+        ISensitivityScreen screen,
         IClassifier classifier,
         IVikunjaProjectCatalog projects,
         ILoggerFactory loggerFactory,
@@ -35,6 +36,30 @@ internal static class CapturePreviewEndpoint
                 .GroupBy(e => e.PropertyName)
                 .ToDictionary(g => g.Key, g => g.Select(e => e.ErrorMessage).ToArray());
             return TypedResults.ValidationProblem(errors);
+        }
+
+        // Mirror the production path exactly (spec D5): a non-Safe verdict short-circuits
+        // with no classification and no proposed target. This also makes a whole-corpus
+        // calibration run cost one screen call per capture rather than two calls.
+        var verdict = await screen.ScreenAsync(request.Content, ct);
+        if (verdict.Verdict != Sensitivity.Safe)
+        {
+            return TypedResults.Ok(new CapturePreviewResponse(
+                MatchedSkill: string.Empty,
+                Title: null,
+                Tags: [],
+                Entities: null,
+                VikunjaProject: null,
+                VikunjaProjectId: null,
+                VikunjaProjectResolved: false,
+                BridgeAlias: null,
+                BridgeTarget: null,
+                BridgeAction: BridgeAction.Unknown,
+                BridgeBody: null,
+                UnknownShorthand: null,
+                Trace: verdict.Trace,
+                Sensitivity: verdict.Verdict,
+                SensitivityReason: verdict.Reason));
         }
 
         // Classify only. No ICaptureService, no bus, no persistence — see D2.
@@ -56,7 +81,9 @@ internal static class CapturePreviewEndpoint
             result.BridgeAction,
             result.BridgeBody,
             result.UnknownShorthand,
-            result.Trace));
+            result.Trace,
+            Sensitivity.Safe,
+            null));
     }
 
     /// <summary>
