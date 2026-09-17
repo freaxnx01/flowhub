@@ -50,21 +50,26 @@ public sealed partial class CaptureEnrichmentConsumer : IConsumer<CaptureCreated
             return;
         }
 
-        // Issue #93. Runs before classification AND before the Paperless attachment
-        // branch, because both end in an Integration write. Only Safe continues —
-        // Unsure parks too, since routing a sensitive capture is irreversible while
-        // parking a benign one is an inconvenience.
+        if (msg.HasAttachment)
+        {
+            await RouteAttachmentToPaperlessAsync(context, msg, ct);
+            return;
+        }
+
+        // Issue #93, spec D7. The guard is scoped by who can see the destination, so it
+        // covers the paths to Vikunja and the forge and deliberately NOT the attachment
+        // path to Paperless, which is the operator's private archive. Screening that path
+        // would park every uncaptioned scan — SubmitAsync sets Content to the filename
+        // when there is no caption, and the screen answers Unsure on a bare filename,
+        // which is terminal and non-retryable. It would also send filenames to the remote
+        // model provider for the first time. Only Safe continues; Unsure parks too, since
+        // routing a sensitive capture is irreversible while parking a benign one is an
+        // inconvenience.
         var verdict = await _sensitivity.ScreenAsync(msg.Content, ct);
         if (verdict.Verdict != Sensitivity.Safe)
         {
             await _captureService.MarkWithheldAsync(msg.CaptureId, verdict.Reason, ct);
             LogWithheld(msg.CaptureId, verdict.Verdict, verdict.Reason);
-            return;
-        }
-
-        if (msg.HasAttachment)
-        {
-            await RouteAttachmentToPaperlessAsync(context, msg, ct);
             return;
         }
 
