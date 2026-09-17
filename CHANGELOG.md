@@ -10,6 +10,13 @@ for continuity.
 
 ## [Unreleased]
 
+### Security
+
+- The Telegram bot token is no longer printed to the container logs. `HttpClient` logs the
+  full request URI at `Information`, and the token is a path segment of every
+  `api.telegram.org` call, so it appeared in plaintext on every poll to anyone who could
+  read the logs. `System.Net.Http.HttpClient` is now capped at `Warning`.
+
 ## [0.7.0] - 2026-09-13
 
 ### Added
