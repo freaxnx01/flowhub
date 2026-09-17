@@ -29,6 +29,21 @@ Open operational items for the freshly-split `flowhub` product repo.
     Then set `Skills__Wallabag__{BaseUrl,ClientId,ClientSecret,Username,Password}` (password
     grant — FlowHub's `WallabagTokenProvider` mints/refreshes the token itself) and store the
     client creds in Passbolt. Verify by submitting a capture that classifies to each skill.
+    **Status 2026-09-17:** decided to provision *production* creds (not the
+    `flowhub-test-services` instances). **Blocked on me:** create the user + OAuth2 client
+    on CT 126 and store the four values in Passbolt, then Claude sets the env on CT 136 and
+    redeploys `flowhub` only. Read-later is ~24.6% of capture traffic, currently `Unhandled`.
+
+- [ ] **Paperless — deliberately left unconfigured until #96 is fixed.** An attachment
+      currently overrides the capture's text and forces Paperless
+      (`CaptureEnrichmentConsumer.cs:50-54`), so configuring it now would turn today's
+      visible stalls into silently misfiled documents. Only ~6.9% of traffic, so waiting is
+      cheap. Keys when it's time: `Skills__Paperless__{BaseUrl,ApiToken}` (`dms.home`).
+- [ ] **Confirm the rotated Telegram bot token reached CT 136.** The token was rotated on
+      2026-09-17 after it had been logged in plaintext since 2026-09-15 (fixed in v0.7.1).
+      As of the v0.7.1 deploy check the token in `/home/admin/mydocker/.env` still
+      authenticated against `getUpdates` — if BotFather issued a new one, update
+      `TELEGRAM_BOT_TOKEN` there and `docker compose up -d flowhub`, else polling 401s.
 
 ## Done (2026-07-07 / 08)
 
