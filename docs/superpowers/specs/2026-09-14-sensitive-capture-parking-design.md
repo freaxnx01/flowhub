@@ -2,7 +2,8 @@
 
 **Issue:** [#93](https://github.com/freaxnx01/flowhub/issues/93)
 **Date:** 2026-09-14
-**Status:** Approved
+**Status:** Approved — **amended 2026-09-17** after the automated review of PR #99.
+See *Amendment 1* below; decisions D7–D9 are new and supersede part of D-series intent.
 
 ## Problem
 
@@ -40,6 +41,9 @@ this one costs disclosure.
 | D4 | The screen **never throws** | A thrown exception reaches `LifecycleFaultObserver.cs:53` → `MarkUnhandledAsync` → `Unhandled` → retryable. A provider outage on the privacy screen would otherwise deposit an unscreened capture in the one bucket with a retry button. |
 | D5 | Preview **short-circuits** on a non-`Safe` verdict and proposes no target | Running the classifier anyway costs a second call and produces a target that must never be used — which invites someone to act on it, and makes preview stop mirroring the production path. |
 | D6 | Fixtures are **synthesised**, committed, and run in CI | Real corpus content cannot enter a public repo. |
+| D7 | The guard is scoped by **who can see the destination**, not by pipeline position. It runs on the path to **shared** destinations (Vikunja, Bridge/forge) and **not** on the attachment path to Paperless | Scoping by position ("before the attachment branch") caused two regressions at once — see *Amendment 1*. Paperless is the operator's private document archive; Vikunja projects are shared with family and GitHub is public. Audience is the axis that actually matters. |
+| D8 | `Withheld` must be **visible on every operator surface** that shows `Orphan` and `Unhandled` — Telegram reaction, lifecycle badge, dashboard failure counts | A stage that is terminal, non-retryable **and** silent is indistinguishable from a lost capture. `Orphan` and `Unhandled` each get an emoji, a labelled badge and a count; a withheld capture currently produces no signal anywhere. |
+| D9 | `Sensitivity.Sensitive` stays the **zero value** (fail-closed), and `CapturePreviewResponse.Sensitivity` is marked so an omitted field cannot be mistaken for a deliberate verdict | `default(Sensitivity) == Sensitive` is correct for the domain — a missing verdict must never read as "safe". But on a public API response a client omitting the field silently gets `Sensitive`, so the intent must be explicit rather than incidental. |
 
 ## Architecture
 
@@ -87,8 +91,9 @@ and the capture is simply not processed yet.
 ### Where it runs
 
 In `CaptureEnrichmentConsumer.ConsumeAsync`, **before** `_classifier.ClassifyAsync` and
-**before** the `HasAttachment` → Paperless branch. Only `Safe` continues to the existing
-flow; `Sensitive` and `Unsure` both call `MarkWithheldAsync` and return.
+**after** the `HasAttachment` → Paperless branch (**revised — see D7 and Amendment 1**).
+Only `Safe` continues to the existing flow; `Sensitive` and `Unsure` both call
+`MarkWithheldAsync` and return.
 
 Ordering relative to the existing early-returns:
 
@@ -97,8 +102,10 @@ Ordering relative to the existing early-returns:
    **that** republication is what gets screened. Screening the placeholder would be
    meaningless, and voice notes are a high-risk vector — so the ordering matters and is
    covered by an explicit test.
-2. **Sensitivity screen** → `Withheld` on `Sensitive` or `Unsure`.
-3. `HasAttachment` → Paperless (existing).
+2. `HasAttachment` → Paperless (existing, **unchanged by this feature**). Per D7 the
+   attachment path is out of the guard's scope, so this branch keeps its original
+   short-circuit and never reaches the screen.
+3. **Sensitivity screen** → `Withheld` on `Sensitive` or `Unsure`.
 4. Classification and the existing shorthand / Bridge / Orphan branches (existing).
 
 ### The new stage
@@ -139,6 +146,61 @@ as it does today, with `Sensitivity.Safe` on the response.
 This makes the preview endpoint a usable calibration tool: the whole corpus can be run
 through it to measure the park rate before any writes are enabled, at one screen call per
 capture.
+
+### Operator visibility (D8)
+
+`Withheld` is terminal and non-retryable, so an invisible one is a lost one. It must
+appear wherever `Orphan` and `Unhandled` already do:
+
+- **`TelegramReactionService.EmojiFor`** — needs a `Withheld` arm. Without one it falls
+  through to `_ => null` and the reaction call is a silent no-op.
+- **`LifecycleBadge.razor`** — a labelled badge, not the fallback `?`.
+- **`EfCaptureRepository.GetFailureCountsAsync`** — currently counts only `Orphan` and
+  `Unhandled`, so a withheld capture is absent from the dashboard's needs-attention card.
+
+The reason string is safe to surface on all three: it names a *category* ("child care
+material"), never the content — the prompt is explicit about that.
+
+## Amendment 1 (2026-09-17) — the guard was scoped by the wrong axis
+
+The automated review of PR #99 found that the original scoping ("runs before the
+`HasAttachment` branch") caused **two regressions pulling in opposite directions**. Both
+are defects in this spec, not in the implementation.
+
+**Availability.** `EfCaptureService.SubmitAsync` sets a capture's `Content` to the
+*filename* when an attachment arrives without a caption:
+
+```csharp
+var attContent = string.IsNullOrWhiteSpace(caption) ? fileName : caption.Trim();
+```
+
+So the screen would judge a string like `scan_0012.pdf`, against a prompt that instructs
+the model to answer `unsure` whenever it cannot confidently place a capture and lists no
+document, receipt or scan shape as safe. Every uncaptioned document would park in a stage
+that is terminal **and** deliberately non-retryable — unrecoverable.
+
+**Privacy.** Before this feature, `HasAttachment` captures short-circuited to Paperless
+without ever reaching the LLM. Screening them sends filenames and captions to the remote
+provider in `AiModelInfo("OpenRouter", …)` for the first time — a **new egress** created
+by a privacy feature.
+
+**The fix is the scope, not the prompt.** Widening the prompt's "safe" list would paper
+over the availability half and leave the egress untouched, and it is the kind of fix that
+regresses silently the next time the prompt is edited. The real error was scoping the
+guard by pipeline position. What #93 protects against is captures reaching destinations
+**other people can see**:
+
+| Destination | Audience | Guarded |
+|---|---|---|
+| Vikunja | shared with family (`Juliska *`, `Freunde`, `Ferien Checkliste A & J`) | **yes** |
+| Bridge / forge | GitHub is public | **yes** |
+| Paperless | the operator's own document archive | no |
+
+Hence D7. This restores the original branch order and removes both regressions in one
+change. The cost is explicit and accepted: **a sensitive caption on a scan reaches
+Paperless unscreened.** That is consistent with the capture-run privacy rule, which sends
+sensitive material to a local note — Paperless *is* the private archive, not a shared
+surface.
 
 ## Error handling
 
@@ -235,4 +297,16 @@ AC.
 - [ ] A capture awaiting transcription is screened on its transcript, not its placeholder.
 - [ ] Fixtures are synthesised, including the unmarked case; no real sensitive content
       enters this repo.
+- [ ] **(D7)** An attachment capture reaches Paperless **without** being screened — the
+      `HasAttachment` branch short-circuits before the screen, asserted by a test that
+      fails if the order is reversed.
+- [ ] **(D7)** An uncaptioned attachment, whose `Content` is its filename, is never marked
+      `Withheld`.
+- [ ] **(D8)** `Withheld` has a Telegram reaction emoji, a labelled lifecycle badge, and is
+      included in `GetFailureCountsAsync` — each asserted by a test.
+- [ ] **(D9)** `CapturePreviewResponse.Sensitivity` cannot be silently defaulted by a
+      client omitting the field.
+- [ ] Every pipeline test registers an `IClassifier`, so no assertion can pass because the
+      consumer failed to construct.
+- [ ] `CHANGELOG.md` `[Unreleased]` carries an entry for this feature.
 - [ ] Full suite green.
