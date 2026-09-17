@@ -1,4 +1,5 @@
 using FlowHub.AI;
+using FlowHub.Core.Classification;
 using FlowHub.Core.Skills;
 using FlowHub.Web.Stubs;
 using MassTransit;
@@ -39,6 +40,13 @@ internal static class PipelineTestBase
             stubCatalog,
             new VikunjaFallback("Inbox", 1),
             NullLogger<EnricherDispatcher>.Instance));
+
+        // Default: every capture is Safe, so tests written before the sensitivity screen
+        // existed are unaffected. Tests that care register their own ISensitivityScreen.
+        var safeScreen = Substitute.For<ISensitivityScreen>();
+        safeScreen.ScreenAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+                  .Returns(new SensitivityVerdict(Sensitivity.Safe, string.Empty));
+        services.AddSingleton(safeScreen);
 
         configure?.Invoke(services);
 
