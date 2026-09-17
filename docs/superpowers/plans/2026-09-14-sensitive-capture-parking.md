@@ -633,6 +633,9 @@ services.AddSingleton(safeScreen);
 > before the defaults in this file, use `TryAddSingleton` for the default instead so the
 > caller's registration wins.
 
+> ⚠ **The transcription test below is vacuous — see Amendment 1B.** Use the replacement
+> there, and register an `IClassifier` in every `PipelineTestBase.Build` call.
+
 - [ ] **Step 2: Write the failing consumer tests**
 
 Create `tests/FlowHub.Web.ComponentTests/Pipeline/CaptureEnrichmentConsumerSensitivityTests.cs`:
@@ -780,6 +783,9 @@ constructor parameter alongside the existing four:
         _logger = logger;
     }
 ```
+
+> ⚠ **Superseded by Amendment 1A (spec D7).** The screen runs **after** the
+> `HasAttachment` branch, not before. Implement the amended version.
 
 - [ ] **Step 5: Run the screen before classification and before the attachment branch**
 
@@ -1281,8 +1287,13 @@ Refs #93"
 
 ## Amendment 1 (2026-09-17) — corrections after the review of PR #99
 
-Three defects in the plan above. Apply these on top of the existing implementation; do
-not re-run Tasks 1–6 from scratch.
+**Read this before starting Task 1.** The review of PR #99 found three defects in the
+plan above. That PR is **not merged**, and this pipeline implements on a *new branch cut
+from `main`*, so its code is **not** in your checkout — do not assume any of it exists.
+
+Implement **Tasks 1–6 as written above, with corrections A and B below already folded
+in**, then Tasks 7 and 8. Where a step above and a correction below disagree, the
+correction wins.
 
 ### A. Task 3 Step 5 — the screen runs in the wrong place
 
