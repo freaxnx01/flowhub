@@ -33,14 +33,24 @@ public sealed class CapturePreviewTests
         return catalog;
     }
 
+    private static ISensitivityScreen ScreenReturning(Sensitivity verdict)
+    {
+        var screen = Substitute.For<ISensitivityScreen>();
+        screen.ScreenAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(new SensitivityVerdict(verdict, string.Empty));
+        return screen;
+    }
+
     private static async Task<CapturePreviewResponse> PreviewAsync(
         ClassificationResult classification,
         IVikunjaProjectCatalog? catalog = null,
+        ISensitivityScreen? screen = null,
         string content = "anything")
     {
         var result = await CapturePreviewEndpoint.PreviewAsync(
             new CreateCaptureRequest(content, ChannelKind.Web),
             new CreateCaptureRequestValidator(),
+            screen ?? ScreenReturning(Sensitivity.Safe),
             ClassifierReturning(classification),
             catalog ?? CatalogOf(("Inbox", 2)),
             NullLoggerFactory.Instance,
@@ -136,6 +146,7 @@ public sealed class CapturePreviewTests
         var result = await CapturePreviewEndpoint.PreviewAsync(
             new CreateCaptureRequest(string.Empty, ChannelKind.Web),
             new CreateCaptureRequestValidator(),
+            ScreenReturning(Sensitivity.Safe),
             ClassifierReturning(new ClassificationResult(Tags: ["t"], MatchedSkill: "Vikunja")),
             CatalogOf(("Inbox", 2)),
             NullLoggerFactory.Instance,
