@@ -19,17 +19,20 @@ public sealed partial class CaptureEnrichmentConsumer : IConsumer<CaptureCreated
     private readonly IClassifier _classifier;
     private readonly EnricherDispatcher _enricher;
     private readonly ICaptureService _captureService;
+    private readonly ISensitivityScreen _sensitivity;
     private readonly ILogger<CaptureEnrichmentConsumer> _logger;
 
     public CaptureEnrichmentConsumer(
         IClassifier classifier,
         EnricherDispatcher enricher,
         ICaptureService captureService,
+        ISensitivityScreen sensitivity,
         ILogger<CaptureEnrichmentConsumer> logger)
     {
         _classifier = classifier;
         _enricher = enricher;
         _captureService = captureService;
+        _sensitivity = sensitivity;
         _logger = logger;
     }
 
@@ -44,6 +47,18 @@ public sealed partial class CaptureEnrichmentConsumer : IConsumer<CaptureCreated
         // transcription consumer re-publishes without this flag when the text is ready.
         if (msg.NeedsTranscription)
         {
+            return;
+        }
+
+        // Issue #93. Runs before classification AND before the Paperless attachment
+        // branch, because both end in an Integration write. Only Safe continues —
+        // Unsure parks too, since routing a sensitive capture is irreversible while
+        // parking a benign one is an inconvenience.
+        var verdict = await _sensitivity.ScreenAsync(msg.Content, ct);
+        if (verdict.Verdict != Sensitivity.Safe)
+        {
+            await _captureService.MarkWithheldAsync(msg.CaptureId, verdict.Reason, ct);
+            LogWithheld(msg.CaptureId, verdict.Verdict, verdict.Reason);
             return;
         }
 
@@ -161,4 +176,10 @@ public sealed partial class CaptureEnrichmentConsumer : IConsumer<CaptureCreated
         Level = LogLevel.Information,
         Message = "Capture {CaptureId} parked — unknown shorthand: {Tokens}")]
     private partial void LogUnknownShorthand(Guid captureId, string tokens);
+
+    [LoggerMessage(
+        EventId = 1007,
+        Level = LogLevel.Information,
+        Message = "Capture {CaptureId} withheld ({Verdict}) — {Reason}")]
+    private partial void LogWithheld(Guid captureId, Sensitivity verdict, string reason);
 }
