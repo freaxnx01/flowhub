@@ -78,6 +78,13 @@ Open operational items for the freshly-split `flowhub` product repo.
       As of the v0.7.1 deploy check the token in `/home/admin/mydocker/.env` still
       authenticated against `getUpdates` — if BotFather issued a new one, update
       `TELEGRAM_BOT_TOKEN` there and `docker compose up -d flowhub`, else polling 401s.
+- [ ] **Set up a second Telegram bot, `flowhub-test`, for testing.** `getUpdates` is
+      exclusive — one token can only be polled by one consumer — so every experiment
+      against the live bot competes with production capture and with
+      `/flowhub-triage`'s drain. A dedicated test bot gives a throwaway chat to push
+      probe captures through without polluting the real corpus or the ledger. Create it
+      via BotFather, store the token in Passbolt, and point a local/test FlowHub at it
+      rather than CT 136.
 
 ## Done (2026-07-07 / 08)
 
