@@ -633,9 +633,6 @@ services.AddSingleton(safeScreen);
 > before the defaults in this file, use `TryAddSingleton` for the default instead so the
 > caller's registration wins.
 
-> ⚠ **The transcription test below is vacuous — see Amendment 1B.** Use the replacement
-> there, and register an `IClassifier` in every `PipelineTestBase.Build` call.
-
 - [ ] **Step 2: Write the failing consumer tests**
 
 Create `tests/FlowHub.Web.ComponentTests/Pipeline/CaptureEnrichmentConsumerSensitivityTests.cs`:
@@ -727,25 +724,51 @@ public sealed class CaptureEnrichmentConsumerSensitivityTests
         var screen = ScreenReturning(Sensitivity.Safe, string.Empty);
 
         await using var provider = PipelineTestBase.Build(
-            configure: s => s.AddSingleton(screen),
+            configure: s => { s.AddSingleton(TrackingClassifier()); s.AddSingleton(screen); },
             configureBus: x => x.AddConsumer<CaptureEnrichmentConsumer>());
 
         var harness = provider.GetRequiredService<ITestHarness>();
         await harness.Start();
 
-        // Publish directly so NeedsTranscription can be set — a voice capture holds
-        // placeholder text until the transcription consumer republishes it.
-        var captureService = provider.GetRequiredService<ICaptureService>();
-        var capture = await captureService.SubmitAsync("[voice message]", ChannelKind.Telegram, default);
+        // Publish ONLY the awaiting-transcript message, with content no other publication
+        // uses. Registering an IClassifier is mandatory: without one the consumer cannot
+        // be constructed, every message faults, and DidNotReceive() passes vacuously.
+        var id = Guid.NewGuid();
         await harness.Bus.Publish(new CaptureCreated(
-            capture.Id, "[voice message]", DateTimeOffset.UtcNow, NeedsTranscription: true));
+            id, "[awaiting transcript]", ChannelKind.Telegram, DateTimeOffset.UtcNow,
+            HasAttachment: false, NeedsTranscription: true));
 
-        (await harness.Consumed.Any<CaptureCreated>(x => x.Context.Message.NeedsTranscription))
+        (await harness.Consumed.Any<CaptureCreated>(x => x.Context.Message.CaptureId == id))
             .Should().BeTrue();
 
         // Screening the placeholder would be meaningless; the transcript gets screened
         // when the transcription consumer republishes without the flag.
-        await screen.DidNotReceive().ScreenAsync("[voice message]", Arg.Any<CancellationToken>());
+        await screen.DidNotReceive().ScreenAsync("[awaiting transcript]", Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Consume_AttachmentCapture_ReachesPaperlessWithoutBeingScreened()
+    {
+        var screen = ScreenReturning(Sensitivity.Sensitive, "would park it");
+
+        await using var provider = PipelineTestBase.Build(
+            configure: s => { s.AddSingleton(TrackingClassifier()); s.AddSingleton(screen); },
+            configureBus: x => x.AddConsumer<CaptureEnrichmentConsumer>());
+
+        var harness = provider.GetRequiredService<ITestHarness>();
+        await harness.Start();
+
+        var captureService = provider.GetRequiredService<ICaptureService>();
+        var capture = await captureService.SubmitAsync("scan_0012.pdf", ChannelKind.Telegram, default);
+        await harness.Bus.Publish(new CaptureCreated(
+            capture.Id, "scan_0012.pdf", ChannelKind.Telegram, DateTimeOffset.UtcNow,
+            HasAttachment: true, NeedsTranscription: false));
+
+        // Spec D7: even a Sensitive verdict must not reach an attachment capture, because
+        // the branch short-circuits first. Reversing the order fails this test.
+        await screen.DidNotReceive().ScreenAsync("scan_0012.pdf", Arg.Any<CancellationToken>());
+        var stored = await captureService.GetByIdAsync(capture.Id, default);
+        stored!.Stage.Should().NotBe(LifecycleStage.Withheld);
     }
 }
 ```
@@ -784,19 +807,19 @@ constructor parameter alongside the existing four:
     }
 ```
 
-> ⚠ **Superseded by Amendment 1A (spec D7).** The screen runs **after** the
-> `HasAttachment` branch, not before. Implement the amended version.
+- [ ] **Step 5: Run the screen after the attachment branch, before classification**
 
-- [ ] **Step 5: Run the screen before classification and before the attachment branch**
-
-In `Consume`, insert between the `NeedsTranscription` early-return and the
-`HasAttachment` branch:
+In `Consume`, insert **below** the `HasAttachment` early-return (spec **D7** — the guard
+is scoped by who can see the destination; Paperless is the operator's private archive and
+is deliberately not screened):
 
 ```csharp
-        // Issue #93. Runs before classification AND before the Paperless attachment
-        // branch, because both end in an Integration write. Only Safe continues —
-        // Unsure parks too, since routing a sensitive capture is irreversible while
-        // parking a benign one is an inconvenience.
+        // Issue #93, spec D7. Guards the paths to Vikunja and the forge, which other
+        // people can see. The Paperless attachment path is NOT screened: an uncaptioned
+        // attachment's Content is its filename, so screening it would park every scan in
+        // a terminal non-retryable stage — and it would newly send filenames to the
+        // remote model provider. Only Safe continues; Unsure parks too, since routing a
+        // sensitive capture is irreversible while parking a benign one is an inconvenience.
         var verdict = await _sensitivity.ScreenAsync(msg.Content, ct);
         if (verdict.Verdict != Sensitivity.Safe)
         {
@@ -1283,157 +1306,18 @@ Refs #93"
 | Synthesised fixtures incl. the unmarked case | 6 |
 | Full suite green | 5, 6 |
 
+
 ---
 
-## Amendment 1 (2026-09-17) — corrections after the review of PR #99
+## Revision note (2026-09-17)
 
-**Read this before starting Task 1.** The review of PR #99 found three defects in the
-plan above. That PR is **not merged**, and this pipeline implements on a *new branch cut
-from `main`*, so its code is **not** in your checkout — do not assume any of it exists.
+The review of PR #99 found two defects in this plan. **Both are already corrected inline
+above** — Task 3 Step 5 now screens *after* the `HasAttachment` branch (spec D7), and
+Task 3 Step 2's transcription test no longer passes vacuously and is joined by a test
+pinning the attachment ordering. Read the tasks as written; there is nothing to
+cross-reference.
 
-Implement **Tasks 1–6 as written above, with corrections A and B below already folded
-in**, then Tasks 7 and 8. Where a step above and a correction below disagree, the
-correction wins.
-
-### A. Task 3 Step 5 — the screen runs in the wrong place
-
-**Spec D7 supersedes the original ordering.** The screen must run **after** the
-`HasAttachment` → Paperless branch, not before it.
-
-Reason: `EfCaptureService.SubmitAsync` sets `Content` to the *filename* when an
-attachment has no caption (`var attContent = string.IsNullOrWhiteSpace(caption) ?
-fileName : caption.Trim();`). Screening a bare filename against a prompt biased toward
-`unsure` parks every uncaptioned scan in a terminal, non-retryable stage. It also sends
-filenames to OpenRouter for the first time.
-
-Move the screen block so it sits *below* the `HasAttachment` early-return:
-
-```csharp
-        if (msg.HasAttachment)
-        {
-            await RouteAttachmentToPaperlessAsync(context, msg, ct);
-            return;
-        }
-
-        // Issue #93, spec D7. Scoped by destination audience: this guards the paths to
-        // Vikunja and the forge, which other people can see. Paperless is the operator's
-        // private archive and is deliberately NOT screened — screening it would park
-        // every uncaptioned scan (Content is the filename) and would newly send filenames
-        // to the remote model provider.
-        var verdict = await _sensitivity.ScreenAsync(msg.Content, ct);
-        if (verdict.Verdict != Sensitivity.Safe)
-        {
-            await _captureService.MarkWithheldAsync(msg.CaptureId, verdict.Reason, ct);
-            LogWithheld(msg.CaptureId, verdict.Verdict.ToString(), verdict.Reason);
-            return;
-        }
-```
-
-Add a test pinning the order, so reversing it fails:
-
-```csharp
-    [Fact]
-    public async Task Consume_AttachmentCapture_ReachesPaperlessWithoutBeingScreened()
-    {
-        var screen = ScreenReturning(Sensitivity.Sensitive, "would park it");
-
-        await using var provider = PipelineTestBase.Build(
-            configure: s => { s.AddSingleton(TrackingClassifier()); s.AddSingleton(screen); },
-            configureBus: x => x.AddConsumer<CaptureEnrichmentConsumer>());
-
-        var harness = provider.GetRequiredService<ITestHarness>();
-        await harness.Start();
-
-        var captureService = provider.GetRequiredService<ICaptureService>();
-        var capture = await captureService.SubmitAsync("scan_0012.pdf", ChannelKind.Telegram, default);
-        await harness.Bus.Publish(new CaptureCreated(
-            capture.Id, "scan_0012.pdf", capture.Source, DateTimeOffset.UtcNow,
-            HasAttachment: true, NeedsTranscription: false));
-
-        // Even a Sensitive verdict must not reach an attachment capture — the branch
-        // short-circuits first. If the order is reversed this assertion fails.
-        await screen.DidNotReceive().ScreenAsync("scan_0012.pdf", Arg.Any<CancellationToken>());
-        var stored = await captureService.GetByIdAsync(capture.Id, default);
-        stored!.Stage.Should().NotBe(LifecycleStage.Withheld);
-    }
-```
-
-### B. Task 3 Step 2 — the transcription test is vacuous
-
-`Consume_CaptureAwaitingTranscription_IsNotScreenedOnItsPlaceholder` as written does not
-test what it claims, for two independent reasons:
-
-1. It registers no `IClassifier`, so `CaptureEnrichmentConsumer` cannot be constructed,
-   both messages fault, and `DidNotReceive()` passes because nothing ran at all.
-2. `SubmitAsync` itself publishes a `CaptureCreated` with `NeedsTranscription: false` and
-   the same content, which the consumer *would* screen — so once a classifier is
-   registered the assertion contradicts itself.
-
-Replace it with a version that registers a classifier and distinguishes the two
-publications by content:
-
-```csharp
-    [Fact]
-    public async Task Consume_CaptureAwaitingTranscription_IsNotScreenedOnItsPlaceholder()
-    {
-        var screen = ScreenReturning(Sensitivity.Safe, string.Empty);
-
-        await using var provider = PipelineTestBase.Build(
-            configure: s => { s.AddSingleton(TrackingClassifier()); s.AddSingleton(screen); },
-            configureBus: x => x.AddConsumer<CaptureEnrichmentConsumer>());
-
-        var harness = provider.GetRequiredService<ITestHarness>();
-        await harness.Start();
-
-        // Publish only the awaiting-transcript message, with content no other
-        // publication uses, so the assertion cannot be satisfied by accident.
-        var id = Guid.NewGuid();
-        await harness.Bus.Publish(new CaptureCreated(
-            id, "[awaiting transcript]", ChannelKind.Telegram, DateTimeOffset.UtcNow,
-            HasAttachment: false, NeedsTranscription: true));
-
-        (await harness.Consumed.Any<CaptureCreated>(x => x.Context.Message.CaptureId == id))
-            .Should().BeTrue();
-
-        await screen.DidNotReceive().ScreenAsync("[awaiting transcript]", Arg.Any<CancellationToken>());
-    }
-```
-
-**General rule for this plan's pipeline tests:** every `PipelineTestBase.Build` call must
-register an `IClassifier`. An assertion that passes because the consumer failed to
-construct is worse than no test.
-
-### C. New Task 7 — operator visibility for `Withheld` (spec D8)
-
-`Withheld` is terminal and non-retryable, so an invisible one is a lost one.
-
-**Files:**
-- Modify: `source/FlowHub.Telegram/TelegramReactionService.cs:37`
-- Modify: `source/FlowHub.Web/Components/.../LifecycleBadge.razor:26`
-- Modify: `source/FlowHub.Persistence/Repositories/EfCaptureRepository.cs:42`
-- Test: alongside the existing tests for each.
-
-- [ ] **Step 1: Write the three failing tests** — an emoji is returned for `Withheld`;
-      the badge renders a label rather than `?`; `GetFailureCountsAsync` includes it.
-- [ ] **Step 2: Run them, confirm they fail** for the right reason (null emoji, `?`
-      badge, absent count).
-- [ ] **Step 3: Add a `Withheld` arm** to `EmojiFor` — pick a distinct emoji not already
-      used by `Orphan` or `Unhandled`; it signals "held back", not "failed".
-- [ ] **Step 4: Add the badge label** following the existing `Orphan`/`Unhandled` arms.
-- [ ] **Step 5: Include `Withheld`** in `GetFailureCountsAsync` so it appears on the
-      needs-attention card.
-- [ ] **Step 6: Run the tests, confirm they pass. Commit.**
-
-The reason string is safe to display: it names a category, never content.
-
-### D. New Task 8 — housekeeping
-
-- [ ] **`CHANGELOG.md`** — add an `[Unreleased]` entry under `Added` (the guard) and
-      `Security` (captures can no longer reach shared destinations unscreened). CLAUDE.md
-      mandates this and CI may gate a release on it being non-empty.
-- [ ] **Spec D9** — make `CapturePreviewResponse.Sensitivity` explicit so a client
-      omitting the field cannot silently receive `Sensitive`. Keep `Sensitive` as the
-      zero value; it is fail-closed and correct.
-- [ ] **Dead code** — remove the unused `System.Net.Http.Json` import and `JsonOpts` in
-      `CaptureRetryWithheldTests.cs`, and de-duplicate the `FakeLogger<T>` copy in
-      `SensitivityFixtureTests.cs` (use the existing one).
+Two further items from that review — operator visibility for `Withheld` (spec D8) and
+housekeeping (CHANGELOG, dead code) — were split into their **own issue and plan**,
+because this plan plus those tasks exceeded the pipeline's maximum turn budget of 160
+and the run was truncated with nothing pushed. Do not implement them here.
