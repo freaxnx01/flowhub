@@ -2,21 +2,26 @@
 
 Open operational items for the freshly-split `flowhub` product repo.
 
-## Session 2026-09-17 (#93 sensitive-capture parking) — shipped, but not yet deployed
+## Session 2026-09-17 (#93 sensitive-capture parking) — shipped and deployed (v0.8.0)
 
-- [ ] **Cut a release and redeploy CT 136 — the privacy guard is NOT live.** #93 merged to
-      `main` (PR #105), but CT 136 runs `ghcr.io/freaxnx01/flowhub:0.7.1`, which predates
-      it. Until a release ships and is redeployed, captures are still routed unscreened.
-      **This gates emptying the Telegram chat and replaying any export** — that is the
-      exact disclosure path #93 exists to close, and the survey found therapy notes, a
-      child's care journal and a third party's profile in the backlog.
+- [x] **~~Cut a release and redeploy CT 136~~ — done 2026-09-17, the guard IS live.**
+      `v0.8.0` released and deployed; CT 136 runs `ghcr.io/freaxnx01/flowhub:0.8.0`,
+      healthy. Migrations ran clean (`No migrations were applied` — `Stage` persists as a
+      string, so #93 needs no schema change). `.env` backed up to `.env.bak-20260917-195459`;
+      `0.7.1` images retained locally for rollback.
+      **Verified against the live preview endpoint:** a synthesised medication note returns
+      `Sensitivity: Sensitive`, reason `health detail about a named person`, and *no
+      proposed target*; `Batterien kaufen` → `Safe` → Vikunja `Kaufen`; a URL → `Safe` →
+      Wallabag. **Emptying the Telegram chat and replaying an export is now safe.**
+      Caveat: a `Withheld` capture is still invisible on every operator surface until #103
+      ships, so parks are silent — check the API, not the dashboard.
 - [ ] **Dispatch #103** (operator visibility for `Withheld`, CHANGELOG, dead code). It was
       split out of #93 because the combined plan exceeded the 160-turn ceiling. Its
       dependency is now on `main`, so it is unblocked — it carries its own dependency
       check and will stop if `LifecycleStage.Withheld` is missing.
 - [ ] **Decide whether `MAX_ATTEMPTS` stays at 3.** #104 raised it 2 → 3 repo-wide so #93
       could be redispatched. #93 was then finished by hand instead, so the raise is
-      unused — revert to 2 if it was meant as a one-off.
+      unused. **In flight: PR #108 restores the default of 2** — merge it to close this.
 - [ ] **agent-workflow#366** — a local session and the pipeline both implemented #93 at
       once (~$2 wasted, two competing PRs). `agent-implement.yml:378` already serialises
       pipeline-vs-pipeline; the gap is a claim visible *outside* Actions. Needs enrichment.
