@@ -445,6 +445,9 @@ flowhub.db-wal
 
 # Claude Code scheduled-tasks lock (transient runtime lock)
 .claude/scheduled_tasks.lock
+# Session handoffs — local working notes. .claude/commands/ is tracked on purpose,
+# so this is scoped to the handoff files rather than the whole directory.
+.claude/handoff-*.md
 
 # Capture attachment blobs (demo storage)
 source/FlowHub.Web/App_Data/uploads/
