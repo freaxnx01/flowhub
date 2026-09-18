@@ -10,6 +10,19 @@ for continuity.
 
 ## [Unreleased]
 
+### Added
+
+- **ui:** `Withheld` captures are visible to the operator — a distinct Telegram
+  reaction, a labelled lifecycle badge, and a count in the dashboard's
+  needs-attention card. The stage was terminal, non-retryable and silent, which made
+  a deliberate privacy park indistinguishable from a lost capture.
+
+### Security
+
+- **api:** `CapturePreviewResponse.sensitivity` is required on the wire. The
+  fail-closed zero value stays `Sensitive`; requiring the field stops a client that
+  omits it from receiving that default by accident and reading it as a real verdict.
+
 ## [0.8.0] - 2026-09-17
 
 ### Added

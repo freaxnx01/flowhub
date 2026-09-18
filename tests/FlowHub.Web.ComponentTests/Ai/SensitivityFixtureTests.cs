@@ -2,7 +2,7 @@ using System.Text.Json;
 using FlowHub.AI;
 using FlowHub.Core.Classification;
 using Microsoft.Extensions.AI;
-using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace FlowHub.Web.ComponentTests.Ai;
 
@@ -40,32 +40,9 @@ public sealed class SensitivityFixtureTests
 
         return new AiSensitivityScreen(
             chat,
-            new FakeLogger<AiSensitivityScreen>(),
+            NullLogger<AiSensitivityScreen>.Instance,
             new ChatOptions { MaxOutputTokens = 200, Temperature = 0.2f },
             new AiModelInfo("OpenRouter", "test-model"));
-    }
-
-    internal sealed record LogRecord(LogLevel Level, EventId EventId, string Message);
-
-    internal sealed class FakeLogger<T> : ILogger<T>
-    {
-        public List<LogRecord> Records { get; } = [];
-
-        public IDisposable BeginScope<TState>(TState state) where TState : notnull => NullScope.Instance;
-        public bool IsEnabled(LogLevel logLevel) => true;
-
-        public void Log<TState>(
-            LogLevel logLevel, EventId eventId, TState state,
-            Exception? exception, Func<TState, Exception?, string> formatter)
-        {
-            Records.Add(new LogRecord(logLevel, eventId, formatter(state, exception)));
-        }
-
-        private sealed class NullScope : IDisposable
-        {
-            public static readonly NullScope Instance = new();
-            public void Dispose() { }
-        }
     }
 
     [Theory]

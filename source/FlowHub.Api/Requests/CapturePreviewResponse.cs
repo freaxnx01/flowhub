@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using FlowHub.Core.Classification;
 
 namespace FlowHub.Api.Requests;
@@ -31,5 +32,9 @@ public sealed record CapturePreviewResponse(
     string? BridgeBody,
     IReadOnlyList<string>? UnknownShorthand,
     ClassifierTrace? Trace,
-    Sensitivity Sensitivity,
+    // Sensitivity.Sensitive is the zero value on purpose — an uninitialised verdict
+    // must fail closed. JsonRequired covers the opposite hazard: a client omitting the
+    // field would otherwise receive that default by accident and be unable to tell it
+    // apart from a real judgement.
+    [property: JsonRequired] Sensitivity Sensitivity,
     string? SensitivityReason);
