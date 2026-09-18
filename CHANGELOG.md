@@ -10,6 +10,24 @@ for continuity.
 
 ## [Unreleased]
 
+### Added
+
+- **telegram:** the capture reaction names the skill that handled it — 👨‍💻 Bridge,
+  ✍ Vikunja, 👀 Wallabag, 👌 Paperless, 👍 for a skill added later. Telegram allows a
+  bot one reaction per message, so an undifferentiated success emoji wasted the only
+  in-chat signal there is. Ingest now also acknowledges receipt with 🫡, which the
+  outcome replaces, so an accepted message is distinguishable from one never seen.
+- **ui:** `Withheld` captures are visible to the operator — a distinct Telegram
+  reaction, a labelled lifecycle badge, and a count in the dashboard's
+  needs-attention card. The stage was terminal, non-retryable and silent, which made
+  a deliberate privacy park indistinguishable from a lost capture.
+
+### Security
+
+- **api:** `CapturePreviewResponse.sensitivity` is required on the wire. The
+  fail-closed zero value stays `Sensitive`; requiring the field stops a client that
+  omits it from receiving that default by accident and reading it as a real verdict.
+
 ## [0.8.0] - 2026-09-17
 
 ### Added

@@ -168,10 +168,21 @@ public sealed partial class TelegramUpdateHandler
     private async Task ReactIfAlreadyResolvedAsync(Guid captureId, CancellationToken cancellationToken)
     {
         var current = await _captures.GetByIdAsync(captureId, cancellationToken);
-        if (current is not null)
+        if (current is null)
         {
-            await _reactions.ApplyAsync(captureId, current.Stage, cancellationToken);
+            return;
         }
+
+        // A non-terminal stage has no outcome emoji yet. Acknowledge receipt instead,
+        // so an accepted message is distinguishable from one the bot never saw; the
+        // outcome replaces it when the Capture resolves.
+        if (TelegramReactionService.EmojiFor(current.Stage, current.MatchedSkill) is null)
+        {
+            await _reactions.ApplyInFlightAsync(captureId, cancellationToken);
+            return;
+        }
+
+        await _reactions.ApplyAsync(captureId, current.Stage, current.MatchedSkill, cancellationToken);
     }
 
     private bool IsAcceptable(TelegramFile file, out string rejection)

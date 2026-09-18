@@ -1,6 +1,4 @@
 using System.Net;
-using System.Net.Http.Json;
-using System.Text.Json;
 using FlowHub.Core.Captures;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -9,11 +7,6 @@ namespace FlowHub.Api.IntegrationTests.Captures;
 public sealed class CaptureRetryWithheldTests : IClassFixture<IntegrationTestFactory>
 {
     private readonly IntegrationTestFactory _factory;
-    private static readonly JsonSerializerOptions JsonOpts = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() },
-    };
 
     public CaptureRetryWithheldTests(IntegrationTestFactory factory) => _factory = factory;
 

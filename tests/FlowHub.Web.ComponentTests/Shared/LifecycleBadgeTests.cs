@@ -18,6 +18,7 @@ public class LifecycleBadgeTests : TestContext
     [InlineData(LifecycleStage.Completed, "completed")]
     [InlineData(LifecycleStage.Orphan, "orphan")]
     [InlineData(LifecycleStage.Unhandled, "unhandled")]
+    [InlineData(LifecycleStage.Withheld, "withheld")]
     public void Render_Stage_ShowsExpectedLabel(LifecycleStage stage, string expectedLabel)
     {
         var cut = RenderComponent<LifecycleBadge>(p => p.Add(c => c.Stage, stage));
@@ -58,6 +59,16 @@ public class LifecycleBadgeTests : TestContext
             .Add(p => p.Stage, LifecycleStage.Classified));
 
         cut.Markup.Should().NotContain("→");
+    }
+
+    [Fact]
+    public void Render_Withheld_DoesNotFallBackToTheQuestionMarkLabel()
+    {
+        // Withheld is terminal and non-retryable; a `?` badge makes a deliberate
+        // privacy park indistinguishable from a capture that was simply lost.
+        var cut = RenderComponent<LifecycleBadge>(p => p.Add(c => c.Stage, LifecycleStage.Withheld));
+
+        cut.Markup.Should().NotContain(">?<");
     }
 
     [Fact]

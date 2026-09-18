@@ -42,7 +42,9 @@ internal sealed class EfCaptureRepository : ICaptureRepository
             .CountAsync(c => c.Stage == nameof(LifecycleStage.Orphan), cancellationToken);
         var unhandled = await _db.Captures.AsNoTracking()
             .CountAsync(c => c.Stage == nameof(LifecycleStage.Unhandled), cancellationToken);
-        return new FailureCounts(orphan, unhandled);
+        var withheld = await _db.Captures.AsNoTracking()
+            .CountAsync(c => c.Stage == nameof(LifecycleStage.Withheld), cancellationToken);
+        return new FailureCounts(orphan, unhandled, withheld);
     }
 
     public async Task<Capture> AddAsync(Capture capture, CancellationToken cancellationToken = default)

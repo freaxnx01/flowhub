@@ -57,15 +57,18 @@ public class TelegramUpdateHandlerTests
 
         await sut.HandleAsync(TextMessage("done already"), CancellationToken.None);
 
-        await gateway.Received(1).SetReactionAsync(55L, 7, "\U0001F44D", Arg.Any<CancellationToken>());
+        // D10: the reaction names the matched skill. This capture completed via
+        // Wallabag, so it is 👀 rather than the old undifferentiated 👍.
+        await gateway.Received(1).SetReactionAsync(55L, 7, "\U0001F440", Arg.Any<CancellationToken>());
     }
 
     [Fact]
-    public async Task HandleAsync_LifecycleStillInFlight_DoesNotReactYet()
+    public async Task HandleAsync_LifecycleStillInFlight_AcknowledgesReceipt()
     {
-        // The ordinary path: the Capture is still Raw when the row lands, so the
-        // handler must leave the reaction to the decorator rather than marking a
-        // message whose outcome is not known yet.
+        // D10 supersedes the previous behaviour, which set no reaction at all while a
+        // capture was in flight. That left a message the bot had accepted
+        // indistinguishable from one it never saw. The outcome emoji replaces this one
+        // when the capture resolves, since a bot may hold only one reaction.
         var (sut, captures, repo, gateway) = Build();
         var captureId = Guid.NewGuid();
         captures.SubmitAsync(Arg.Any<string?>(), Arg.Any<ChannelKind>(), Arg.Any<AttachmentInput?>(), Arg.Any<bool>(), Arg.Any<CancellationToken>())
@@ -79,7 +82,7 @@ public class TelegramUpdateHandlerTests
 
         await sut.HandleAsync(TextMessage("in flight"), CancellationToken.None);
 
-        await gateway.DidNotReceiveWithAnyArgs().SetReactionAsync(default, default, default!, default);
+        await gateway.Received(1).SetReactionAsync(55L, 7, "\U0001FAE1", Arg.Any<CancellationToken>());
     }
 
     [Fact]

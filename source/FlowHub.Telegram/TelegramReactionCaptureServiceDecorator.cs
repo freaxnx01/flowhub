@@ -49,25 +49,29 @@ public sealed class TelegramReactionCaptureServiceDecorator : ICaptureService
     public async Task MarkCompletedAsync(Guid id, string? externalRef, CancellationToken cancellationToken = default)
     {
         await _inner.MarkCompletedAsync(id, externalRef, cancellationToken);
-        await _reactions.ApplyAsync(id, LifecycleStage.Completed, cancellationToken);
+        // Read the skill back off the inner service rather than widening
+        // ICaptureService.MarkCompletedAsync: that signature is public API, and going
+        // through the decorated service here would be a cycle back into this class.
+        var capture = await _inner.GetByIdAsync(id, cancellationToken);
+        await _reactions.ApplyAsync(id, LifecycleStage.Completed, capture?.MatchedSkill, cancellationToken);
     }
 
     public async Task MarkOrphanAsync(Guid id, string reason, CancellationToken cancellationToken = default)
     {
         await _inner.MarkOrphanAsync(id, reason, cancellationToken);
-        await _reactions.ApplyAsync(id, LifecycleStage.Orphan, cancellationToken);
+        await _reactions.ApplyAsync(id, LifecycleStage.Orphan, matchedSkill: null, cancellationToken);
     }
 
     public async Task MarkUnhandledAsync(Guid id, string reason, CancellationToken cancellationToken = default)
     {
         await _inner.MarkUnhandledAsync(id, reason, cancellationToken);
-        await _reactions.ApplyAsync(id, LifecycleStage.Unhandled, cancellationToken);
+        await _reactions.ApplyAsync(id, LifecycleStage.Unhandled, matchedSkill: null, cancellationToken);
     }
 
     public async Task MarkWithheldAsync(Guid id, string reason, CancellationToken cancellationToken = default)
     {
         await _inner.MarkWithheldAsync(id, reason, cancellationToken);
-        await _reactions.ApplyAsync(id, LifecycleStage.Withheld, cancellationToken);
+        await _reactions.ApplyAsync(id, LifecycleStage.Withheld, matchedSkill: null, cancellationToken);
     }
 
     public Task<CapturePage> ListAsync(CaptureFilter filter, CancellationToken cancellationToken = default) =>

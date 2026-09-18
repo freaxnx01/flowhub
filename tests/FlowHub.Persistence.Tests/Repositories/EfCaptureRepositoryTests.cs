@@ -119,6 +119,44 @@ public sealed class EfCaptureRepositoryTests(PostgresFixture fixture)
     }
 
     [Fact]
+    public async Task GetFailureCountsAsync_CountsWithheld()
+    {
+        // A withheld capture is terminal and non-retryable. If it is missing from the
+        // counts it never reaches the dashboard's needs-attention card, and a silent
+        // park is indistinguishable from a lost capture.
+        var db = await fixture.CreateFreshDbAsync();
+        var repo = new EfCaptureRepository(db);
+        var a = NewRawCapture("a");
+        var b = NewRawCapture("b");
+        await repo.AddAsync(a);
+        await repo.AddAsync(b);
+        await repo.UpdateAsync(a with { Stage = LifecycleStage.Withheld, FailureReason = "child care material" });
+        await repo.UpdateAsync(b with { Stage = LifecycleStage.Orphan, FailureReason = "x" });
+
+        var counts = await repo.GetFailureCountsAsync();
+
+        counts.WithheldCount.Should().Be(1);
+        counts.AnyFailures.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task GetFailureCountsAsync_WithheldOnly_StillReportsAttentionNeeded()
+    {
+        var db = await fixture.CreateFreshDbAsync();
+        var repo = new EfCaptureRepository(db);
+        var a = NewRawCapture("a");
+        await repo.AddAsync(a);
+        await repo.UpdateAsync(a with { Stage = LifecycleStage.Withheld, FailureReason = "health detail" });
+
+        var counts = await repo.GetFailureCountsAsync();
+
+        counts.OrphanCount.Should().Be(0);
+        counts.UnhandledCount.Should().Be(0);
+        counts.WithheldCount.Should().Be(1);
+        counts.AnyFailures.Should().BeTrue();
+    }
+
+    [Fact]
     public async Task ListAsync_FiltersByStage()
     {
         var db = await fixture.CreateFreshDbAsync();

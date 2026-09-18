@@ -23,6 +23,7 @@
             LifecycleStage.Completed => ("completed", Color.Success),
             LifecycleStage.Orphan => ("orphan", Color.Warning),
             LifecycleStage.Unhandled => ("unhandled", Color.Warning),
+            LifecycleStage.Withheld => ("withheld", Color.Secondary),
             _ => ("?", Color.Default),
         };
     }

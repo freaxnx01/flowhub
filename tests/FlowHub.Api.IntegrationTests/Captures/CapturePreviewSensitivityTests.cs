@@ -1,3 +1,5 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using FlowHub.Api.Endpoints;
 using FlowHub.Api.Requests;
 using FlowHub.Api.Validation;
@@ -11,6 +13,43 @@ namespace FlowHub.Api.IntegrationTests.Captures;
 
 public sealed class CapturePreviewSensitivityTests
 {
+    private static JsonSerializerOptions WebJson()
+    {
+        var options = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+        options.Converters.Add(new JsonStringEnumConverter());
+        return options;
+    }
+
+    [Fact]
+    public void Deserialise_PayloadOmittingSensitivity_IsRejected()
+    {
+        // `Sensitivity.Sensitive` is the zero value on purpose — fail-closed. The hazard
+        // is the opposite direction: a client that omits the field would receive
+        // `Sensitive` by accident rather than by design, and could not tell the two
+        // apart. Requiring it on the wire keeps the fail-closed default deliberate.
+        const string json =
+            """
+            {"matchedSkill":"Vikunja","tags":[],"vikunjaProjectResolved":false,"bridgeAction":"Unknown"}
+            """;
+
+        var act = () => JsonSerializer.Deserialize<CapturePreviewResponse>(json, WebJson());
+
+        act.Should().Throw<JsonException>();
+    }
+
+    [Fact]
+    public void Deserialise_PayloadCarryingSensitivity_Succeeds()
+    {
+        const string json =
+            """
+            {"matchedSkill":"Vikunja","tags":[],"vikunjaProjectResolved":false,"bridgeAction":"Unknown","sensitivity":"Safe"}
+            """;
+
+        var response = JsonSerializer.Deserialize<CapturePreviewResponse>(json, WebJson());
+
+        response!.Sensitivity.Should().Be(Sensitivity.Safe);
+    }
+
     private static IClassifier ClassifierReturning(ClassificationResult result)
     {
         var classifier = Substitute.For<IClassifier>();
