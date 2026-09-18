@@ -16,6 +16,59 @@ public class TelegramReactionTests
         TelegramReactionService.EmojiFor(stage).Should().Be(expected);
     }
 
+    [Theory]
+    [InlineData("Bridge", "👨‍💻")]
+    [InlineData("Vikunja", "✍")]
+    [InlineData("Wallabag", "👀")]
+    [InlineData("Paperless", "👌")]
+    [InlineData("vikunja", "✍")]
+    public void EmojiFor_Completed_IsDeterminedByTheMatchedSkill(string skill, string expected)
+    {
+        // Telegram allows a bot one reaction per message, so the success emoji is the
+        // only place the skill can be shown. A capture only has a skill once it
+        // completed, so one reaction carries both facts.
+        TelegramReactionService.EmojiFor(LifecycleStage.Completed, skill).Should().Be(expected);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("SomeSkillAddedLater")]
+    public void EmojiFor_Completed_UnknownSkill_FallsBackToThumbsUp(string? skill)
+    {
+        // A new skill must never be silent: falling back to the old success emoji is
+        // wrong-but-visible, where null would set no reaction at all.
+        TelegramReactionService.EmojiFor(LifecycleStage.Completed, skill).Should().Be("👍");
+    }
+
+    [Fact]
+    public void EveryEmojiTheServiceCanEmit_IsOnTheReactionTypeEmojiAllowList()
+    {
+        // Telegram rejects an off-list emoji at the API, and ApplyAsync swallows the
+        // HttpRequestException by design — so a bad emoji is invisible until someone
+        // reads the chat. This test is the only thing that catches it.
+        string[] allowList =
+        [
+            "❤", "👍", "👎", "🔥", "🥰", "👏", "😁", "🤔", "🤯", "😱", "🤬", "😢", "🎉", "🤩",
+            "🤮", "💩", "🙏", "👌", "🕊", "🤡", "🥱", "🥴", "😍", "🐳", "❤‍🔥", "🌚", "🌭", "💯",
+            "🤣", "⚡", "🍌", "🏆", "💔", "🤨", "😐", "🍓", "🍾", "💋", "🖕", "😈", "😴", "😭",
+            "🤓", "👻", "👨‍💻", "👀", "🎃", "🙈", "😇", "😨", "🤝", "✍", "🤗", "🫡", "🎅", "🎄",
+            "☃", "💅", "🤪", "🗿", "🆒", "💘", "🙉", "🦄", "😘", "💊", "🙊", "😎", "👾",
+            "🤷‍♂", "🤷", "🤷‍♀", "😡",
+        ];
+        string?[] skills = [null, "Bridge", "Vikunja", "Wallabag", "Paperless", "Unknown"];
+
+        var emitted = Enum.GetValues<LifecycleStage>()
+            .SelectMany(stage => skills.Select(skill => TelegramReactionService.EmojiFor(stage, skill)))
+            .Append(TelegramReactionService.InFlightEmoji)
+            .Where(e => e is not null)
+            .Distinct()
+            .ToList();
+
+        emitted.Should().NotBeEmpty();
+        emitted.Should().OnlyContain(e => allowList.Contains(e));
+    }
+
     [Fact]
     public void EmojiFor_Withheld_IsDistinctFromTheOtherTerminalStages()
     {
@@ -49,7 +102,7 @@ public class TelegramReactionTests
             .Returns(new TelegramUpdate(1L, 55L, 7, captureId, DateTimeOffset.UtcNow));
         var sut = new TelegramReactionService(repo, gateway, NullLogger<TelegramReactionService>.Instance);
 
-        await sut.ApplyAsync(captureId, LifecycleStage.Completed, CancellationToken.None);
+        await sut.ApplyAsync(captureId, LifecycleStage.Completed, cancellationToken: CancellationToken.None);
 
         await gateway.Received(1).SetReactionAsync(55L, 7, "👍", Arg.Any<CancellationToken>());
     }
@@ -63,7 +116,7 @@ public class TelegramReactionTests
         var gateway = Substitute.For<ITelegramGateway>();
         var sut = new TelegramReactionService(repo, gateway, NullLogger<TelegramReactionService>.Instance);
 
-        var act = async () => await sut.ApplyAsync(Guid.NewGuid(), LifecycleStage.Completed, CancellationToken.None);
+        var act = async () => await sut.ApplyAsync(Guid.NewGuid(), LifecycleStage.Completed, cancellationToken: CancellationToken.None);
 
         await act.Should().NotThrowAsync();
         await gateway.DidNotReceiveWithAnyArgs().SetReactionAsync(default, default, default!, default);
@@ -81,7 +134,7 @@ public class TelegramReactionTests
             .Returns<Task>(_ => throw new HttpRequestException("telegram down"));
         var sut = new TelegramReactionService(repo, gateway, NullLogger<TelegramReactionService>.Instance);
 
-        var act = async () => await sut.ApplyAsync(captureId, LifecycleStage.Completed, CancellationToken.None);
+        var act = async () => await sut.ApplyAsync(captureId, LifecycleStage.Completed, cancellationToken: CancellationToken.None);
 
         await act.Should().NotThrowAsync();
     }

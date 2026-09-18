@@ -26,12 +26,26 @@ public sealed partial class TelegramReactionService
     }
 
     /// <summary>
+    /// Acknowledges receipt while a Capture is still in flight. Replaced by the outcome
+    /// emoji when it resolves — a bot may hold only one reaction per message.
+    /// </summary>
+    public const string InFlightEmoji = "🫡";
+
+    private const string CompletedFallbackEmoji = "👍";
+
+    /// <summary>
     /// The emoji for a terminal stage, or null for a stage that is still in flight.
     /// Must come from ReactionTypeEmoji's fixed allow-list — ✅, ⚠️ and ❓ are NOT on it.
     /// </summary>
-    public static string? EmojiFor(LifecycleStage stage) => stage switch
+    /// <param name="stage">The Capture's lifecycle stage.</param>
+    /// <param name="matchedSkill">
+    /// The skill that handled it. Only <see cref="LifecycleStage.Completed"/> uses it:
+    /// Telegram allows one reaction per message, so the success emoji is the only place
+    /// the skill can be shown, and a Capture only has a skill once it completed.
+    /// </param>
+    public static string? EmojiFor(LifecycleStage stage, string? matchedSkill = null) => stage switch
     {
-        LifecycleStage.Completed => "👍",
+        LifecycleStage.Completed => EmojiForSkill(matchedSkill),
         LifecycleStage.Orphan => "💔",
         LifecycleStage.Unhandled => "🤔",
         // Speak-no-evil: the capture was classified and deliberately not sent
@@ -41,18 +55,49 @@ public sealed partial class TelegramReactionService
     };
 
     /// <summary>
+    /// An unrecognised skill falls back rather than returning null: a skill added later
+    /// must be wrong-but-visible, never silent.
+    /// </summary>
+    private static string EmojiForSkill(string? matchedSkill) => matchedSkill?.ToLowerInvariant() switch
+    {
+        "bridge" => "👨‍💻",
+        "vikunja" => "✍",
+        "wallabag" => "👀",
+        // The allow-list has no paper, file or folder emoji; 👌 is chosen to read as
+        // "filed, nothing left to do" and to be unmistakable beside the others.
+        "paperless" => "👌",
+        _ => CompletedFallbackEmoji,
+    };
+
+    /// <summary>
     /// Applies the reaction for a resolved Capture. Idempotent and best-effort: an
     /// unknown Capture is a no-op, and a Telegram failure is logged, never thrown —
     /// a failed reaction must not fail the lifecycle transition that triggered it.
     /// </summary>
-    public async Task ApplyAsync(Guid captureId, LifecycleStage stage, CancellationToken cancellationToken = default)
+    public async Task ApplyAsync(
+        Guid captureId,
+        LifecycleStage stage,
+        string? matchedSkill = null,
+        CancellationToken cancellationToken = default)
     {
-        var emoji = EmojiFor(stage);
+        var emoji = EmojiFor(stage, matchedSkill);
         if (emoji is null)
         {
             return;
         }
 
+        await SetAsync(captureId, emoji, cancellationToken);
+    }
+
+    /// <summary>
+    /// Marks the message as received while its Capture is still in flight. Best-effort
+    /// and non-throwing, exactly like <see cref="ApplyAsync"/>.
+    /// </summary>
+    public Task ApplyInFlightAsync(Guid captureId, CancellationToken cancellationToken = default) =>
+        SetAsync(captureId, InFlightEmoji, cancellationToken);
+
+    private async Task SetAsync(Guid captureId, string emoji, CancellationToken cancellationToken)
+    {
         try
         {
             var update = await _updates.FindByCaptureIdAsync(captureId, cancellationToken);
