@@ -34,6 +34,9 @@ public sealed partial class TelegramReactionService
         LifecycleStage.Completed => "👍",
         LifecycleStage.Orphan => "💔",
         LifecycleStage.Unhandled => "🤔",
+        // Speak-no-evil: the capture was classified and deliberately not sent
+        // anywhere. Distinct from 💔/🤔, which both mean something went wrong.
+        LifecycleStage.Withheld => "🙊",
         _ => null,
     };
 

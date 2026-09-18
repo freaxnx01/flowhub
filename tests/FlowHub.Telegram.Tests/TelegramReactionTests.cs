@@ -10,9 +10,24 @@ public class TelegramReactionTests
     [InlineData(LifecycleStage.Completed, "👍")]
     [InlineData(LifecycleStage.Orphan, "💔")]
     [InlineData(LifecycleStage.Unhandled, "🤔")]
+    [InlineData(LifecycleStage.Withheld, "🙊")]
     public void EmojiFor_TerminalStages_MapToAllowListedEmoji(LifecycleStage stage, string expected)
     {
         TelegramReactionService.EmojiFor(stage).Should().Be(expected);
+    }
+
+    [Fact]
+    public void EmojiFor_Withheld_IsDistinctFromTheOtherTerminalStages()
+    {
+        // A withheld capture is terminal, non-retryable and otherwise silent. If it
+        // shared an emoji with Orphan or Unhandled the operator could not tell a
+        // deliberate privacy park from a failure.
+        var withheld = TelegramReactionService.EmojiFor(LifecycleStage.Withheld);
+
+        withheld.Should().NotBeNull();
+        withheld.Should().NotBe(TelegramReactionService.EmojiFor(LifecycleStage.Orphan));
+        withheld.Should().NotBe(TelegramReactionService.EmojiFor(LifecycleStage.Unhandled));
+        withheld.Should().NotBe(TelegramReactionService.EmojiFor(LifecycleStage.Completed));
     }
 
     [Theory]
