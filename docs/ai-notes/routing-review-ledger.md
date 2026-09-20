@@ -53,3 +53,31 @@ Source of truth for the observed values: the `Captures` table on CT 136 (read-on
 - **why:** two defects compound here. The meaning is **in the pixels** — the capture text is just the filename — so even classifying on the caption would not help (#113). And there is no destination for an outing idea even if it were classified correctly (#118). The fourth photo of the batch, `photo-378.jpg` (c't Vaultwarden article), is genuinely archive material — Paperless is right for that one.
 - **recorded as one entry** by exception: same batch, same defect pair, identical disposition.
 - **status:** issue https://github.com/freaxnx01/flowhub/issues/113 + https://github.com/freaxnx01/flowhub/issues/118
+
+## 2026-09-20 — 3bf69421-9984-4bd0-96c5-735c64f7a384  (Telegram, 2026-09-20 09:19)
+- **content:** `23 x 23 x 13`
+- **got:** stage `Orphan`, no `MatchedSkill`, no classifier trace, `FailureReason: no skill matched during classification`
+- **expected:** Vikunja — measurements of something to act on (buy / build / fit)
+- **why:** operator-confirmed 2026-09-20. The review pass initially read `Orphan` as the correct outcome for a fragment; it is not. A bare measurement is a note the operator needs back, not noise. Nothing in the content marks it as a task, so this is a genuine hard case for the classifier rather than an obvious miss — worth deciding whether an unclassifiable-but-deliberate Capture should default to the Inbox instead of `Orphan`.
+- **status:** open
+
+## 2026-09-20 — d3db4580-52ab-41d0-8011-3c8cccc15fb3  (Telegram, 2026-09-19 08:28)
+- **content:** photo `photo-378.jpg` — c't article "Sicher verwahrt — Passwortsafe Vaultwarden selbst hosten"
+- **got:** `MatchedSkill: Paperless`, stage `Unhandled`, no classifier trace (attachment branch)
+- **expected:** a **homelab to-do** — the article is a thing to try (self-host Vaultwarden), not a document to archive
+- **why:** operator-confirmed 2026-09-20, correcting this review's own earlier call. The first pass marked this one "genuinely archive material" and excluded it from the batch entry above — wrong. That makes it **four of four** images from 2026-09-19 misrouted to Paperless, not three. Same root defect as #113: the meaning is in the picture, and nothing reads it.
+- **status:** open
+
+## 2026-09-20 — d482fd28-ac9c-4441-a8a1-8d85bc8d6ac6  (Telegram, 2026-09-19 13:59)
+- **content:** `SOFTEC AG` + `https://www.softec.ch/`
+- **got:** `MatchedSkill: Wallabag`, stage `Unhandled`, `Ai` 1580 ms, `FailureReason: no integration registered for skill 'Wallabag'`
+- **expected:** something **job-related**, not read-later. Operator-confirmed 2026-09-20.
+- **why:** the review pass filed this under "config gap — classification fine", which was wrong: the unwired Skill masked a misclassification. A company link captured for work reasons is not an article. FlowHub has no job-related destination, so this is a **missing-destination gap** in the same family as #118 (Ausflugsideen), not a rule that can be patched.
+- **status:** open
+
+## 2026-09-20 — 6c8e53e1-63b4-4a3f-ac6b-57954f96f780  (Telegram, 2026-09-20 09:52)
+- **content:** `Game idea: GeoGuessr Clone / - Kindermodus 10 Jahre / - Länder ausschliessen können wie Ru…` (title: *GeoGuessr Clone Concept*)
+- **got:** `MatchedSkill: Bridge`, stage `Completed`, `Ai` 5103 ms → appended to **`freaxnx01/game-geography-quiz/ideas.md`**
+- **expected:** **`freaxnx01/ideas-lab/ideas.md`**. Operator rule, stated 2026-09-20: **an idea — game idea or idea in general — always goes to `ideas-lab`**, never to a topic-matched repo.
+- **why:** the classifier inferred a destination repo from the idea's subject matter (geography quiz → `game-geography-quiz`) instead of applying the fixed rule. Note the sibling Capture `93310283-…` (*Tool Hub Concept*, 13:21 the same day) **did** land in `ideas-lab/ideas.md` — so the behaviour is inconsistent, not uniformly wrong, which points at prompt/inference rather than a hard rule in code. The review pass marked both `✓` without knowing the rule existed.
+- **status:** open
