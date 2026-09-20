@@ -298,6 +298,30 @@ public sealed class AiClassifierTests
         result.Entities.Should().BeNull();
     }
 
+    [Fact]
+    public async Task ClassifyAsync_SkippedMalformedEntity_IsLogged()
+    {
+        // Dropping model output silently is invisible data loss. The skip is the right
+        // behaviour; being unable to tell it happened is not.
+        _chat.GetResponseAsync(Arg.Any<IEnumerable<ChatMessage>>(), Arg.Any<ChatOptions?>(), Arg.Any<CancellationToken>())
+             .Returns(JsonResponse(new
+             {
+                 tags = new[] { "quote" },
+                 matched_skill = "Vikunja",
+                 title = "A quote with a malformed entity",
+                 project = "Zitate",
+                 entities = new object[]
+                 {
+                     new { value = "no key here" },
+                     new { key = "author", value = "Richard Gabriel" },
+                 },
+             }));
+
+        await Sut().ClassifyAsync("a quote", default);
+
+        _log.Records.Should().Contain(r => r.EventId.Id == 3012);
+    }
+
     // Every DTO the AI layer sends through GetResponseAsync<T>. The regression value is
     // in catching a *future* dictionary member: a dictionary added to any of these would
     // reintroduce the 400 with nothing else failing.

@@ -152,7 +152,7 @@ internal sealed partial class AiClassifier : IClassifier
             ? payload.Project
             : null;
 
-        var entities = MergeEntities(shorthand.Entities, ToDictionary(payload.Entities));
+        var entities = MergeEntities(shorthand.Entities, ToEntityDictionary(payload.Entities));
 
         sw.Stop();
         return new ClassificationResult(
@@ -229,7 +229,7 @@ internal sealed partial class AiClassifier : IClassifier
             BridgeBody: payload.Body);
     }
 
-    private static Dictionary<string, string>? ToDictionary(AiEntity[]? entities)
+    private Dictionary<string, string>? ToEntityDictionary(AiEntity[]? entities)
     {
         if (entities is not { Length: > 0 })
         {
@@ -237,6 +237,7 @@ internal sealed partial class AiClassifier : IClassifier
         }
 
         var result = new Dictionary<string, string>(StringComparer.Ordinal);
+        var skipped = 0;
         foreach (var entity in entities)
         {
             // Key and Value are non-nullable reference types, but System.Text.Json does
@@ -246,11 +247,19 @@ internal sealed partial class AiClassifier : IClassifier
             // shape made this impossible, so the array has to defend against it.
             if (entity is null || string.IsNullOrWhiteSpace(entity.Key) || entity.Value is null)
             {
+                skipped++;
                 continue;
             }
 
             // Last occurrence wins, matching MergeEntities' own semantics.
             result[entity.Key] = entity.Value;
+        }
+
+        if (skipped > 0)
+        {
+            // Dropping model output silently is invisible data loss; this is the only
+            // record that the model emitted something unusable.
+            LogSkippedMalformedEntities(skipped, entities.Length);
         }
 
         // Nothing survived: report "no entities" rather than an empty map, so callers
@@ -294,4 +303,10 @@ internal sealed partial class AiClassifier : IClassifier
         Level = LogLevel.Warning,
         Message = "AiClassifier fell back to keyword classifier (reason={Reason}, duration_ms={DurationMs})")]
     private partial void LogFellBack(string reason, long durationMs);
+
+    [LoggerMessage(
+        EventId = 3012,
+        Level = LogLevel.Debug,
+        Message = "AiClassifier skipped {Skipped} of {Total} malformed entities (missing key or value)")]
+    private partial void LogSkippedMalformedEntities(int skipped, int total);
 }
