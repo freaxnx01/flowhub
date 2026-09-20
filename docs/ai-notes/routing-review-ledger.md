@@ -14,6 +14,7 @@ Source of truth for the observed values: the `Captures` table on CT 136 (read-on
 - **expected:** Bridge → issue on the relevant game repo (it is a bug report about card-stacking rules)
 - **why:** a German description of a card-game round is neither a document nor a Paperless candidate. Two distinct defects in one row: the wrong skill was chosen, **and** no `ClassifierTrace` was written, so there is no record of which classifier ran. Note the Capture also carries no repo alias, so Bridge alias matching alone could not have reached the right repo — inferring the project from game vocabulary is the open design question.
 - **correction (2026-09-20):** not a misclassification. The Capture carries attachment `photo-371.jpg`, and `CaptureEnrichmentConsumer` returns to Paperless on `HasAttachment` **before** calling `ClassifyAsync` — no classifier ran, so the null trace is expected, not a telemetry bug. The open question is whether a caption-bearing attachment should be classified on its caption. Issue #113 rewritten accordingly.
+- **also (2026-09-20):** this Capture's attachment file `2026/09/bd5a4c89….jpg` is **no longer on disk** — `/app/App_Data/uploads` is not a volume, so attachments die on container recreate while their rows survive. Filed separately as issue #117.
 - **status:** issue https://github.com/freaxnx01/flowhub/issues/113
 
 ## 2026-09-18 — aa48fd56-9458-4c95-a4be-7e131566a3d1  (Telegram, 2026-09-03 20:08)
