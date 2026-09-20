@@ -102,6 +102,8 @@ A `⚠` is a *suggestion*, not a verdict — the user decides. Then ask:
 
 For each number, ask what it **should** have been (target skill / project / action) and a one-line reason. Keep it to one short exchange per row.
 
+**Ask about the rows you cannot judge — do not quietly mark them correct.** A Capture whose right destination depends on knowledge only the operator has (what a photo is for, whether a company link is a lead or reading material, what a bare measurement refers to) is **unclear**, not fine. Put those in their own short list — "these I can't call" — and ask, rather than leaving them off the table because they carry no error signal. A wrong `✓` is worse than an open question: it closes a row that was never reviewed.
+
 ### Step 5 — Append to the ledger
 
 Ledger lives at `docs/ai-notes/routing-review-ledger.md` (create with a `# FlowHub routing review ledger` heading on first use). **Append-only** — never rewrite or delete existing entries; a handled entry gets its status line updated in place, nothing more.
