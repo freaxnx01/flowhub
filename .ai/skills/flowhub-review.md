@@ -92,6 +92,8 @@ One row per Capture, newest first:
 - `MatchedSkill` set but no target at all (`VikunjaProject`, `ExternalRef`, `Bridge*` all null).
 - The same `Content` appearing more than once (duplicate delivery).
 
+**A null `ClassifierTrace` is not automatically a bug — check for an attachment first.** `CaptureEnrichmentConsumer` returns to Paperless on `HasAttachment` *before* calling `ClassifyAsync`, so every attachment capture shows `MatchedSkill: Paperless` with no trace, by design. Always pull `Attachment_ContentType` / `Attachment_FileName` alongside the trace columns; a photo caption reads exactly like a text capture in the review table and will otherwise be flagged as a misclassification that never happened. (This cost a wrongly-framed issue on the first run — see the correction on #113.) A null trace on a capture with **no** attachment is a different matter: it means the classifier path exited early (`Orphan`, `Withheld`), which is worth a look.
+
 **Separate *misclassification* from *unwired skill* before asking the user.** A `FailureReason` of `no integration registered for skill '<X>'` means the classifier was probably right and the deployment simply has that Skill switched off (the CT runs with Skills partly disabled). Report those rows as **config**, not as classification errors — they belong in the deployment follow-up, not the ledger, unless the user disagrees. Same for `exhausted retries: … 404` — the routing target is wrong or gone, which is a Skill/config problem, not a classification one.
 
 A `⚠` is a *suggestion*, not a verdict — the user decides. Then ask:
@@ -136,6 +138,10 @@ For each `open` entry, propose one of three and ask the user to confirm per entr
 **TDD applies** (`CLAUDE.md`): write the failing test first — `tests/FlowHub.Core.Tests`, `tests/FlowHub.AI.IntegrationTests`, or `tests/FlowHub.Skills.Tests` as appropriate — using the real Capture content from the ledger as the test case. That turns each misclassification into a permanent regression test. Then implement, then run that project's tests.
 
 **b) Issue** — anything that needs design, touches the AI prompt structurally, or is bigger than one test + one edit. Use `/new` (labels it `needs-enrichment`) against `freaxnx01/flowhub` on GitHub. Title the real behaviour, and paste the ledger entry into the body so the Capture content survives.
+
+**Before filing, check what is already known** — `TODO.md` and the open issues on `main`, not just the working tree. A production symptom is often an already-diagnosed incident with a resolved root cause; the first run nearly filed "the sensitivity screen fails closed" as new when `TODO.md` had already traced it to an OpenRouter 429 and fixed it. Narrow the issue to the part that is genuinely open (there, the unrecoverable `Withheld` stage) and link the rest.
+
+**Read the deployed behaviour against `origin/main`, not this worktree.** A worktree branched a while ago will be missing whole features — `Withheld` and the sensitivity screen exist on `main` and in production but not on every branch. `git grep <symbol> origin/main` before concluding that something the database shows does not exist in the code.
 
 **c) Park** — record `status: parked <reason>` and move on.
 
