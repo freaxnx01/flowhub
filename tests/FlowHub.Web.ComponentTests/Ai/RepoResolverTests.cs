@@ -62,6 +62,37 @@ public sealed class RepoResolverTests
     }
 
     [Fact]
+    public async Task ResolveAsync_ModelPicksARepoForAnIdea_TargetsIdeasLabAnyway()
+    {
+        // The operator's rule: an idea — a game idea or an idea in general — always goes
+        // to ideas-lab, never to a repo inferred from its subject matter. Capture
+        // 6c8e53e1 ("Game idea: GeoGuessr Clone") was appended to game-geography-quiz
+        // because the model matched the topic.
+        ChatReturns(new { repo = "game-nibbles", action = "idea", title = "GeoGuessr Clone Concept", body = "Kindermodus." });
+
+        var result = await Sut().ResolveAsync("Game idea: GeoGuessr Clone", default);
+
+        result!.Repo.Should().Be("freaxnx01/ideas-lab");
+        result.Action.Should().Be(BridgeAction.Idea);
+        result.Title.Should().Be("GeoGuessr Clone Concept");
+        result.Body.Should().Be("Kindermodus.");
+    }
+
+    [Fact]
+    public async Task ResolveAsync_ModelPicksARepoForAnIssue_KeepsThatRepo()
+    {
+        // The rule is about ideas only: an actionable issue still belongs to the repo
+        // it concerns. Capture c9537e7d (Wipfelkratzer mouse interactions) correctly
+        // became game-wipfelkratzer#64.
+        ChatReturns(new { repo = "flowhub", action = "issue", title = "Health check", body = "Add one." });
+
+        var result = await Sut().ResolveAsync("flowhub needs a health check", default);
+
+        result!.Repo.Should().Be("freaxnx01/flowhub");
+        result.Action.Should().Be(BridgeAction.Issue);
+    }
+
+    [Fact]
     public async Task ResolveAsync_CatalogueEntryHasNoOwner_ReturnsNull()
     {
         // Without an owner the target cannot be qualified, and posting a bare name is what
