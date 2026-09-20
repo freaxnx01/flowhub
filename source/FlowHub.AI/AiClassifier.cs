@@ -239,10 +239,23 @@ internal sealed partial class AiClassifier : IClassifier
         var result = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (var entity in entities)
         {
+            // Key and Value are non-nullable reference types, but System.Text.Json does
+            // not enforce that — {"value":"x"} or a null array element deserialises to
+            // nulls. Indexing with one throws, and ClassifyAsync's catch would turn a
+            // single malformed entity into a keyword-classified capture. The dictionary
+            // shape made this impossible, so the array has to defend against it.
+            if (entity is null || string.IsNullOrWhiteSpace(entity.Key) || entity.Value is null)
+            {
+                continue;
+            }
+
+            // Last occurrence wins, matching MergeEntities' own semantics.
             result[entity.Key] = entity.Value;
         }
 
-        return result;
+        // Nothing survived: report "no entities" rather than an empty map, so callers
+        // cannot tell a stripped-out payload from one that never had entities.
+        return result.Count > 0 ? result : null;
     }
 
     private static Dictionary<string, string>? MergeEntities(

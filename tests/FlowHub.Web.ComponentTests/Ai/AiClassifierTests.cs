@@ -228,13 +228,97 @@ public sealed class AiClassifierTests
     }
 
     [Fact]
-    public void ClassificationSchema_ContainsNoAdditionalPropertiesSchemaObject()
+    public async Task ClassifyAsync_EntityWithMissingKey_IsSkippedAndTheCaptureStillClassifies()
+    {
+        // AiEntity.Key is a non-nullable reference type, but System.Text.Json does not
+        // enforce that: {"value":"…"} with no key deserialises to a null Key. Indexing a
+        // dictionary with it throws, and AiClassifier's broad catch turns one malformed
+        // entity into a keyword-classified capture — the failure this issue removes. The
+        // old Dictionary<string,string> made this impossible; JSON keys cannot be null.
+        _chat.GetResponseAsync(Arg.Any<IEnumerable<ChatMessage>>(), Arg.Any<ChatOptions?>(), Arg.Any<CancellationToken>())
+             .Returns(JsonResponse(new
+             {
+                 tags = new[] { "quote" },
+                 matched_skill = "Vikunja",
+                 title = "A quote with a malformed entity",
+                 project = "Zitate",
+                 entities = new object[]
+                 {
+                     new { value = "Goethe" },
+                     new { key = "author", value = "Richard Gabriel" },
+                 },
+             }));
+
+        var result = await Sut().ClassifyAsync("a quote", default);
+
+        result.MatchedSkill.Should().Be("Vikunja");
+        result.Entities.Should().NotBeNull();
+        result.Entities!["author"].Should().Be("Richard Gabriel");
+    }
+
+    [Fact]
+    public async Task ClassifyAsync_NullEntityElement_IsSkippedAndTheCaptureStillClassifies()
+    {
+        _chat.GetResponseAsync(Arg.Any<IEnumerable<ChatMessage>>(), Arg.Any<ChatOptions?>(), Arg.Any<CancellationToken>())
+             .Returns(JsonResponse(new
+             {
+                 tags = new[] { "quote" },
+                 matched_skill = "Vikunja",
+                 title = "A quote with a null entity",
+                 project = "Zitate",
+                 entities = new object?[]
+                 {
+                     null,
+                     new { key = "author", value = "Richard Gabriel" },
+                 },
+             }));
+
+        var result = await Sut().ClassifyAsync("a quote", default);
+
+        result.MatchedSkill.Should().Be("Vikunja");
+        result.Entities!["author"].Should().Be("Richard Gabriel");
+    }
+
+    [Fact]
+    public async Task ClassifyAsync_OnlyMalformedEntities_YieldsNoEntitiesRatherThanAnEmptyMap()
+    {
+        _chat.GetResponseAsync(Arg.Any<IEnumerable<ChatMessage>>(), Arg.Any<ChatOptions?>(), Arg.Any<CancellationToken>())
+             .Returns(JsonResponse(new
+             {
+                 tags = new[] { "quote" },
+                 matched_skill = "Vikunja",
+                 title = "Every entity malformed",
+                 project = "Zitate",
+                 entities = new object[] { new { value = "orphaned" } },
+             }));
+
+        var result = await Sut().ClassifyAsync("a quote", default);
+
+        result.MatchedSkill.Should().Be("Vikunja");
+        result.Entities.Should().BeNull();
+    }
+
+    // Every DTO the AI layer sends through GetResponseAsync<T>. The regression value is
+    // in catching a *future* dictionary member: a dictionary added to any of these would
+    // reintroduce the 400 with nothing else failing.
+    [Theory]
+    [InlineData(typeof(AiClassificationResponse))]
+    [InlineData(typeof(AiBridgeResponse))]
+    [InlineData(typeof(AiSensitivityResponse))]
+    [InlineData(typeof(AiRepoConfirmResponse))]
+    public void StructuredOutputSchema_ContainsNoAdditionalPropertiesSchemaObject(Type dto)
     {
         // Anthropic requires additionalProperties to be `false` for an object and rejects
         // a schema there with HTTP 400. A Dictionary<string,string> member generates
         // "additionalProperties": {"type":"string"}, which took every capture down to the
         // keyword classifier. See docs/superpowers/specs/2026-09-20-classifier-entities-schema-design.md
-        var schema = AIJsonUtilities.CreateJsonSchema(typeof(AiClassificationResponse));
+        //
+        // NOTE: this builds the schema with CreateJsonSchema's default options, not the
+        // options GetResponseAsync<T> uses to build its ChatResponseFormat. The two agree
+        // on dictionary-vs-array today, so the guard is valid — but it is a proxy for the
+        // sent schema, not the sent schema itself. If a Microsoft.Extensions.AI upgrade
+        // diverges the two paths, this stops covering what it claims to.
+        var schema = AIJsonUtilities.CreateJsonSchema(dto);
 
         var offenders = new List<string>();
         Walk(schema, "$", offenders);
@@ -249,7 +333,7 @@ public sealed class AiClassifierTests
                 foreach (var prop in node.EnumerateObject())
                 {
                     if (prop.NameEquals("additionalProperties")
-                        && prop.Value.ValueKind is not (JsonValueKind.False or JsonValueKind.True))
+                        && prop.Value.ValueKind is not JsonValueKind.False)
                     {
                         offenders.Add($"{path}.additionalProperties");
                     }
