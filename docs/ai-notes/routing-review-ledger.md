@@ -13,6 +13,7 @@ Source of truth for the observed values: the `Captures` table on CT 136 (read-on
 - **got:** skill `Paperless`, stage `Unhandled`, no target, **no classifier trace at all**, `FailureReason: no integration registered for skill 'Paperless'`
 - **expected:** Bridge → issue on the relevant game repo (it is a bug report about card-stacking rules)
 - **why:** a German description of a card-game round is neither a document nor a Paperless candidate. Two distinct defects in one row: the wrong skill was chosen, **and** no `ClassifierTrace` was written, so there is no record of which classifier ran. Note the Capture also carries no repo alias, so Bridge alias matching alone could not have reached the right repo — inferring the project from game vocabulary is the open design question.
+- **correction (2026-09-20):** not a misclassification. The Capture carries attachment `photo-371.jpg`, and `CaptureEnrichmentConsumer` returns to Paperless on `HasAttachment` **before** calling `ClassifyAsync` — no classifier ran, so the null trace is expected, not a telemetry bug. The open question is whether a caption-bearing attachment should be classified on its caption. Issue #113 rewritten accordingly.
 - **status:** issue https://github.com/freaxnx01/flowhub/issues/113
 
 ## 2026-09-18 — aa48fd56-9458-4c95-a4be-7e131566a3d1  (Telegram, 2026-09-03 20:08)
@@ -29,3 +30,17 @@ Source of truth for the observed values: the `Captures` table on CT 136 (read-on
 - **expected:** Bridge → issue on `freaxnx01/bridge`
 - **why:** byte-identical content classified as `Bridge` on four other occasions. Classification is **non-deterministic** for the same input, and the failing run again wrote no `ClassifierTrace`, so there is nothing recorded to explain the divergence.
 - **status:** issue https://github.com/freaxnx01/flowhub/issues/115
+
+## 2026-09-20 — 089d35b8-8c38-4e3d-bdba-ee5ac5f7dd8a  (Telegram, 2026-09-18 17:08)
+- **content:** `https://www.affenberg-salem.de/`
+- **got:** stage `Withheld`, no `MatchedSkill`, no classifier trace, `FailureReason: sensitivity screen unavailable — ClientResultException`
+- **expected:** Wallabag (an outing link to read later) — nothing about it is sensitive
+- **why:** the sensitivity screen could not run and the pipeline fails closed, which is right in itself. The defect is that the capture is now **unrecoverable**: `Withheld` is excluded from `RetryableStages` by #93's AC, so `POST /captures/{id}/retry` returns 409, and re-sending from Telegram by hand is the only way back. Screen-unavailability and a real `Sensitive` verdict are treated identically even though only the latter is a judgement about the content. Provider root cause (OpenRouter 429 on llama-3.1) already resolved 2026-09-18 — see `TODO.md`; this entry is about the recovery gap only.
+- **status:** issue https://github.com/freaxnx01/flowhub/issues/116
+
+## 2026-09-20 — 92bb2abe-581a-4196-ac39-eada5bd9d5a3  (Telegram, 2026-09-18 17:08)
+- **content:** `https://spieleland.de/`
+- **got:** identical to `089d35b8-…` above — `Withheld`, `sensitivity screen unavailable — ClientResultException`
+- **expected:** Wallabag
+- **why:** same defect, same minute; recorded separately because the ledger tracks Captures, not defects. Both links still need re-sending by hand.
+- **status:** issue https://github.com/freaxnx01/flowhub/issues/116
