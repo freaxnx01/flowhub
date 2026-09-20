@@ -186,10 +186,10 @@ public sealed class AiClassifierTests
                  matched_skill = "Vikunja",
                  title = "Gabriel on Unix and C",
                  project = "Zitate",
-                 entities = new Dictionary<string, string>
+                 entities = new[]
                  {
-                     ["quote"] = "Unix and C are the ultimate computer viruses.",
-                     ["author"] = "Richard Gabriel",
+                     new { key = "quote", value = "Unix and C are the ultimate computer viruses." },
+                     new { key = "author", value = "Richard Gabriel" },
                  },
              }));
 
@@ -199,6 +199,47 @@ public sealed class AiClassifierTests
         result.VikunjaProject.Should().Be("Zitate");
         result.Entities.Should().NotBeNull();
         result.Entities!["author"].Should().Be("Richard Gabriel");
+    }
+
+    [Fact]
+    public void ClassificationSchema_ContainsNoAdditionalPropertiesSchemaObject()
+    {
+        // Anthropic requires additionalProperties to be `false` for an object and rejects
+        // a schema there with HTTP 400. A Dictionary<string,string> member generates
+        // "additionalProperties": {"type":"string"}, which took every capture down to the
+        // keyword classifier. See docs/superpowers/specs/2026-09-20-classifier-entities-schema-design.md
+        var schema = AIJsonUtilities.CreateJsonSchema(typeof(AiClassificationResponse));
+
+        var offenders = new List<string>();
+        Walk(schema, "$", offenders);
+
+        offenders.Should().BeEmpty(
+            "every `additionalProperties` must be the literal false, not a schema object");
+
+        static void Walk(JsonElement node, string path, List<string> offenders)
+        {
+            if (node.ValueKind == JsonValueKind.Object)
+            {
+                foreach (var prop in node.EnumerateObject())
+                {
+                    if (prop.NameEquals("additionalProperties")
+                        && prop.Value.ValueKind is not (JsonValueKind.False or JsonValueKind.True))
+                    {
+                        offenders.Add($"{path}.additionalProperties");
+                    }
+
+                    Walk(prop.Value, $"{path}.{prop.Name}", offenders);
+                }
+            }
+            else if (node.ValueKind == JsonValueKind.Array)
+            {
+                var i = 0;
+                foreach (var item in node.EnumerateArray())
+                {
+                    Walk(item, $"{path}[{i++}]", offenders);
+                }
+            }
+        }
     }
 
     // ---------------------------------------------------------------------------

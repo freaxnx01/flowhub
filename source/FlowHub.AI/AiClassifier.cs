@@ -152,7 +152,7 @@ internal sealed partial class AiClassifier : IClassifier
             ? payload.Project
             : null;
 
-        var entities = MergeEntities(shorthand.Entities, payload.Entities);
+        var entities = MergeEntities(shorthand.Entities, ToDictionary(payload.Entities));
 
         sw.Stop();
         return new ClassificationResult(
@@ -227,6 +227,16 @@ internal sealed partial class AiClassifier : IClassifier
             BridgeAlias: alias,
             BridgeAction: action,
             BridgeBody: payload.Body);
+    }
+
+    private static Dictionary<string, string>? ToDictionary(AiEntity[]? entities)
+    {
+        if (entities is not { Length: > 0 })
+        {
+            return null;
+        }
+
+        return entities.ToDictionary(e => e.Key, e => e.Value, StringComparer.Ordinal);
     }
 
     private static Dictionary<string, string>? MergeEntities(
