@@ -121,6 +121,44 @@ One entry per flagged Capture:
 
 Before presenting Step 4, read the ledger and (unless `--all`) drop Captures whose id already appears — re-runs stay quiet about ground already covered.
 
+### Step 5.5 — Mark the Telegram message (automatic, every flagged Capture)
+
+FlowHub reacts to the operator's original Telegram message with the Capture's outcome
+(🫡 in flight, then 👨‍💻 Bridge · ✍ Vikunja · 👀 Wallabag · 👌 Paperless · 👍 unknown ·
+💔 Orphan · 🤔 Unhandled · 🙊 Withheld). When this skill flags a Capture, set **🤨** on
+that message — "reviewed here, classification disputed".
+
+**Do this automatically for every Capture that enters the ledger**, no prompt.
+
+**🤨 replaces the outcome emoji — a bot may hold only one reaction per message.** That is
+why the marker means *disputed*, not *should have been X*: the chat must never assert a
+routing that only exists in the ledger. Only set a skill emoji if a Capture is genuinely
+re-routed. The emoji must come from Telegram's `ReactionTypeEmoji` allow-list — ✅, ⚠️ and
+❓ are not on it; 🤨 is.
+
+Resolve the message, then set the reaction. The bot token stays on the CT — read it from
+the container's own environment rather than pulling it out of Passbolt or printing it:
+
+```bash
+# chat + message for a Capture
+select "ChatId", "MessageId" from "TelegramUpdates" where "CaptureId" = '<capture-id>';
+```
+
+```bash
+m=<message-id>
+cmd='pct exec 136 -- sh -lc "T=\$(docker exec flowhub printenv Telegram__BotToken); curl -s -X POST \"https://api.telegram.org/bot\$T/setMessageReaction\" -d chat_id=<chat-id> -d message_id='"$m"' --data-urlencode \"reaction=[{\\\"type\\\":\\\"emoji\\\",\\\"emoji\\\":\\\"🤨\\\"}]\""'
+ssh -o BatchMode=yes cirrus-pve "$cmd"
+```
+
+Expect `{"ok":true,"result":true}`. Two failure modes worth recognising, both seen:
+
+- **`404 Not Found`** — the token variable did not expand, so the URL was `bot/setMessageReaction`. Check the quoting chain, not the bot.
+- **`400 message to react not found`** — the message id reached Telegram literally (an unsubstituted placeholder), or the message was deleted. Build the command with the id injected **outside** the single quotes, as above; nested `ssh` + `pct exec` + `sh -lc` defeats the obvious spellings.
+
+**Not every Capture has a Telegram message.** `TelegramUpdates` only maps Captures ingested
+after the reaction feature shipped — older ones (and any non-Telegram Channel) have no row.
+A missing mapping is a silent skip, never an error.
+
 ### Step 6 — Turn ledger entries into action
 
 For each `open` entry, propose one of three and ask the user to confirm per entry:
