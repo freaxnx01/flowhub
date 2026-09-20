@@ -85,6 +85,16 @@ internal sealed partial class RepoResolver
                 return new RepoResolution(IdeaFallbackRepo, BridgeAction.Idea, payload.Title, payload.Body);
             }
 
+            // An idea always lands in ideas-lab, whatever repo the model matched it to.
+            // Subject matter is not ownership: "Game idea: GeoGuessr Clone" reads as
+            // game-geography-quiz to a topic matcher, but an idea has no home repo yet —
+            // that is what makes it an idea rather than an issue. Deterministic here
+            // rather than a prompt rule, so it cannot be re-inferred away.
+            if (action == BridgeAction.Idea)
+            {
+                return new RepoResolution(IdeaFallbackRepo, BridgeAction.Idea, payload.Title, payload.Body);
+            }
+
             // The catalogue is authoritative: only a name we offered is acceptable.
             var chosen = shortlist.FirstOrDefault(r =>
                 string.Equals(r.Name, payload.Repo, StringComparison.Ordinal));
