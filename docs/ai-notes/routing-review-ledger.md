@@ -37,11 +37,19 @@ Source of truth for the observed values: the `Captures` table on CT 136 (read-on
 - **got:** stage `Withheld`, no `MatchedSkill`, no classifier trace, `FailureReason: sensitivity screen unavailable — ClientResultException`
 - **expected:** an **Ausflugsidee** (outing idea for Juliska), not read-later. Confirmed by the operator 2026-09-20. No FlowHub Skill routes Ausflug ideas today — the nearest existing destination is the "Ideen Ausflüge" calendar the `juliska-ausflug` CC-skill writes to. Nothing about the link is sensitive either way.
 - **why:** the sensitivity screen could not run and the pipeline fails closed, which is right in itself. The defect is that the capture is now **unrecoverable**: `Withheld` is excluded from `RetryableStages` by #93's AC, so `POST /captures/{id}/retry` returns 409, and re-sending from Telegram by hand is the only way back. Screen-unavailability and a real `Sensitive` verdict are treated identically even though only the latter is a judgement about the content. Provider root cause (OpenRouter 429 on llama-3.1) already resolved 2026-09-18 — see `TODO.md`; this entry is about the recovery gap only.
-- **status:** issue https://github.com/freaxnx01/flowhub/issues/116
+- **status:** issue https://github.com/freaxnx01/flowhub/issues/116 (recovery gap) + #118 (no Ausflug destination)
 
 ## 2026-09-20 — 92bb2abe-581a-4196-ac39-eada5bd9d5a3  (Telegram, 2026-09-18 17:08)
 - **content:** `https://spieleland.de/`
 - **got:** identical to `089d35b8-…` above — `Withheld`, `sensitivity screen unavailable — ClientResultException`
 - **expected:** an **Ausflugsidee**, same as `089d35b8-…` above — not Wallabag.
 - **why:** same defect, same minute; recorded separately because the ledger tracks Captures, not defects. Both links still need re-sending by hand.
-- **status:** issue https://github.com/freaxnx01/flowhub/issues/116
+- **status:** issue https://github.com/freaxnx01/flowhub/issues/116 (recovery gap) + #118 (no Ausflug destination)
+
+## 2026-09-20 — ca83b848-9b49-4efa-a6a2-3000ad593cf3, e1166e5d-…, 623ca0b5-…  (Telegram, 2026-09-19)
+- **content:** photos `photo-376.jpg` (**Zeiniger Märt**, Sa 26.09.2026), `photo-377.jpg` (**Graben Aarau**, 24.–27.09.2026), `photo-379.jpg` (**Dschungelbuch Musical**, 20.11., Emmen)
+- **got:** all three `MatchedSkill: Paperless`, stage `Unhandled`, no classifier trace (attachment branch — expected, see #113)
+- **expected:** Ausflugsideen. Operator-confirmed 2026-09-20.
+- **why:** two defects compound here. The meaning is **in the pixels** — the capture text is just the filename — so even classifying on the caption would not help (#113). And there is no destination for an outing idea even if it were classified correctly (#118). The fourth photo of the batch, `photo-378.jpg` (c't Vaultwarden article), is genuinely archive material — Paperless is right for that one.
+- **recorded as one entry** by exception: same batch, same defect pair, identical disposition.
+- **status:** issue https://github.com/freaxnx01/flowhub/issues/113 + https://github.com/freaxnx01/flowhub/issues/118
