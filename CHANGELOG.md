@@ -22,6 +22,13 @@ for continuity.
   needs-attention card. The stage was terminal, non-retryable and silent, which made
   a deliberate privacy park indistinguishable from a lost capture.
 
+### Fixed
+
+- **ai:** the classifier emits entities as key/value pairs rather than a free-form map.
+  A dictionary member made Microsoft.Extensions.AI render `additionalProperties` as a
+  schema object, which Anthropic rejects with HTTP 400 — silently degrading every capture
+  to the keyword classifier and blocking `anthropic/*` models entirely.
+
 ### Security
 
 - **api:** `CapturePreviewResponse.sensitivity` is required on the wire. The

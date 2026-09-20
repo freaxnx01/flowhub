@@ -236,7 +236,13 @@ internal sealed partial class AiClassifier : IClassifier
             return null;
         }
 
-        return entities.ToDictionary(e => e.Key, e => e.Value, StringComparer.Ordinal);
+        var result = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var entity in entities)
+        {
+            result[entity.Key] = entity.Value;
+        }
+
+        return result;
     }
 
     private static Dictionary<string, string>? MergeEntities(

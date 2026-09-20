@@ -202,6 +202,32 @@ public sealed class AiClassifierTests
     }
 
     [Fact]
+    public async Task ClassifyAsync_DuplicateEntityKeys_LastOneWins()
+    {
+        // The array shape can carry a key twice; the dictionary it converts into cannot.
+        // A duplicate is model noise, not a reason to fail the capture — and last-wins
+        // matches MergeEntities' own `merged[key] = value` semantics.
+        _chat.GetResponseAsync(Arg.Any<IEnumerable<ChatMessage>>(), Arg.Any<ChatOptions?>(), Arg.Any<CancellationToken>())
+             .Returns(JsonResponse(new
+             {
+                 tags = new[] { "quote" },
+                 matched_skill = "Vikunja",
+                 title = "A quote with a repeated key",
+                 project = "Zitate",
+                 entities = new[]
+                 {
+                     new { key = "author", value = "First" },
+                     new { key = "author", value = "Second" },
+                 },
+             }));
+
+        var result = await Sut().ClassifyAsync("a quote", default);
+
+        result.Entities.Should().NotBeNull();
+        result.Entities!["author"].Should().Be("Second");
+    }
+
+    [Fact]
     public void ClassificationSchema_ContainsNoAdditionalPropertiesSchemaObject()
     {
         // Anthropic requires additionalProperties to be `false` for an object and rejects
