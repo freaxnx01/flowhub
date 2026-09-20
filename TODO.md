@@ -2,6 +2,60 @@
 
 Open operational items for the freshly-split `flowhub` product repo.
 
+## Session 2026-09-18 (#103 shipped; AI provider outage) — resolved, one blocker filed
+
+- [x] **~~#103 operator visibility~~ — merged (PR #109, `804bd99`).** Implemented inline
+      rather than by the pipeline: the first dispatch died at 81/80 turns ($6.65, nothing
+      pushed) because `classify-turns.sh` sizes by task count in coarse tiers — **≥6 → 160,
+      ≥4 → 120, ≥2 → 80** — so a 3-task plan got 80, and folding D10 in added work inside
+      the same tier. `Withheld` now has 🙊, a badge label and a dashboard count;
+      `CapturePreviewResponse.sensitivity` is `[JsonRequired]`; reactions are skill-coded
+      (👨‍💻 Bridge, ✍ Vikunja, 👀 Wallabag, 👌 Paperless, 👍 unknown) with 🫡 on ingest.
+
+- [x] **~~AI provider outage~~ — resolved 2026-09-18. It was never the credit.**
+      Two captures parked as `Withheld` with `sensitivity screen unavailable —
+      ClientResultException`. The screen is fail-closed and total, so a provider failure
+      parks *everything*; nothing routed for hours, and it was silent because #103 had not
+      shipped yet. Cause: OpenRouter's upstream returned **429
+      `meta-llama/llama-3.1-70b-instruct is temporarily rate-limited`**. The key was
+      healthy throughout (`is_free_tier: false`, 29.92/30 remaining, $0.08 used monthly),
+      so loading credit changed nothing.
+      **CT 136 now runs `Ai__OpenRouter__Model=meta-llama/llama-3.3-70b-instruct`**
+      (`.env.bak-20260918-192139`). Verified via `/api/v1/captures/preview`:
+      `Batterien kaufen` → Vikunja `Kaufen`, both Ausflüge links → Wallabag with titles,
+      the synthesised medication note → `Sensitive` with no target, all `trace.kind: Ai`,
+      and zero 4xx/5xx or keyword fallbacks in the logs since.
+
+- [ ] **Re-send the two Ausflüge links** (`spieleland.de`, `affenberg-salem.de`). Their
+      captures are still `Withheld`, and `POST /captures/{id}/retry` returns **409** —
+      `Withheld` is excluded from `RetryableStages` by #93's AC. They classify cleanly now;
+      they just have to come in again from Telegram.
+
+- [ ] **#111 — the classifier's schema blocks Claude.** `AiClassificationResponse.Entities`
+      is a `Dictionary<string, string>?`, which Microsoft.Extensions.AI renders as
+      `additionalProperties: {"type":"string"}`. Anthropic requires `false` and returns
+      **400**, so `anthropic/*` models silently degrade every capture to the keyword
+      classifier — the screen keeps working (no dictionary in its DTO), which makes it look
+      like bad classification rather than a provider rejection. Probed construct by
+      construct: plain schema 200, `[AllowedValues]` enum 200, the dictionary 400.
+      **Fix this and Claude is a one-line env change** — the most direct lever on #92's
+      2–3/10 accuracy and #97's coin flip.
+
+- [ ] **#110 — a provider failure parks a capture permanently.** `Unsure` conflates "the
+      model judged it uncertain" (park, correctly) with "the provider was unreachable"
+      (should back off and retry). Today's two captures were destroyed by a transient 429
+      and cannot be recovered. Higher priority than the rest of #103's follow-ups: it loses
+      captures rather than hiding them.
+
+- [ ] **Decide: purge `.claude/handoff-main.md` from history?** It was swept into the #103
+      branch by a `git add -A` and merged in #109, then untracked in `014ade3` and ignored
+      in `eb2487f` (`.claude/handoff-*.md`, scoped so `.claude/commands/` stays tracked).
+      No credentials — the bot token was already rotated and the Passbolt id is an opaque
+      reference — but it carries homelab topology (container ids, internal hostnames, an
+      `.env` path) of the kind this repo's history was deliberately redacted of. The blob
+      is still reachable through the merged commit; removing it means a history rewrite and
+      a force-push to protected `main`.
+
 ## Session 2026-09-17 (#93 sensitive-capture parking) — shipped and deployed (v0.8.0)
 
 - [x] **~~Cut a release and redeploy CT 136~~ — done 2026-09-17, the guard IS live.**
