@@ -6,7 +6,7 @@ Follow the canonical skill body in `.ai/skills/flowhub.md` exactly.
 
 ## Routing (first match wins)
 
-1. **Explicit sub-command:** input starts with `triage`, `issue`, or `capture` → route to that sub-skill
+1. **Explicit sub-command:** input starts with `triage`, `issue`, `capture`, or `review` → route to that sub-skill
 2. **Repo name match:** a word in the input matches a repo in `~/projects/repos/` → route to `/flowhub-issue`
 3. **Default:** route to `/flowhub-capture` (Vikunja inbox)
 
@@ -17,6 +17,7 @@ Follow the canonical skill body in `.ai/skills/flowhub.md` exactly.
 | `/flowhub-capture` | `.ai/skills/flowhub-capture.md` | Capture → Vikunja Inbox |
 | `/flowhub-triage` | `.ai/skills/flowhub-triage.md` | Triage Inbox → classify & move |
 | `/flowhub-issue` | `.ai/skills/flowhub-issue.md` | Capture → repo issue on forge |
+| `/flowhub-review` | `.ai/skills/flowhub-review.md` | Review how deployed captures were classified & routed |
 
 ## Rules
 
