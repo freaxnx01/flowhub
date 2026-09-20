@@ -98,6 +98,21 @@ jobs:
         github-actions[bot]
         freaxnx01-agent-pipeline[bot]
       pre-preview: true
+      # Self-fix (agent-workflow #81/#193, ADR-004 follow-up): when the first
+      # review returns `request_changes`, the implementer's agent gets a fix →
+      # re-review cycle before the block path. Opt-in, defaults to false — which
+      # is why #111's blocked review simply stopped, and a human had to apply
+      # four findings by hand.
+      #
+      # Capped at 1, not the default 2, and that number is measured rather than
+      # guessed. The review job's `timeout-minutes: 10` is hardcoded upstream and
+      # the self-fix step inherits it. On #111 (run 35511022650) the review step
+      # took 1m49s, leaving ~8 minutes; one fix pass here means a full .NET
+      # restore/build/test plus a re-review, so a second iteration would overrun
+      # the cap — and overrunning kills the job before "Mark issue blocked" runs,
+      # leaving the PR draft with no label and no signal at all.
+      self-fix: true
+      self-fix-max-iterations: 1
       max-turns: 300
       # Wall-clock cap on the claude process itself — distinct from
       # timeout-minutes above, which caps the job. Left unset it defaults to 10
