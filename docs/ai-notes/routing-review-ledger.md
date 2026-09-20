@@ -34,13 +34,13 @@ Source of truth for the observed values: the `Captures` table on CT 136 (read-on
 ## 2026-09-20 — 089d35b8-8c38-4e3d-bdba-ee5ac5f7dd8a  (Telegram, 2026-09-18 17:08)
 - **content:** `https://www.affenberg-salem.de/`
 - **got:** stage `Withheld`, no `MatchedSkill`, no classifier trace, `FailureReason: sensitivity screen unavailable — ClientResultException`
-- **expected:** Wallabag (an outing link to read later) — nothing about it is sensitive
+- **expected:** an **Ausflugsidee** (outing idea for Juliska), not read-later. Confirmed by the operator 2026-09-20. No FlowHub Skill routes Ausflug ideas today — the nearest existing destination is the "Ideen Ausflüge" calendar the `juliska-ausflug` CC-skill writes to. Nothing about the link is sensitive either way.
 - **why:** the sensitivity screen could not run and the pipeline fails closed, which is right in itself. The defect is that the capture is now **unrecoverable**: `Withheld` is excluded from `RetryableStages` by #93's AC, so `POST /captures/{id}/retry` returns 409, and re-sending from Telegram by hand is the only way back. Screen-unavailability and a real `Sensitive` verdict are treated identically even though only the latter is a judgement about the content. Provider root cause (OpenRouter 429 on llama-3.1) already resolved 2026-09-18 — see `TODO.md`; this entry is about the recovery gap only.
 - **status:** issue https://github.com/freaxnx01/flowhub/issues/116
 
 ## 2026-09-20 — 92bb2abe-581a-4196-ac39-eada5bd9d5a3  (Telegram, 2026-09-18 17:08)
 - **content:** `https://spieleland.de/`
 - **got:** identical to `089d35b8-…` above — `Withheld`, `sensitivity screen unavailable — ClientResultException`
-- **expected:** Wallabag
+- **expected:** an **Ausflugsidee**, same as `089d35b8-…` above — not Wallabag.
 - **why:** same defect, same minute; recorded separately because the ledger tracks Captures, not defects. Both links still need re-sending by hand.
 - **status:** issue https://github.com/freaxnx01/flowhub/issues/116
