@@ -99,7 +99,7 @@ public sealed class AiClassifierGlossaryTests
             matched_skill = "Vikunja",
             title = "t",
             project = "Inbox",
-            entities = new Dictionary<string, string> { ["person"] = "From The Model" },
+            entities = new[] { new { key = "person", value = "From The Model" } },
         });
 
         var glossary = GlossaryOf(new GlossarySnapshot(

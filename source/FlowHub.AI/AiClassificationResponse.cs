@@ -29,6 +29,6 @@ internal sealed record AiClassificationResponse(
     [property: JsonPropertyName("project")]
     string? Project,
 
-    [property: Description("Optional structured entities the bucket may consume (e.g. quote, author)")]
+    [property: Description("Optional structured entities as key/value pairs the bucket may consume (e.g. key=quote, key=author)")]
     [property: JsonPropertyName("entities")]
-    Dictionary<string, string>? Entities);
+    AiEntity[]? Entities);

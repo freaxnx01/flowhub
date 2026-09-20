@@ -51,9 +51,10 @@ internal static class AiPrompts
               Leave empty otherwise.
             - title: a 3–8 word title summarising the snippet (omit only if the snippet
                      is itself shorter than 8 words)
-            - entities: optional structured fields the project may use, e.g.
-                Zitate → {"quote": "...", "author": "..."}
-                Movies → {"title": "...", "year": "..."}
+            - entities: optional structured fields the project may use, as a list of
+              {"key": "...", "value": "..."} pairs, e.g.
+                Zitate → [{"key": "quote", "value": "..."}, {"key": "author", "value": "..."}]
+                Movies → [{"key": "title", "value": "..."}, {"key": "year", "value": "..."}]
               Omit if nothing applies.
 
             Reply ONLY via the structured response schema. Never include explanations.

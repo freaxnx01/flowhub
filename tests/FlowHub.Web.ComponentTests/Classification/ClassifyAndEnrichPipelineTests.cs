@@ -46,10 +46,10 @@ public class ClassifyAndEnrichPipelineTests
                     matched_skill = "Vikunja",
                     title = "Gabriel on Unix and C",
                     project = "Zitate",
-                    entities = new Dictionary<string, string>
+                    entities = new[]
                     {
-                        ["quote"] = "Unix and C are the ultimate computer viruses.",
-                        ["author"] = "Richard Gabriel",
+                        new { key = "quote", value = "Unix and C are the ultimate computer viruses." },
+                        new { key = "author", value = "Richard Gabriel" },
                     },
                 }),
                 _ => TextResponse("American computer scientist; co-author of the 'Worse is Better' essay."));

@@ -51,10 +51,10 @@ public class AiClassifierTraceTests
             matched_skill = "Vikunja",
             title = "Gabriel on Unix and C",
             project = "Quotes",
-            entities = new Dictionary<string, string>
+            entities = new[]
             {
-                ["quote"] = "Unix and C are the ultimate computer viruses.",
-                ["author"] = "Richard Gabriel",
+                new { key = "quote", value = "Unix and C are the ultimate computer viruses." },
+                new { key = "author", value = "Richard Gabriel" },
             },
         }, usage));
 
