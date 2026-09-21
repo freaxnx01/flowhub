@@ -81,3 +81,18 @@ Source of truth for the observed values: the `Captures` table on CT 136 (read-on
 - **expected:** **`freaxnx01/ideas-lab/ideas.md`**. Operator rule, stated 2026-09-20: **an idea — game idea or idea in general — always goes to `ideas-lab`**, never to a topic-matched repo.
 - **why:** the classifier inferred a destination repo from the idea's subject matter (geography quiz → `game-geography-quiz`) instead of applying the fixed rule. Note the sibling Capture `93310283-…` (*Tool Hub Concept*, 13:21 the same day) **did** land in `ideas-lab/ideas.md` — so the behaviour is inconsistent, not uniformly wrong, which points at prompt/inference rather than a hard rule in code. The review pass marked both `✓` without knowing the rule existed.
 - **status:** fixed — `RepoResolver` now forces `ideas-lab` for every `BridgeAction.Idea` (test `ResolveAsync_ModelPicksARepoForAnIdea_TargetsIdeasLabAnyway`). Shipped in **v0.9.0** (tag `13e7770`, image `ghcr.io/freaxnx01/flowhub:0.9.0`); CT 136 recreated 2026-09-21 13:54 UTC and now runs it.
+
+## 2026-09-21 — bd3ee30d-…  (Telegram, 2026-09-21 20:30:21)
+- **content:** `Tschau Sepp Bug Report:` — 23 characters, a header and nothing else
+- **got:** `MatchedSkill: Bridge`, stage `Completed`, `Ai` claude-sonnet-5 9536 ms → created **`freaxnx01/game-tschau-sepp#31`**, empty body, generic title
+- **expected:** no issue at all. The operator hit Enter while trying to insert a newline; Telegram sent the header early and the real report followed 14 s later as `2569cd2f-…` (#32) and 30 s later as `0ac46bc2-…` (#33), both good issues.
+- **why:** the send was operator error, but creating a forge issue out of a content-free capture is not. A capture whose entire content is a colon-terminated header carries nothing to act on, and the result is a junk issue in a real repo that nobody wrote on purpose. A minimum-content guard before Bridge creates an issue would have parked it instead. Worth noting the fix is only partly about length: the give-away is that the text is a title with no body, which the classifier itself recognised — it filled `Title` and left the body empty.
+- **related:** #120 — with debug replies and a correction button, this would have been visible and reversible within seconds instead of surfacing in a review two hours later.
+- **status:** open
+
+## 2026-09-21 — 787532e9-…  (Telegram, 2026-09-20 17:13)
+- **content:** `Baldrian`
+- **got:** stage `Withheld`, no `MatchedSkill`, no classifier trace, `FailureReason: health detail about a named person`
+- **expected:** Vikunja project **`Einkaufen Apo`** (Apotheke) — a shopping item. Operator-confirmed 2026-09-21.
+- **why:** two defects. (1) The **sensitivity screen over-triggers**: a single word naming a herbal remedy, with no person in it at all, was read as "health detail about a named person". The screen is fail-closed and terminal, so an over-trigger costs the capture entirely — it is still stuck, since `Withheld` cannot be retried (#116). (2) Even unblocked, there is no evidence FlowHub knows an `Einkaufen Apo` destination; the `Skills` table holds Articles, Belege, Books, Knowledge, Movies, Zitate — see #123 on what a Skill even is.
+- **status:** open
