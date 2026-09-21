@@ -88,7 +88,7 @@ Source of truth for the observed values: the `Captures` table on CT 136 (read-on
 - **expected:** no issue at all. The operator hit Enter while trying to insert a newline; Telegram sent the header early and the real report followed 14 s later as `2569cd2f-…` (#32) and 30 s later as `0ac46bc2-…` (#33), both good issues.
 - **why:** the send was operator error, but creating a forge issue out of a content-free capture is not. A capture whose entire content is a colon-terminated header carries nothing to act on, and the result is a junk issue in a real repo that nobody wrote on purpose. A minimum-content guard before Bridge creates an issue would have parked it instead. Worth noting the fix is only partly about length: the give-away is that the text is a title with no body, which the classifier itself recognised — it filled `Title` and left the body empty.
 - **related:** #120 — with debug replies and a correction button, this would have been visible and reversible within seconds instead of surfacing in a review two hours later.
-- **status:** open
+- **status:** fixed — `CaptureEnrichmentConsumer` now parks a colon-terminated single-line capture as `Unhandled` before classifying (tests `Consume_HeaderWithNoBody_MarksUnhandledWithoutClassifying` + `Consume_ShortButSubstantiveContent_IsStillClassified`). `game-tschau-sepp#31` closed.
 
 ## 2026-09-21 — 787532e9-…  (Telegram, 2026-09-20 17:13)
 - **content:** `Baldrian`
