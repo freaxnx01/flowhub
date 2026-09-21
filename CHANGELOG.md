@@ -4,37 +4,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-FlowHub continues as a standalone product. This repository was extracted from its
-original incubation repo; entries below `[0.3.1]` are that pre-split history, kept
-for continuity.
-
-## [Unreleased]
+## [0.9.0] - 2026-09-21
 
 ### Added
 
-- **telegram:** the capture reaction names the skill that handled it — 👨‍💻 Bridge,
-  ✍ Vikunja, 👀 Wallabag, 👌 Paperless, 👍 for a skill added later. Telegram allows a
-  bot one reaction per message, so an undifferentiated success emoji wasted the only
-  in-chat signal there is. Ingest now also acknowledges receipt with 🫡, which the
-  outcome replaces, so an accepted message is distinguishable from one never seen.
-- **ui:** `Withheld` captures are visible to the operator — a distinct Telegram
-  reaction, a labelled lifecycle badge, and a count in the dashboard's
-  needs-attention card. The stage was terminal, non-retryable and silent, which made
-  a deliberate privacy park indistinguishable from a lost capture.
+- **ui:** make capture outcomes legible — Withheld visibility and skill-coded reactions (#109)
+
+### CI/CD
+
+- **agent:** restore the default attempt cap of 2 (#108)
+- **agent:** arm the review self-fix loop, capped at one iteration (#127)
+
+### Documentation
+
+- **todo:** add a dedicated flowhub-test Telegram bot
+- **todo:** v0.8.0 deployed — the privacy guard is live
+- **todo:** record the 2026-09-18 session — #103 shipped, provider outage resolved
+- **spec:** Anthropic-safe classifier entities schema (#111)
+- **plan:** implementation plan for the classifier entities schema (#111)
+- **ai-notes:** routing review ledger from the 2026-09-20 review runs
 
 ### Fixed
 
-- **ai:** the classifier emits entities as key/value pairs rather than a free-form map.
-  A dictionary member made Microsoft.Extensions.AI render `additionalProperties` as a
-  schema object, which Anthropic rejects with HTTP 400 — silently degrading every capture
-  to the keyword classifier and blocking `anthropic/*` models entirely.
+- **ai:** emit classifier entities as key/value pairs (#119)
 
-### Security
+### Miscellaneous
 
-- **api:** `CapturePreviewResponse.sensitivity` is required on the wire. The
-  fail-closed zero value stays `Sensitive`; requiring the field stops a client that
-  omits it from receiving that default by accident and reading it as a real verdict.
-
+- untrack .claude/ session handoffs
+- ignore .claude/handoff-*.md session notes
 ## [0.8.0] - 2026-09-17
 
 ### Added
@@ -63,395 +60,163 @@ for continuity.
 
 - **pipeline:** scope the sensitivity guard by destination, not position
 
+### Miscellaneous
+
+- **release:** cut v0.8.0
+
 ### Testing
 
 - **ai:** synthesised sensitivity fixtures incl. the unmarked case
-
-### Security
-
-- Captures judged sensitive are now **withheld instead of routed**. A dedicated
-  three-way pre-pass runs before classification; `Sensitive` and `Unsure` both park the
-  capture in a new terminal `Withheld` stage with a reason, and no Integration runs.
-  Previewing a real backlog had surfaced therapy notes, a child's care journal,
-  medication details and a third party's personal profile all classified as ordinary
-  tasks and assigned to shared projects — replaying that would have disclosed them
-  irreversibly.
-- The screen **fails closed**: every provider, schema, parse or timeout failure yields
-  `Unsure`, which parks. `Withheld` is deliberately absent from the retry endpoint's
-  allowed stages, so a parked capture cannot be routed by a retry. A deployment with no
-  AI provider configured parks every capture rather than routing unscreened.
-- The guard is scoped by **destination audience**: it covers Vikunja (projects shared
-  with family) and the forge (public), and deliberately not the attachment path to
-  Paperless, which is the operator's private archive.
-
 ## [0.7.1] - 2026-09-17
 
-### Security
+### Fixed
 
-- The Telegram bot token is no longer printed to the container logs. `HttpClient` logs the
-  full request URI at `Information`, and the token is a path segment of every
-  `api.telegram.org` call, so it appeared in plaintext on every poll to anyone who could
-  read the logs. `System.Net.Http.HttpClient` is now capped at `Warning`.
+- **web:** stop logging the Telegram bot token (#95)
 
+### Miscellaneous
+
+- **release:** cut v0.7.1 (#98)
 ## [0.7.0] - 2026-09-13
 
 ### Added
 
-- `POST /api/v1/captures/preview` returns what a capture's classification *would* decide —
-  matched skill, Vikunja project with its resolved id, Bridge target, tags, title, entities
-  and the classifier trace — while writing nothing at all: no capture, no event, no
-  downstream call. `vikunjaProjectResolved: false` surfaces a classifier naming a project
-  that does not exist, which today silently falls back to the Inbox. (#11)
+- **api:** classifier dry-run / preview mode (#89)
 
+### CI/CD
+
+- **agent-workflow:** auf @v2 heben
+- **agent-workflow:** auf den mitwandernden @v2 pinnen
+
+### Documentation
+
+- **api:** spec and plan for the classifier preview endpoint (#11) (#88)
+
+### Miscellaneous
+
+- **release:** cut v0.7.0 (#90)
 ## [0.6.0] - 2026-09-08
 
 ### Added
 
-- The classifier resolves the operator's private shorthand — person markers, domain
-  acronyms, prefix markers and the overloaded `>` operator — from a glossary file
-  supplied by the deployment (`Ai__Glossary__Path`). Resolved meanings reach the model
-  as context and the capture as entities. A capture whose trailing shorthand is not in
-  the glossary is parked rather than guessed at. With no glossary configured the system
-  prompt is byte-identical to before, so behaviour is unchanged. (#83)
+- **ai:** resolve operator shorthand before classification (#83) (#86)
 
+### Documentation
+
+- **ai:** add spec and plan for #83 (shorthand glossary) (#85)
+
+### Miscellaneous
+
+- **release:** cut v0.6.0 (#87)
 ## [0.5.0] - 2026-09-07
 
 ### Added
 
-- Telegram voice memos are transcribed to text and captured like any other message,
-  when `Speech__ApiKey` is configured. The provider is chosen by `Speech__BaseUrl`,
-  so a cloud endpoint or a local whisper server both work (#21).
+- **telegram:** map voice messages and submit them for transcription
+- **pipeline:** transcribe voice captures off the poll loop
+
+### Documentation
+
+- **voice:** record speech-to-text capture
+- **spec+plan:** send an inferred repo as owner/repo (#66) (#67)
 
 ### Fixed
 
-- The classifier can actually return `Bridge`: `AiClassificationResponse` constrains the
-  model's structured output, and `"Bridge"` was missing from its `AllowedValues`, so the
-  schema silently forbade the answer the prompt was asking for. Every dev capture came
-  back `Vikunja` instead, with no error. Also sharpens the Bridge/Vikunja wording, which
-  overlapped enough that `Game:`-prefixed captures went to Vikunja (#37).
-- An inferred repo is sent to bridge as `owner`/`repo` (issue) or `target` (idea) instead of as an `alias`, which bridge resolves against `.bridge-alias` files that no repo has — every inferred route previously failed with `404 unknown alias`. (#66)
+- **ai:** let the classifier actually return Bridge (#64)
+- **telegram:** cap voice size and validate the placeholder
+- **api:** preserve NeedsTranscription across retry, and harden the consumer
+- **skills:** send an inferred repo as owner/repo, not as a bridge alias (#68)
 
+### Miscellaneous
+
+- **release:** cut v0.5.0 (#71)
+
+### Testing
+
+- **web:** cover CaptureServiceStub.SetTranscriptAsync
+- **web:** cover BridgeTarget forwarding in CaptureEnrichmentConsumer (#69)
 ## [0.4.0] - 2026-09-01
 
 ### Added
 
-- Telegram inbound Channel: messages from allow-listed users become Captures, and the
-  original message is marked with a reaction when its Capture resolves (#20).
-- Classifier can route a capture to Bridge when `Ai:EnableBridgeClassification` is enabled (default off). A Bridge result with no repo parks as Unhandled for triage. (#37)
-- Repo inference for Bridge captures that carry no alias: cosine shortlist over the bridge catalogue, confirmed by the model, with an abstain routed to `ideas-lab` as an idea. Active only when `Ai:EnableBridgeClassification` is enabled. (#38)
-- Telegram voice and audio messages are mapped and submitted for transcription instead of being refused. Recordings longer than `Speech:MaxSeconds` are refused before any download, and the handler never downloads or transcribes inline so the poll loop stays unblocked. `CaptureEnrichmentConsumer` returns early on `NeedsTranscription`, so a voice memo is never routed to Paperless. (#59)
-
-### Changed
-
-- Async pipeline now runs on an in-memory bus by default; RabbitMQ is an opt-in
-  overlay (`docker-compose.rabbitmq.yml`) for durable, broker-backed delivery.
-
-### Fixed
-
-- Text submitted alongside an attachment is kept as the Capture's content instead of
-  being replaced by the filename, so it reaches classification and search. Captures
-  carrying a file are now marked with an icon in the grids (#31).
-
-## [0.3.1] - 2026-07-03
-
-### Fixed
-
-- **deps:** pin patched transitive Microsoft.OpenApi (2.7.5) + Scriban.Signed (7.2.0) to clear high-severity NuGetAudit advisories (GHSA-v5pm-xwqc-g5wc, GHSA-24c8-4792-22hx) (#172)
-
-### Documentation
-
-- **roadmap:** add tracked security & AI-risk hardening section (G1–G4 + #167) (#173)
-- **examiner-sim:** add 2026-06-28 balanced grade sheet (98/100) (#171)
-- **tests:** align offline test count 294 -> 540 (current verified suite) (#170)
-- **agent-dev:** swap=0 OOM guard + Claude grep->ugrep root cause (#169)
-- **skills:** enrich #167 — spec + plan for IsPublic simplification (#168)
-- **coverage:** point coverage links to canonical https Pages URL (#166)
-
-## [0.3.0] - 2026-06-28
-
-### Added
-
-- **quality:** adopt dotnet-quality gates + verify-gates in FlowHub (Phase-1) (#99)
-- **quality:** adopt polyglot pre-commit gate (German-aware scoping) (#109)
-- **quality:** wire Stryker mutation gate (Phase-1 baseline, break=35) (#124)
-- **observability:** activate OTel tracing with ADR-0009 PII processor (+3 Programmierung)
-- **quality:** widen Stryker to FlowHub.Persistence (scheduled mutation gate) (#131)
-- **quality:** widen Stryker to FlowHub.Skills (extend mutation-extended matrix) (#132)
+- Bridge alias capture routing (FlowHub side) (#16)
+- **telegram:** scaffold FlowHub.Telegram with options and allow-list
+- **telegram:** persist processed updates for dedup and reactions
+- **telegram:** ingest text messages as Captures
+- **telegram:** ingest photos and documents as Capture attachments
+- **telegram:** react to messages when their Capture resolves
+- **telegram:** poll for updates and wire the Channel into the host
+- **ai:** allow the classifier to route a capture to Bridge (#41)
+- **web:** accept a caption alongside an attached file
+- **web:** mark captures that carry an attachment in the grids
+- **skills:** expose the full bridge repo catalogue (#50)
+- **persistence:** persist one embedding per bridge repo (#51)
+- **ai:** catalogue-to-embedding sync and the repo-confirm prompt (#55)
+- **ai:** resolve the target repo for an alias-free Bridge capture (#56)
+- **ai:** add a speech-to-text port over the transcriptions endpoint
+- **ai:** register speech-to-text, dormant unless configured
 
 ### CI/CD
 
-- **coverage:** wire per-assembly coverage gate (closes #126 §C) (#142)
-- **coverage:** ratchet thresholds to 100% line + measured branch floors (#150)
-
-### Changed
-
-- **web:** move E2E fault guards into excluded helpers (refs #126) (#146)
-
-### Documentation
-
-- add AGPL-3.0 license and README badges
-- **submission:** link changelog & release notes
-- **roadmap:** add Ausflug-Assistant and LiteLLM Proxy entries
-- **roadmap:** add Email-to-Capture channel entry
-- **diagrams:** label every connecting line in the block-and-line diagrams
-- **roadmap:** add graph visualisation of vectorised captures
-- **presentation:** revise AI-generated share to 100% code, ~5% human rework
-- **presentation:** reframe AI share as 100% generated, ~5% human rework
-- align AI-generated share to 100% generated, ~5% human rework
-- **readme:** fix stale pipeline-doc link (CLAUDE-PIPELINE.md -> AGENT-PIPELINE.md)
-- **arc42:** surface acceptance criteria + KI-guardrail tests into the SAD (Validierung)
-- align tagline »Eingangskorb« → »Inbox« across submission docs (closes #101)
-- **submission:** link NfA + AC catalogues in Übersicht §3.3; document Otlp__Endpoint
-- examiner-sim 96/100 report + path-to-100 actions + agent-dev search guardrail (#145)
-- **arc42:** path to 100/100 — interaction diagram + inline use cases + bundle fix (#153)
-- **testing:** record per-assembly coverage baseline post #126 (#151)
-- fix stale ~/projects path to ~/repos in CLAUDE.md (#155)
-- **roadmap:** add n8n interop — FlowHub as AI brain, n8n as no-code glue (#156)
-- **adr:** 0010 LLM & Agentic threat model (OWASP LLM-10 + Agentic-10) (#158)
-- **vault:** file the tiered model-routing recommendation (#157)
-- **coverage:** commit HTML coverage report and cite it in SUBMISSION (#163)
-
-### Fixed
-
-- **skills:** guard Wallabag integration against SSRF
-- **demo:** isolate backends from skill targets to contain SSRF
-- **docker:** copy CodeMetricsConfig.txt into the build image
-- **quality:** reduce Program.cs complexity, re-promote CA1502 to error (#108)
-- **submission:** theme the deck in the package build + drop the duplicate Abkürzungen
-- **submission:** outline-preserving merge + fit the Harness slide
-- **quality:** CA1506 cluster 1 — realistic threshold + composition-root carve-outs (#114)
-- **quality:** CA1506 cluster 2 — carve out Razor component code-behinds (#115)
-- **quality:** CA1506 cluster 3 — split CaptureEndpoints + carve endpoint classes (#117)
-- **quality:** CA1506 cluster 4 — architectural carve-outs + re-promote to error (#123)
-- **quality:** tune Skills Stryker break to 55 (CI baseline 61.97%); add json reporter (#133)
-- **quality:** tune Persistence Stryker break to 45 (CI baseline 50.15%) (#134)
-- **integration-tests:** drop MigrationRunner DI removal (type deleted)
-
-### Miscellaneous
-
-- gitignore examiner-sim screenshots dir
-
-### Testing
-
-- **skills:** cover public-IP-literal allow + obfuscated-literal reject
-- **coverage:** enable coverlet tooling + bring FlowHub.Core to 100%
-- **coverage:** cover SkillsBootLogger (FlowHub.Skills 87% -> 94%)
-- **coverage:** finish FlowHub.Skills tail (94% -> 100%)
-- **coverage:** bring FlowHub.AI to ~99% (boot logger + embeddings registration)
-- **coverage:** bring FlowHub.Api to 100% (validator + write/retry endpoints)
-- **coverage:** FlowHub.Web phase 1 — pipeline consumers, SkillHealthCard.Manage, E2E exclusions
-- **quality:** raise FlowHub.Core mutation score 37 → 86, lift break above canonical 60 (#125)
-- **core:** cover FlowHubActivityTags helpers to lift Stryker mutation score
-- **quality:** Persistence ratchet (1/2) — service-level + Tag/SkillRun/Channel tests (part of #96) (#138)
-- **quality:** Persistence ratchet (2/2) — Integration/Skill/ListAsync + break=70 (closes #96) (#139)
-- **coverage:** FlowHub.Web MainLayout 0%→100% (refs #126)
-- **coverage:** Persistence wiring — cover DI extension, drop dead MigrationRunner (refs #126 §B)
-- **coverage:** FlowHub.Web Captures.razor ~36%→100% (refs #126)
-- **coverage:** Web small-tails sweep — 7 files to 100% (refs #126) (#143)
-- **coverage:** Web pages remainder — 4 of 5 to 100%, CaptureDetail 67.9%→92.9% (refs #126) (#144)
-- **coverage:** FlowHub.AI 99.1% → 100% — cover defensive throws (refs #126) (#148)
-- **coverage:** Web — ProgramRegistration 58%→100%, Program 87.7%→92.6% (#140)
-- **coverage:** CaptureDetail.razor 81.8% → 100% — cover loading skeleton (refs #126) (#149)
-
-### build
-
-- **submission:** make the presentation a major, layout-preserving part of the upload
-- **release:** publish flowhub-migrations image too; surface two-container topology in Arc42 §7
-- **pdf:** automated layout check (clip detection) + fix two real clips (#152)
-
-### harden
-
-- **demo:** add Traefik rate-limit to wallabag/paperless/status routers
-- **demo:** STRIDE follow-ups — /metrics edge-block, admin role gate, upload cap (#100)
-## [0.2.0] - 2026-06-20
-
-### Added
-
-- **demo:** publish public demo on VPS-DE
-- **demo:** richer seed fixtures showcasing the full feature set
-- **demo:** add try-me example prompts to the demo banner
-- **web:** demo-only one-click example chips in quick-capture
-- **demo:** example chips auto-open Captures list; scrub seed samples
-- **demo:** publish capture notifications to ntfy.sh (dormant until configured)
-- **demo:** clickable 'Source on GitHub' link in demo banner
-- **enrichment:** wire citation enrichment end-to-end (demo showcase)
-- **examiner-sim:** repeatable multi-agent examiner simulation (#21)
-- **demo:** add live Vikunja routing to the public demo
-- **video:** code-based explainer videos (technical + end-user) (#32)
-- **persistence:** add OpenReadAsync to attachment storage
-- **core:** flag attachment captures on CaptureCreated
-- **pipeline:** route attachment captures to Paperless without LLM
-- **skills:** add PaperlessOptions
-- **skills:** add Paperless document-upload skill
-- **skills:** register Paperless integration when configured
-- **skills:** log Wallabag token-refresh failures
-- **demo:** add paperless-ngx bootstrap sidecar
-- **demo:** add wallabag bootstrap sidecar
-- **demo:** run live wallabag + paperless-ngx services
-- **demo:** VPS Traefik routes for wallabag + paperless
-- **demo:** clear wallabag + paperless on each reset cycle
-- **video:** generate explainer videos (English voice, logo) + embed in README (#41)
-- route quote captures to Vikunja 'Zitate' (rename Quotes->Zitate) (#39)
-- **core:** add ClassifierTrace to classification result
-- **core:** keyword classifier records a trace
-- **ai:** AiClassifier records provider/model/token trace
-- **core:** carry ClassifierTrace on Capture
-- thread ClassifierTrace through MarkClassifiedAsync
-- **persistence:** persist ClassifierTrace as owned entity (+migration)
-- **ai:** config-backed classification cost estimator
-- **web:** DemoTraceOptions gate + enable on demo VPS
-- **web:** classification trace panel on capture detail (gated)
-- **demo:** quick-access links to all three live services in the banner
-- **api:** add multipart file-upload capture endpoint
-- **demo:** cleaner banner — service links as a tidy action row
-- **demo:** use an on-theme German Zitat as the quote Try-example
-- **demo:** live Zitate board + richer quote enrichment
-- **demo:** use an Einstein quote for the Zitat Try-example
-- **video:** demo walkthrough — screenshot the live VPS demo, silent + animated cursor (#45)
-- **demo:** add Walkthrough link to the demo banner (#48)
-- **demo:** add Uptime Kuma monitoring to the VPS demo (#52)
-- **monitoring:** self-healing restart policies + surface observability in submission/deck (#54)
-- **demo:** link the Uptime Kuma status page from the demo banner (#55)
-- **search:** live semantic search on the demo via self-hosted embedder + Search UI
-- **pdf:** guard against unrendered mermaid diagrams + refresh stale Projektbeschreibung PDF (#71)
-- **pdf:** offline mermaid + bundle bookmarks + trim to 267pp (#72)
-- **docs:** as-built Arc42 v2 + Reflexion (two-document submission) (#75)
-
-### CI/CD
-
-- render test report + coverage summary in the run summary
-- bump actions to Node24 majors; reconcile test count to 253
-
-### Changed
-
-- **persistence:** honor CancellationToken in OpenReadAsync
-- **skills:** single-owner disposal + partial + stronger Paperless test
-- **skills:** drive Wallabag with self-refreshing OAuth token
-- **ai:** document trace int-casts + assert keyword-trace nulls
-- **web:** tidy trace-panel injects + explicit chip variant
+- retarget reusable workflow to freaxnx01/agent-workflow (#15)
+- **agent-workflow:** add consumer stub
+- **agent:** drop the legacy claude.yml stub and make agent.yml retryable
+- **agent:** raise max-turns to 200 so a multi-task plan can finish
+- **agent:** raise the claude wall-clock cap and pin to v1.12.0
+- **agent:** raise max-turns to 300, sized off a measured run
+- **agent:** pin to v1.13.0 for failure diagnostics
+- **agent:** wire the optional pipeline App secrets through
+- raise diff-scope guard from 800 to 2000 added C# lines
+- **agent:** enable pre-preview review of agent PRs
+- **agent:** allowlist the pipeline App's bot login alongside the default
 
 ### Documentation
 
-- **vault:** add 'examiner' glossary term; replace examiner prename with role
-- add FEATURES.md; fix dangling demo-limitations reference in README
-- **demo:** add GitHub repo URL to the demo banner
-- reconcile living docs with post-v0.1.0 product/demo work
-- honesty pass — reconcile documented-but-not-built claims (#23)
-- **prep:** add PVA defense prep + gap-fill plan (#24)
-- map Quarkus/Jakarta-EE criterion to .NET equivalents (potential +3–7) (#26)
-- **readme:** add Features section linking FEATURES.md
-- final accuracy pass — fix doc-vs-code residues (~+3-6) (#27)
-- **demo:** document live Vikunja routing (FEATURES, DEMO, runbook)
-- embed verified test run + relabel observability (micro-pass) (#28)
-- **presentation:** add Marp CAS slide deck (project + AI-build reflection) (#30)
-- claim Quarkus/Jakarta-EE criterion via .NET equivalents (toward /100) (#31)
-- **prep:** add Quarkus-criterion defense answer + refresh numbers (#33)
-- **demo:** spec + plan for three live services (#37)
-- **demo:** document wallabag + paperless env + banner
-- **readme:** use GitHub native players for explainer videos (#43)
-- **spec:** design for routing quote captures to Vikunja 'Zitate' (#39)
-- **plan:** implementation plan for Zitate routing (#39)
-- spec for classification trace mode (#35)
-- implementation plan for classification trace mode (#35)
-- **ai:** note demo-model sync requirement for free pricing
-- **readme:** link related repos (ai-instructions, agent-pipeline) (#44)
-- **demo:** correct stale read-only-share comment in compose overlay
-- **roadmap:** add USER.md personal-context idea for skill generation
-- align with June-2026 rubric update (neutralize Quarkus/Java, /100) (#47)
-- move loose project docs into docs/project/ (#46)
-- **roadmap:** add "Now Playing on SRF 3" skill idea (#49)
-- **ci-cd:** clarify GitHub-vs-GitLab platform choice + deployment scope (#50)
-- add /metrics uptime monitor + LLMeter benchmarking roadmap idea (#53)
-- **vault/block2:** add Lernziel section to Frontend Nachbereitung (#56)
-- **presentation:** product+harness deck, skill-system docs, agent-pipeline rename (#40)
-- add Lernziele coverage crosswalk + deferred-scope notes (#59)
-- **readme:** fix stale repo-tree note for purged rubric (#61)
-- **submission:** cite concrete test results (CI run, 294 green) (#62)
-- **roadmap:** add extensibility-showcase items + surface roadmap in SUBMISSION (#64)
-- **submission:** correct header facts + classification/target wording (#65)
-- GitHub-safe §6.1 diagram (SVG→Mermaid) + readability lists (#66)
-- **submission:** readability sweep — break §4 run-on bullets into lists (#67)
-- **blocks:** paraphrase verbatim Moodle-Aufträge + align rubric self-checks (#68)
-- **nachbereitung:** paraphrase verbatim Moodle-Aufträge into own words (#69)
-- **submission:** document the semantic-search product use case
-- **adr-0006:** record demo index-drop + small-model near-tie limitation honestly
-- reconcile default-suite test count to 294 (#70)
-- **blocks:** paraphrase verbatim Moodle Lernziele + neutralize Quarkus (#73)
-- **roadmap:** add "Terminzettel → Calendar" skill idea (#76)
-- add Obsidian vault as 2nd brain (AI read & write) (#77)
-- **next:** correct stale test count 234 → 294 in the authoritative header (#78)
-- **presentation:** give "Vault also 2nd Brain" its own slide (fix overflow) (#79)
-- **reflexion:** clarify wording per review feedback (#80)
-- **submission:** add Dokumentenübersicht; include presentation in upload set (#81)
-- **arc42:** clarity + renderer layout fixes; add live-demo URL to hub (#82)
-- **submission:** fold Dokumentenübersicht into hub; rename hub PDF → FlowHub_Uebersicht.pdf (#83)
-- **submission:** land hub rename + overview-fold (missed by #83) + cleanup (#84)
-- **submission:** numbered upload set (00–04) + package-submission recipe (#85)
-- **submission:** use underscore prefix (00_) for upload set — survives download (#86)
-- **reflexion:** add three Veto-Entscheidungen (rubric Krit. 18, June-2026) (#87)
-- align to June-2026 rubric anchors (Krit. 3, 12, 16) (#88)
-- apply FFHS Semesterarbeit-template structure to Arc42/Reflexion + align declaration (#91)
-- note that the TOC is in the PDF bookmarks/outline (#92)
-- rename Wekan→Vikunja Kanban and GitLab→Git Forge in submission docs
-- **submission:** upload Projektbeschreibung, link Präsentation; add Kurzformel glossary
-- **arc42:** add use-case overview table (§1.4) so RE is self-contained in the SAD
-- **entwurf:** inline a representative migration + fix stale migration citation
-- **submission:** land submission-doc content + Vision KI-Nutzen win; regenerate all PDFs
-- **db:** correct embedding dim/migration lineage in er.md + record examiner-sim grade sheet
-- **presentation:** add pipeline/prompt/services/agent-pipeline slides + demo QR
-- **presentation:** add repo QR code on the Fazit slide
-- **demo:** reconcile write-posture to the as-built three live integrations
-- **release:** add RELEASENOTES.md with v0.1.0 entry
-- **changelog:** regenerate CHANGELOG.md from Conventional Commits via git-cliff
+- **todo:** mark release green — v0.1.0 images + GitHub Release published
+- **todo:** note admin-bypass on main branch protection
+- **todo:** add UI polish + wire-Skills-routing items
+- **todo:** note Moon Lander game as UI design inspiration
+- sync AI agent instructions (base + dotnet-blazor overlay)
+- **glossary:** add in-repo glossary of domain and UI terms
+- **telegram:** add design spec for the Telegram inbound Channel
+- **telegram:** link the voice follow-up issue from the spec
+- **telegram:** add implementation plan for the Telegram inbound Channel
+- **telegram:** record the Channel as built and correct ADR 0001
+- **ai-notes:** add Telegram capture taxonomy analysis
+- **ai-notes:** resolve the catalog-metadata open question
+- **ai-notes:** add classifier-capability caveat (§2.1)
+- **ai-notes:** Bridge's dual role, and correct the forge-route number
+- **captures:** add design spec for preserving attachment captions
+- **captures:** correct the Web scope — the text field is disabled by design
+- **captures:** add implementation plan for attachment captions
+- **spec+plan:** Bridge classification option (#37) (#40)
+- **captures:** record the attachment-caption behaviour
+- **spec:** Telegram ask-back design (#33)
+- **spec+plan:** repo inference for alias-free captures (#38) (#44)
+- correct the racy upsert in the repo-inference plan (#53)
+- **voice:** add design spec for voice capture via speech-to-text
+- **voice:** add implementation plan for voice capture via STT
 
 ### Fixed
 
-- **submission:** close examiner-sim doc/packaging gaps (+~8 pts) (#22)
-- **submission:** the four submission-legal gap-fills (~+5-6) (#25)
-- **tools:** emit Wallabag OAuth creds (not removed ApiToken key) from --export
-- **persistence:** renumber trace migration to 0011 after #39 (Zitate) rebase
-- **demo:** create Wallabag user Config + make wallabag-client idempotent
-- **demo:** writable upload dir in image + resilient wallabag-bootstrap
-- **demo:** pin paperless worker counts (max_workers must be >0)
-- **web:** dark app bar in light mode for legible Quick-Capture
-- **demo:** make Vikunja Inbox board writable so visitors can tick todos
-- **persistence:** seed Zitate skill as healthy
-- **web:** make Quick-Capture controls legible on the dark app bar
-- **web:** make Quick-Capture icon buttons visible on the dark app bar
-- **video:** show a real paperless document in the demo walkthrough (#58)
-- **skills:** Wallabag URL extraction + XML-doc the orchestration seam (#51)
-- **submission:** encode TOC link parens + purge PVA instructor materials (#60)
-- **demo:** give the embedder 2.5G + trimmed batch buffers (e5-small OOM'd at 1.5G)
-- **demo:** embed reseeded fixtures atomically so search never shows a partial set
-- **demo:** drop HNSW index in reset so semantic search is exact (correct ranking)
-- **demo:** bigger click target for the 'Try:' example chips
-- **demo:** grow the two-row app bar so the Quick-Capture input stays visible
-- **demo:** widen Quick-Capture field so the Try chips stay on one row
-- **web:** remove static <title> that collided with HeadOutlet (malformed tab title)
-- **web:** soften Unhandled capture copy so it doesn't read as a crash (#89)
+- **telegram:** address review findings on the Channel implementation
+- **captures:** keep the caption when a Capture has an attachment
+- **telegram:** stop logging that captions are dropped
+- **web:** accept a caption in the quick-add field too
+- **api:** keep HasAttachment when the retry endpoint republishes
+- **ai:** address the pre-preview review on the speech-to-text port
 
 ### Miscellaneous
 
-- **gitignore:** ignore local lernziele.md (FFHS course material) (#57)
-- **submission:** purge Moodle/instructor IP from public repo + harden pre-submission checklist
-- **examiner-sim:** rename bucket-5 key to "KI und Architektur" to match the rubric PDF
-- **examiner-sim:** grade the real 5-PDF upload set, not the bundle
-- **release:** add cliff.toml and implement release-notes recipe
-
-### Reverted
-
-- remove temporary EMBED-DEBUG logging (umlaut/ranking investigation done)
-- **demo:** remove Search UI + self-hosted embedder from the demo
-
-### Testing
-
-- **web:** cover trace-panel env gate on capture detail
-## [0.1.0] - 2026-06-05
+- **security:** pin AngleSharp 1.5.0 to clear NU1902 (GHSA-pgww-w46g-26qg)
+- sync ai-instructions (dotnet-blazor overlay)
+- refresh AI instruction files from ai-instructions
+- clear NU1903 (SSH.NET) + hadolint DL3066 to green CI (#17)
+- release v0.4.0 (#63)
+## [0.1.0] - 2026-07-08
 
 ### Added
 
 - **poc:** add Program.cs with interactive and demo CLI modes
-- add project overview and evaluation criteria for AISE project work
 - **ai:** sync AI instructions from template and add CAS course context
 - **web:** scaffold FlowHub.Web Blazor app + FlowHub.Core domain (Phase 3 Step 1)
 - **web:** wire Dashboard to Bogus stub services (Phase 3 Step 2)
@@ -536,13 +301,72 @@ for continuity.
 - **web:** add file picker to QuickCaptureField
 - **web:** add file upload to NewCapture page
 - capture file upload (paperless-ngx prep, 2 MB demo limit) (#20)
+- **demo:** publish public demo on VPS-DE
+- **demo:** richer seed fixtures showcasing the full feature set
+- **demo:** add try-me example prompts to the demo banner
+- **web:** demo-only one-click example chips in quick-capture
+- **demo:** example chips auto-open Captures list; scrub seed samples
+- **demo:** publish capture notifications to ntfy.sh (dormant until configured)
+- **demo:** clickable 'Source on GitHub' link in demo banner
+- **enrichment:** wire citation enrichment end-to-end (demo showcase)
+- **examiner-sim:** repeatable multi-agent examiner simulation (#21)
+- **demo:** add live Vikunja routing to the public demo
+- **video:** code-based explainer videos (technical + end-user) (#32)
+- **persistence:** add OpenReadAsync to attachment storage
+- **core:** flag attachment captures on CaptureCreated
+- **pipeline:** route attachment captures to Paperless without LLM
+- **skills:** add PaperlessOptions
+- **skills:** add Paperless document-upload skill
+- **skills:** register Paperless integration when configured
+- **skills:** log Wallabag token-refresh failures
+- **demo:** add paperless-ngx bootstrap sidecar
+- **demo:** add wallabag bootstrap sidecar
+- **demo:** run live wallabag + paperless-ngx services
+- **demo:** VPS Traefik routes for wallabag + paperless
+- **demo:** clear wallabag + paperless on each reset cycle
+- **video:** generate explainer videos (English voice, logo) + embed in README (#41)
+- route quote captures to Vikunja 'Zitate' (rename Quotes->Zitate) (#39)
+- **core:** add ClassifierTrace to classification result
+- **core:** keyword classifier records a trace
+- **ai:** AiClassifier records provider/model/token trace
+- **core:** carry ClassifierTrace on Capture
+- thread ClassifierTrace through MarkClassifiedAsync
+- **persistence:** persist ClassifierTrace as owned entity (+migration)
+- **ai:** config-backed classification cost estimator
+- **web:** DemoTraceOptions gate + enable on demo VPS
+- **web:** classification trace panel on capture detail (gated)
+- **demo:** quick-access links to all three live services in the banner
+- **api:** add multipart file-upload capture endpoint
+- **demo:** cleaner banner — service links as a tidy action row
+- **demo:** use an on-theme German Zitat as the quote Try-example
+- **demo:** live Zitate board + richer quote enrichment
+- **demo:** use an Einstein quote for the Zitat Try-example
+- **video:** demo walkthrough — screenshot the live VPS demo, silent + animated cursor (#45)
+- **demo:** add Walkthrough link to the demo banner (#48)
+- **demo:** add Uptime Kuma monitoring to the VPS demo (#52)
+- **monitoring:** self-healing restart policies + surface observability in submission/deck (#54)
+- **demo:** link the Uptime Kuma status page from the demo banner (#55)
+- **search:** live semantic search on the demo via self-hosted embedder + Search UI
+- **docs:** as-built Arc42 v2 + Reflexion (two-document submission) (#75)
+- **quality:** adopt dotnet-quality gates + verify-gates in FlowHub (Phase-1) (#99)
+- **quality:** adopt polyglot pre-commit gate (German-aware scoping) (#109)
+- **quality:** wire Stryker mutation gate (Phase-1 baseline, break=35) (#124)
+- **observability:** activate OTel tracing with ADR-0009 PII processor (+3 Programmierung)
+- **quality:** widen Stryker to FlowHub.Persistence (scheduled mutation gate) (#131)
+- **quality:** widen Stryker to FlowHub.Skills (extend mutation-extended matrix) (#132)
+- **demo:** harden demo monitoring — basic-auth Kuma admin + homelab outside-watcher (#181)
+- **compose:** default async bus to in-memory, RabbitMQ opt-in
 
 ### CI/CD
 
 - add claude-pipeline consumer stub
 - **release:** bump orhun/git-cliff-action v3 -> v4
 - exclude AI / BetaSmoke / E2E tests to match make test (#17)
-- auto-add new issues to freaxnx01 Backlog project
+- render test report + coverage summary in the run summary
+- bump actions to Node24 majors; reconcile test count to 253
+- **coverage:** wire per-assembly coverage gate (closes #126 §C) (#142)
+- **coverage:** ratchet thresholds to 100% line + measured branch floors (#150)
+- **release:** publish migrations image as flowhub-db-migrations
 
 ### Changed
 
@@ -553,11 +377,15 @@ for continuity.
 - **persistence:** keep CaptureEntity + Captures DbSet internal; expose to tests via InternalsVisibleTo
 - drop Wekan integration, Vikunja absorbs kanban role
 - drop Obsidian from seeded Integrations catalog
+- **persistence:** honor CancellationToken in OpenReadAsync
+- **skills:** single-owner disposal + partial + stronger Paperless test
+- **skills:** drive Wallabag with self-refreshing OAuth token
+- **ai:** document trace int-casts + assert keyword-trace nulls
+- **web:** tidy trace-panel injects + explicit chip variant
+- **web:** move E2E fault guards into excluded helpers (refs #126) (#146)
 
 ### Documentation
 
-- **poc:** add AI classification PoC design and implementation plan
-- add CAS AISE preparation materials (Frontend)
 - link repo to CAS Obsidian vault
 - **adr:** accept ADR 0001 — frontend render mode and architecture
 - **adr:** clarify dev auth bypass approach in ADR 0001
@@ -591,102 +419,121 @@ for continuity.
 - **blöcke:** mark Block 3 KI-Reflexion done (REFLECTION.md expanded)
 - **blöcke:** mark async-communication-candidates done (covered in ADR 0002 + REFLECTION.md)
 - **vault:** update path references after subtree merge
-- **vault/blöcke:** scaffold Block 3 Nachbereitung
-- **vault:** canonical Bewertungskriterien rubric + scaffold Block 4 & 5 Nachbereitung
 - **cas:** always-on Bewertungskriterien guardrail + /grade-self-check skill
 - **cas:** point Bewertungskriterien guardrail at cas-aise-grade-self-check plugin
-- **superpowers:** brainstorm async-pipeline spec for Block 3 Slice B
-- **superpowers:** add async-pipeline implementation plan for Slice B
-- **vault/projektarbeit:** add Learnings page for CAS submission
-- add SUBMISSION.md as central Moodle submission entry point
 - **adr:** accept ADR 0003 — async pipeline (MassTransit topology + retry/fault)
-- **ai-usage:** bootstrap living doc for KI-Werkzeug-Nutzung rubric
-- **vault/blöcke:** tick off Slice-B items in Block 3 Nachbereitung
 - **adr:** align EventId range allocation in ADR 0003 with code
-- **superpowers:** brainstorm REST API spec for Block 3 Slice A
-- **superpowers:** add Slice A REST API implementation plan
 - **api:** add 3 ProblemDetails type docs (validation, capture-not-found, capture-not-retryable)
-- **vault/blöcke:** tick off Slice-A items in Block 3 Nachbereitung
-- **vault/blöcke:** refocus Block 3 KI-reflection on .NET stack
-- **superpowers:** brainstorm AI-integration spec for Block 3 Slice C
-- **vault/blöcke:** tick off completed items across Blocks 1-3
 - **spec:** update testing-strategy.md to Block-3 reality (Slice A/B/C)
 - **design:** add Block-4 DB-model sketch (entities ER + indexes)
 - **design:** add Mermaid sequence diagrams for Capture-Enrichment + Skill-Routing
-- **superpowers:** add Slice C AI-integration implementation plan
-- **ai-usage:** scaffold Slice-C section (Block 3 AI integration)
 - **adr:** add ADR 0004 — AI integration in services (Slice C)
 - **claude.md:** mark FlowHub.AI as active (Slice C landed)
 - **vault/blöcke:** tick off Slice-C items in Block 3 Nachbereitung + CHANGELOG
 - **ai:** mark Anthropic prompt-cache as deferred to Slice D
 - **spec,design:** correct Slice-C framing — shipped, not planned
 - **spec:** add Block-3 use cases (REST API, async pipeline, AI fallback) + SMART NfAs
-- **vault/blöcke:** tick off Block-3 rubric-gap items in Nachbereitung
-- **vault/blöcke:** close out Block 3 Nachbereitung (87% → 100%)
-- **superpowers:** brainstorm Beta-MVP spec (Web → AI → Wallabag/Vikunja)
-- **superpowers:** write Beta-MVP implementation plan (21 tasks)
 - mark Persistence/Skills active; CHANGELOG + ai-usage retrospective for Beta MVP
-- **vault/blöcke:** tick Block-4 Nachbereitung items earned by Beta MVP (0% → 16%)
-- **ai-usage:** fill Beta-MVP retrospective (adaptations, AI/human share, reflexion)
 - **adr:** add ADR 0005 — Persistence (provider, ORM, repository, migrations)
-- **vault/blöcke:** tick Block-4 items earned by ADR 0005 + ai-usage retrospective (16% → 22%)
 - **changelog:** note ADR 0005 + Beta-MVP review fixups + filled retrospective
 - **design/db:** align entities.md with shipped Capture entity (Beta MVP)
 - **runbooks:** add Beta-MVP operator acceptance runbook (Task 21)
-- **superpowers/specs:** add Block 4 Nachbereitung scope design
-- **superpowers/plans:** add Block 4 Nachbereitung implementation plan (5 slices)
-- **vault:** add Superpowers /clear workflow to context-hygiene notes
-- **vault/block3:** add PVA 3 session notes
-- **ai-usage:** document self-authored CAS AISE skills and source repo
 - add CLAUDE-PIPELINE.md describing the autonomous pipeline
 - add ROADMAP.md (enrichment, web search, AI providers) (#14)
-- **next:** refresh NEXT.md to reflect 2026-05-11 clean state
-- **superpowers/plans:** add Block 5 Nachbereitung implementation plan
 - **env:** add .env.example documenting Ai__* and Embeddings__* vars
 - **block5:** close 6 rubric gaps surfaced by cas-aise-grade-self-check
 - **submission:** finalize Block-5 CHANGELOG, ai-usage Block-5 reflections, NEXT for tag/PDF
-- **vault/block4:** tick the 18 demonstrably-done items in Nachbereitung
 - close the last 5 Block-4 Nachbereitung items (49/49)
-- **vault:** close Block-5 Nachbereitung, clean 1-PVA, add model inventory
-- **vault:** tick Quarkus chapters as N/A in Block-4/5 Vorbereitung
-- **runbooks:** add test-services runbook for the test-services container
+- **runbooks:** add test-services runbook for cirrus-pve CT 128
 - add DEMO.md — top-level recap of the public demo posture
 - **journeys:** refresh status snapshot — 23/29 green
 - **submission:** operator tooling for the CAS AISE submission
-- **next:** log CI failure + supersede stale 2026-05-12 snapshot
 - **submission:** consolidate acceptance criteria + fix bundle TOC
-- **vault:** track Coursework-Glossary EN↔DE vocabulary
-- **determine:** add Block 5 / final submission deadline
 - **submission:** flesh out 5 short stubs flagged by preflight
-- **next:** announce cas-aise-submission-preflight v0.1.1
 - **env:** document Skills__Vikunja__/Wallabag__ keys in .env.example
-- **submission:** correct stale language note (SUBMISSION.md is German)
-- **vault/blöcke:** correct Block 5 Abgabe-Deadline to 2026-07-04 24:00
-- **vault/blöcke:** backfill Bewertungskriterien sections for Block 1 & 2
-- **submission:** regenerate SUBMISSION-bundle.pdf
-- add repo-root TODO.md with manual-test follow-ups
-- **ai-usage:** add Fazit synthesizing AI workflow across all five blocks
-- **projektbeschreibung:** expand §9 KI-Reflexion with full Fazit (DE)
 - add Block-4 test-results table + persistence-layer coverage cross-ref
-- **submission:** regenerate PDFs after Fazit + Block-4 docs updates
-- **todo:** mark Vikunja test-projects item done — covered by VikunjaCatalogLiveTests
 - **block-4:** close grade self-check gaps (Werner W3/W4 + Solution Vision)
-- **vault/knowledge:** add Datenschutz & AI-Act stub
 - **spec:** add NfA-P1/P2 for privacy & AI Act + cross-link vault stub
 - **design:** add data-flow diagram for NfA-P1/P2 + link vault stub
-- **vault/block-4:** log PVA 4 feedback — file upload + 2 MB demo limit
-- **vault/knowledge:** expand privacy risk table + add ADR-0007/0008 placeholders
 - **adr:** add ADR-0007 LLM-Hosting + renumber vault stub refs
-- **spec:** capture file upload — design for paperless-ngx prep + 2 MB demo limit
 - **adr:** add ADR-0008 Logging-Policy
-- **plan:** implementation plan for capture file upload
 - **adr:** add ADR-0009 Telemetry-PII-Policy
-- **vault/knowledge:** formulate Reflexions-Absatz for AI-Act/privacy
 - record capture file upload feature (CHANGELOG, ai-usage, PVA notes)
-- add SCOPE-FREEZE.md — lock CAS-AISE submission scope
-- **vault/projektarbeit:** add CAS→Projektarbeit reflexion bridge (W4)
-- rebuild SUBMISSION-bundle.pdf with W4 reflexion bridge
-- **vault:** mark Block 1/2 Nachbereitung forward-refs as delivered
+- add FEATURES.md; fix dangling demo-limitations reference in README
+- **demo:** add GitHub repo URL to the demo banner
+- reconcile living docs with post-v0.1.0 product/demo work
+- honesty pass — reconcile documented-but-not-built claims (#23)
+- map Quarkus/Jakarta-EE criterion to .NET equivalents (potential +3–7) (#26)
+- **readme:** add Features section linking FEATURES.md
+- final accuracy pass — fix doc-vs-code residues (~+3-6) (#27)
+- **demo:** document live Vikunja routing (FEATURES, DEMO, runbook)
+- embed verified test run + relabel observability (micro-pass) (#28)
+- **presentation:** add Marp CAS slide deck (project + AI-build reflection) (#30)
+- claim Quarkus/Jakarta-EE criterion via .NET equivalents (toward /100) (#31)
+- **demo:** document wallabag + paperless env + banner
+- **readme:** use GitHub native players for explainer videos (#43)
+- **ai:** note demo-model sync requirement for free pricing
+- **readme:** link related repos (ai-instructions, agent-pipeline) (#44)
+- **demo:** correct stale read-only-share comment in compose overlay
+- **roadmap:** add USER.md personal-context idea for skill generation
+- align with June-2026 rubric update (neutralize Quarkus/Java, /100) (#47)
+- move loose project docs into docs/project/ (#46)
+- **roadmap:** add "Now Playing on SRF 3" skill idea (#49)
+- **ci-cd:** clarify GitHub-vs-GitLab platform choice + deployment scope (#50)
+- add /metrics uptime monitor + LLMeter benchmarking roadmap idea (#53)
+- **presentation:** product+harness deck, skill-system docs, agent-pipeline rename (#40)
+- add Lernziele coverage crosswalk + deferred-scope notes (#59)
+- **readme:** fix stale repo-tree note for purged rubric (#61)
+- **roadmap:** add extensibility-showcase items + surface roadmap in SUBMISSION (#64)
+- **submission:** document the semantic-search product use case
+- **adr-0006:** record demo index-drop + small-model near-tie limitation honestly
+- reconcile default-suite test count to 294 (#70)
+- **roadmap:** add "Terminzettel → Calendar" skill idea (#76)
+- add Obsidian vault as 2nd brain (AI read & write) (#77)
+- **next:** correct stale test count 234 → 294 in the authoritative header (#78)
+- **presentation:** give "Vault als 2nd Brain" its own slide (fix overflow) (#79)
+- **reflexion:** clarify wording per review feedback (#80)
+- **arc42:** clarity + renderer layout fixes; add live-demo URL to hub (#82)
+- **submission:** land hub rename + overview-fold (missed by #83) + cleanup (#84)
+- **submission:** numbered upload set (00–04) + package-submission recipe (#85)
+- **submission:** use underscore prefix (00_) for upload set — survives download (#86)
+- **reflexion:** add three Veto-Entscheidungen (rubric Krit. 18, June-2026) (#87)
+- align to June-2026 rubric anchors (Krit. 3, 12, 16) (#88)
+- apply FFHS Semesterarbeit-template structure to Arc42/Reflexion + align declaration (#91)
+- note that the TOC is in the PDF bookmarks/outline (#92)
+- rename Wekan→Vikunja Kanban and GitLab→Git Forge in submission docs
+- **submission:** upload Projektbeschreibung, link Präsentation; add Kurzformel glossary
+- **entwurf:** inline a representative migration + fix stale migration citation
+- **submission:** land submission-doc content + Vision KI-Nutzen win; regenerate all PDFs
+- **db:** correct embedding dim/migration lineage in er.md + record examiner-sim grade sheet
+- **presentation:** add pipeline/prompt/services/agent-pipeline slides + demo QR
+- **presentation:** add repo QR code on the Fazit slide
+- **demo:** reconcile write-posture to the as-built three live integrations
+- **release:** add RELEASENOTES.md with v0.1.0 entry
+- **changelog:** regenerate CHANGELOG.md from Conventional Commits via git-cliff
+- add AGPL-3.0 license and README badges
+- **roadmap:** add Ausflug-Assistant and LiteLLM Proxy entries
+- **roadmap:** add Email-to-Capture channel entry
+- **roadmap:** add graph visualisation of vectorised captures
+- **presentation:** revise AI-generated share to 100% code, ~5% human rework
+- **presentation:** reframe AI share as 100% generated, ~5% human rework
+- align AI-generated share to 100% generated, ~5% human rework
+- **readme:** fix stale pipeline-doc link (CLAUDE-PIPELINE.md -> AGENT-PIPELINE.md)
+- **submission:** link NfA + AC catalogues in Übersicht §3.3; document Otlp__Endpoint
+- examiner-sim 96/100 report + path-to-100 actions + agent-dev search guardrail (#145)
+- **arc42:** path to 100/100 — interaction diagram + inline use cases + bundle fix (#153)
+- **testing:** record per-assembly coverage baseline post #126 (#151)
+- **roadmap:** add n8n interop — FlowHub as AI brain, n8n as no-code glue (#156)
+- **adr:** 0010 LLM & Agentic threat model (OWASP LLM-10 + Agentic-10) (#158)
+- **coverage:** commit HTML coverage report and cite it in SUBMISSION (#163)
+- **agent-dev:** swap=0 OOM guard + Claude grep->ugrep root cause (#169)
+- **tests:** align offline test count 294 -> 540 (current verified suite) (#170)
+- **roadmap:** add tracked security & AI-risk hardening section (G1–G4 + #167) (#173)
+- **readme:** refresh to v0.3.1 + correct ADR/test counts (#176)
+- **readme:** add German NotebookLM audio podcasts to README (#178)
+- reframe repo from CAS submission to standalone product
+- **todo:** record post-split status + Release NU1903 blocker
+- **todo:** correct Release blocker — flowhub-migrations package collision, not NU1903
 
 ### Fixed
 
@@ -707,6 +554,44 @@ for continuity.
 - **env:** quote Skills__Vikunja__ApiToken placeholder so .env sources cleanly
 - **web:** keep MudSelect label shrunk and trim placeholder tooltip
 - **web:** enforce upload allowlist even when empty (security)
+- **submission:** close examiner-sim doc/packaging gaps (+~8 pts) (#22)
+- **submission:** the four submission-legal gap-fills (~+5-6) (#25)
+- **tools:** emit Wallabag OAuth creds (not removed ApiToken key) from --export
+- **persistence:** renumber trace migration to 0011 after #39 (Zitate) rebase
+- **demo:** create Wallabag user Config + make wallabag-client idempotent
+- **demo:** writable upload dir in image + resilient wallabag-bootstrap
+- **demo:** pin paperless worker counts (max_workers must be >0)
+- **web:** dark app bar in light mode for legible Quick-Capture
+- **demo:** make Vikunja Inbox board writable so visitors can tick todos
+- **persistence:** seed Zitate skill as healthy
+- **web:** make Quick-Capture controls legible on the dark app bar
+- **web:** make Quick-Capture icon buttons visible on the dark app bar
+- **video:** show a real paperless document in the demo walkthrough (#58)
+- **skills:** Wallabag URL extraction + XML-doc the orchestration seam (#51)
+- **submission:** encode TOC link parens + purge PVA instructor materials (#60)
+- **demo:** give the embedder 2.5G + trimmed batch buffers (e5-small OOM'd at 1.5G)
+- **demo:** embed reseeded fixtures atomically so search never shows a partial set
+- **demo:** drop HNSW index in reset so semantic search is exact (correct ranking)
+- **demo:** bigger click target for the 'Try:' example chips
+- **demo:** grow the two-row app bar so the Quick-Capture input stays visible
+- **demo:** widen Quick-Capture field so the Try chips stay on one row
+- **web:** remove static <title> that collided with HeadOutlet (malformed tab title)
+- **web:** soften Unhandled capture copy so it doesn't read as a crash (#89)
+- **skills:** guard Wallabag integration against SSRF
+- **demo:** isolate backends from skill targets to contain SSRF
+- **docker:** copy CodeMetricsConfig.txt into the build image
+- **quality:** reduce Program.cs complexity, re-promote CA1502 to error (#108)
+- **submission:** theme the deck in the package build + drop the duplicate Abkürzungen
+- **submission:** outline-preserving merge + fit the Harness slide
+- **quality:** CA1506 cluster 1 — realistic threshold + composition-root carve-outs (#114)
+- **quality:** CA1506 cluster 2 — carve out Razor component code-behinds (#115)
+- **quality:** CA1506 cluster 3 — split CaptureEndpoints + carve endpoint classes (#117)
+- **quality:** CA1506 cluster 4 — architectural carve-outs + re-promote to error (#123)
+- **quality:** tune Skills Stryker break to 55 (CI baseline 61.97%); add json reporter (#133)
+- **quality:** tune Persistence Stryker break to 45 (CI baseline 50.15%) (#134)
+- **integration-tests:** drop MigrationRunner DI removal (type deleted)
+- **deps:** pin patched transitive Microsoft.OpenApi + Scriban.Signed (#172)
+- **deps:** bump Scriban.Signed 7.2.0 → 7.2.5 (NU1902) (#180)
 
 ### Miscellaneous
 
@@ -714,7 +599,6 @@ for continuity.
 - update project files and fix Zone.Identifier filenames
 - ignore .worktrees directory
 - add Makefile with run/watch/build/test/format targets
-- **vault:** ignore syncthing markers and personal PII assets
 - **web:** untrack appsettings.Development.json
 - **ai-instructions:** sync base + dotnet-blazor overlay from ai-instructions@1071724
 - **make:** auto-load gitignored .env for ai-* targets
@@ -724,6 +608,25 @@ for continuity.
 - **ai-instructions:** refresh base-instructions from upstream
 - ignore App_Data/uploads/ for demo attachment blobs
 - gitignore Claude Code scheduled-tasks lock file
+- **gitignore:** ignore local lernziele.md (FFHS course material) (#57)
+- **submission:** purge Moodle/instructor IP from public repo + harden pre-submission checklist
+- **examiner-sim:** rename bucket-5 key to "KI und Architektur" to match the rubric PDF
+- **examiner-sim:** grade the real 5-PDF upload set, not the bundle
+- **release:** add cliff.toml and implement release-notes recipe
+- release v0.2.0
+- gitignore examiner-sim screenshots dir
+- release v0.3.0 (#164)
+- release v0.3.1 (#174)
+- **security:** allowlist two reviewed gitleaks false positives (#177)
+- scrub CAS coursework artifacts from the product tree
+- **security:** genericize homelab topology and PII for the public repo
+- publish web image as ghcr.io/freaxnx01/flowhub
+- **security:** refresh gitleaks allowlist fingerprints after history redaction
+
+### Reverted
+
+- remove temporary EMBED-DEBUG logging (umlaut/ranking investigation done)
+- **demo:** remove Search UI + self-hosted embedder from the demo
 
 ### Testing
 
@@ -746,6 +649,26 @@ for continuity.
 - **e2e:** add headed Playwright full-cycle demo (capture -> Vikunja)
 - **skills:** add WireMock contract tests for Vikunja routing + enrichment
 - **skills:** live Vikunja integration tests for routing buckets + Quotes route
+- **web:** cover trace-panel env gate on capture detail
+- **skills:** cover public-IP-literal allow + obfuscated-literal reject
+- **coverage:** enable coverlet tooling + bring FlowHub.Core to 100%
+- **coverage:** cover SkillsBootLogger (FlowHub.Skills 87% -> 94%)
+- **coverage:** finish FlowHub.Skills tail (94% -> 100%)
+- **coverage:** bring FlowHub.AI to ~99% (boot logger + embeddings registration)
+- **coverage:** bring FlowHub.Api to 100% (validator + write/retry endpoints)
+- **coverage:** FlowHub.Web phase 1 — pipeline consumers, SkillHealthCard.Manage, E2E exclusions
+- **quality:** raise FlowHub.Core mutation score 37 → 86, lift break above canonical 60 (#125)
+- **core:** cover FlowHubActivityTags helpers to lift Stryker mutation score
+- **quality:** Persistence ratchet (1/2) — service-level + Tag/SkillRun/Channel tests (part of #96) (#138)
+- **quality:** Persistence ratchet (2/2) — Integration/Skill/ListAsync + break=70 (closes #96) (#139)
+- **coverage:** FlowHub.Web MainLayout 0%→100% (refs #126)
+- **coverage:** Persistence wiring — cover DI extension, drop dead MigrationRunner (refs #126 §B)
+- **coverage:** FlowHub.Web Captures.razor ~36%→100% (refs #126)
+- **coverage:** Web small-tails sweep — 7 files to 100% (refs #126) (#143)
+- **coverage:** Web pages remainder — 4 of 5 to 100%, CaptureDetail 67.9%→92.9% (refs #126) (#144)
+- **coverage:** FlowHub.AI 99.1% → 100% — cover defensive throws (refs #126) (#148)
+- **coverage:** Web — ProgramRegistration 58%→100%, Program 87.7%→92.6% (#140)
+- **coverage:** CaptureDetail.razor 81.8% → 100% — cover loading skeleton (refs #126) (#149)
 
 ### build
 
@@ -758,6 +681,14 @@ for continuity.
 - **skills:** scaffold FlowHub.Skills.Tests; pull HTTP/Options packages into FlowHub.Skills
 - add make test-beta; exclude BetaSmoke from default suite
 - replace Makefile with justfile and sweep docs
+- **submission:** make the presentation a major, layout-preserving part of the upload
+- **release:** publish flowhub-migrations image too; surface two-container topology in Arc42 §7
+- **pdf:** automated layout check (clip detection) + fix two real clips (#152)
+
+### harden
+
+- **demo:** add Traefik rate-limit to wallabag/paperless/status routers
+- **demo:** STRIDE follow-ups — /metrics edge-block, admin role gate, upload cap (#100)
 
 ### release
 
