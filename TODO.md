@@ -2,6 +2,44 @@
 
 Open operational items for the freshly-split `flowhub` product repo.
 
+## Session 2026-09-21 (v0.9.0 — the classifier runs on Claude)
+
+- [x] **~~#111 classifier entities schema~~ — merged (PR #119) and released as `v0.9.0`.**
+      CT 136 runs `ghcr.io/freaxnx01/flowhub:0.9.0` with
+      `Ai__OpenRouter__Model=anthropic/claude-sonnet-5` (`.env.bak-20260921-…`).
+      Verified live: `trace.kind: Ai`, `model: anthropic/claude-sonnet-5`, entities
+      round-tripping (`{quote, author}` off a Goethe line), zero 4xx/5xx and zero keyword
+      fallbacks in the logs. Anthropic was never reachable before this — a
+      `Dictionary<string,string>` made Microsoft.Extensions.AI emit `additionalProperties`
+      as a schema object, which Anthropic rejects with 400.
+
+- [ ] **Accuracy moved 2/10 → 4/10, and it is not a clean win — read before replaying.**
+      Full table in `~/flowhub-capture-run/CONVENTIONS.md` under *Re-score on Claude
+      Sonnet 5*. Claude wins every *semantic* case llama missed (action verb → task,
+      person marker → scoped project, repo name → Bridge, quote → Zitate). But it
+      **over-applies "a URL means read-later"** — two captures llama filed correctly
+      (Movies, Restaurants) now go to Wallabag — and it returns **no skill at all** on
+      terse captures (`budget Unterhalt 1500`, `Sandra … besuchen`), which become Orphans.
+      The glossary was verified loaded, so this is model behaviour, not config.
+      **Next:** build fixtures for the URL-exception and terse-capture cases before the
+      backlog is replayed on any model; the existing ten no longer cover what breaks.
+
+- [ ] **#126** — `payload.Tags` is unguarded on the main classification path; a null from
+      the model NREs *outside* the try, so it never reaches the keyword fallback. Found
+      reviewing PR #119, predates it.
+
+- [x] **~~Self-fix~~ — armed (PR #127).** `self-fix: true`, `self-fix-max-iterations: 1`.
+      Capped at 1 because the review job's `timeout-minutes: 10` is hardcoded upstream and
+      the step inherits it; #111's review took 1m49s, and a fix pass here is a full .NET
+      build+test. Only helps the *next* dispatch — self-fix runs inside the original run.
+
+- [ ] **The generated CHANGELOG drops anything committed as `chore:`.** v0.9.0 has no
+      `### Security` section, because the `JsonRequired` change on
+      `CapturePreviewResponse.sensitivity` was committed as a chore. git-cliff maps by
+      commit type, and hand edits do not survive the next `--tag` regeneration. It is
+      recorded in `RELEASENOTES.md` instead. Worth remembering when committing anything
+      security-relevant: the commit *type* decides whether it is ever seen.
+
 ## Session 2026-09-18 (#103 shipped; AI provider outage) — resolved, one blocker filed
 
 - [x] **~~#103 operator visibility~~ — merged (PR #109, `804bd99`).** Implemented inline
