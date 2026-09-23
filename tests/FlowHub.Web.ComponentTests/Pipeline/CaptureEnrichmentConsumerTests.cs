@@ -114,6 +114,63 @@ public sealed class CaptureEnrichmentConsumerTests
         stored!.MatchedSkill.Should().Be("Paperless");
     }
 
+    [Theory]
+    [InlineData("Tschau Sepp Bug Report:")]
+    [InlineData("Einkaufsliste:")]
+    [InlineData("Notizen :")]
+    public async Task Consume_HeaderWithNoBody_MarksUnhandledWithoutClassifying(string content)
+    {
+        // A capture whose whole content is a colon-terminated header announces a body
+        // that is not there — typically Enter sent the message while the operator was
+        // reaching for a newline. Capture bd3ee30d ("Tschau Sepp Bug Report:") became
+        // game-tschau-sepp#31: a real issue, empty body, nobody wrote it on purpose.
+        var classifier = Substitute.For<IClassifier>();
+        await using var provider = PipelineTestBase.Build(
+            configure: s => s.AddSingleton(classifier),
+            configureBus: x => x.AddConsumer<CaptureEnrichmentConsumer>());
+
+        var harness = provider.GetRequiredService<ITestHarness>();
+        await harness.Start();
+
+        var captureService = provider.GetRequiredService<ICaptureService>();
+        var capture = await captureService.SubmitAsync(content, ChannelKind.Telegram, default);
+
+        (await harness.Consumed.Any<CaptureCreated>(
+            x => x.Context.Message.CaptureId == capture.Id)).Should().BeTrue();
+
+        // No classification at all: no LLM call, and nothing published downstream.
+        await classifier.DidNotReceiveWithAnyArgs().ClassifyAsync(default!, default);
+        (await harness.Published.Any<CaptureClassified>()).Should().BeFalse();
+
+        var stored = await captureService.GetByIdAsync(capture.Id, default);
+        stored!.Stage.Should().Be(LifecycleStage.Unhandled);
+    }
+
+    [Theory]
+    [InlineData("Baldrian")]
+    [InlineData("23 x 23 x 13")]
+    [InlineData("Tschau Sepp Bug Report: Spiel endet nicht")]
+    public async Task Consume_ShortButSubstantiveContent_IsStillClassified(string content)
+    {
+        // The guard is about an announced-but-absent body, not about length. These are
+        // all short and all real captures from CT 136 — they must still be classified.
+        await using var provider = PipelineTestBase.Build(
+            configure: s => s.AddSingleton(StubClassifier(new ClassificationResult(["task"], "Vikunja"))),
+            configureBus: x => x.AddConsumer<CaptureEnrichmentConsumer>());
+
+        var harness = provider.GetRequiredService<ITestHarness>();
+        await harness.Start();
+
+        var captureService = provider.GetRequiredService<ICaptureService>();
+        var capture = await captureService.SubmitAsync(content, ChannelKind.Telegram, default);
+
+        (await harness.Published.Any<CaptureClassified>(
+            x => x.Context.Message.CaptureId == capture.Id)).Should().BeTrue();
+
+        var stored = await captureService.GetByIdAsync(capture.Id, default);
+        stored!.MatchedSkill.Should().Be("Vikunja");
+    }
+
     [Fact]
     public async Task Consume_NeedsTranscription_DoesNotClassifyOrPaperlessRoute()
     {

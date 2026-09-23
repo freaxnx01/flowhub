@@ -56,6 +56,19 @@ public sealed partial class CaptureEnrichmentConsumer : IConsumer<CaptureCreated
             return;
         }
 
+        // A capture whose whole content is a colon-terminated header announces a body
+        // that never arrived — Enter sends in Telegram, so this is what reaching for a
+        // newline produces. Classifying it spends an LLM call on a title and routes a
+        // content-free capture: "Tschau Sepp Bug Report:" became a real forge issue with
+        // an empty body. Parked rather than dropped — the operator still sent it.
+        if (IsHeaderWithoutBody(msg.Content))
+        {
+            await _captureService.MarkUnhandledAsync(
+                msg.CaptureId, "capture is a header with no body", ct);
+            LogHeaderWithoutBody(msg.CaptureId);
+            return;
+        }
+
         // Issue #93, spec D7. The guard is scoped by who can see the destination, so it
         // covers the paths to Vikunja and the forge and deliberately NOT the attachment
         // path to Paperless, which is the operator's private archive. Screening that path
@@ -75,6 +88,19 @@ public sealed partial class CaptureEnrichmentConsumer : IConsumer<CaptureCreated
 
         var result = await _classifier.ClassifyAsync(msg.Content, ct);
         await ApplyClassificationAsync(context, msg, result, ct);
+    }
+
+    /// <summary>
+    /// True when the content is a single line ending in a colon — a label for a body
+    /// that is not there. Deliberately not a length rule: "Baldrian" and "23 x 23 x 13"
+    /// are short, substantive captures that must still be classified.
+    /// </summary>
+    private static bool IsHeaderWithoutBody(string content)
+    {
+        var trimmed = content.AsSpan().Trim();
+        return trimmed.Length > 0
+            && trimmed[^1] == ':'
+            && trimmed.IndexOfAny('\n', '\r') < 0;
     }
 
     private async Task ApplyClassificationAsync(
@@ -169,6 +195,10 @@ public sealed partial class CaptureEnrichmentConsumer : IConsumer<CaptureCreated
         Level = LogLevel.Information,
         Message = "Capture {CaptureId} classified as Orphan (no matched skill)")]
     private partial void LogOrphan(Guid captureId);
+
+    [LoggerMessage(EventId = 5012, Level = LogLevel.Information,
+        Message = "Capture {CaptureId} is a header with no body — marked Unhandled without classifying")]
+    private partial void LogHeaderWithoutBody(Guid captureId);
 
     [LoggerMessage(
         EventId = 1003,
