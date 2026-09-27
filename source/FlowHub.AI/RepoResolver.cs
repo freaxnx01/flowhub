@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using FlowHub.Core.Captures;
 using FlowHub.Core.Classification;
 using FlowHub.Core.Skills;
@@ -18,6 +19,7 @@ internal sealed record RepoResolution(string Repo, BridgeAction Action, string? 
 internal sealed partial class RepoResolver
 {
     internal const string IdeaFallbackRepo = "freaxnx01/ideas-lab";
+    internal const string GamesHubRepo = "freaxnx01/freaxnx01.github.io";
     private const int ShortlistSize = 5;
 
     private readonly IChatClient _chat;
@@ -73,6 +75,14 @@ internal sealed partial class RepoResolver
             if (!response.TryGetResult(out var payload))
             {
                 return null;
+            }
+
+            // An issue for every game belongs to the games hub, not to any one game and
+            // not to ideas-lab: "All browser games: Add symbol to enter fullscreen" is a
+            // concrete change, only its scope is wide. Deterministic, like the idea rule.
+            if (AddressesAllGames(content))
+            {
+                return new RepoResolution(GamesHubRepo, BridgeAction.Issue, payload.Title, payload.Body);
             }
 
             var action = string.Equals(payload.Action, "issue", StringComparison.Ordinal)
@@ -170,6 +180,12 @@ internal sealed partial class RepoResolver
             return terms.Count(t => text.Contains(t, StringComparison.Ordinal));
         }
     }
+
+    /// <summary>True when the capture opens with an "all games" header, in English or German.</summary>
+    private static bool AddressesAllGames(string content) => AllGamesHeader().IsMatch(content);
+
+    [GeneratedRegex(@"^\s*(all|alle)\s+(browser[\s-]?)?(games|spiele)\b", RegexOptions.IgnoreCase)]
+    private static partial Regex AllGamesHeader();
 
     [LoggerMessage(EventId = 3021, Level = LogLevel.Warning,
         Message = "Repo confirm returned an unlisted repository ({Repo}); parking for triage")]

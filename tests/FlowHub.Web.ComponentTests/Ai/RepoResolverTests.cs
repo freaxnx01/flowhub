@@ -78,6 +78,25 @@ public sealed class RepoResolverTests
         result.Body.Should().Be("Kindermodus.");
     }
 
+    [Theory]
+    [InlineData("All browser games:\nAdd symbol to enter fullscreen", "idea", "game-nibbles")]
+    [InlineData("Alle Browser-Games: Highscore-Liste anzeigen", "issue", "game-nibbles")]
+    [InlineData("alle spiele: Ton global stummschalten", "issue", "")]
+    public async Task ResolveAsync_CaptureAddressesAllGames_TargetsGamesHubAsIssue(
+        string content, string modelAction, string modelRepo)
+    {
+        // The operator's rule: an issue that applies to all games goes to the games hub,
+        // freaxnx01.github.io. Capture 9f25dcad ("All browser games: Add symbol to enter
+        // fullscreen") was read as an idea and appended to ideas-lab instead.
+        ChatReturns(new { repo = modelRepo, action = modelAction, title = "Fullscreen button", body = "For every game." });
+
+        var result = await Sut().ResolveAsync(content, default);
+
+        result!.Repo.Should().Be("freaxnx01/freaxnx01.github.io");
+        result.Action.Should().Be(BridgeAction.Issue);
+        result.Title.Should().Be("Fullscreen button");
+    }
+
     [Fact]
     public async Task ResolveAsync_ModelPicksARepoForAnIssue_KeepsThatRepo()
     {
