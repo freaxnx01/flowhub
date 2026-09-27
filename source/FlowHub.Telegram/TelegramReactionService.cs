@@ -55,19 +55,42 @@ public sealed partial class TelegramReactionService
     };
 
     /// <summary>
+    /// Emoji and legend meaning per skill. The allow-list has no paper, file or folder
+    /// emoji; 👌 is chosen for Paperless to read as "filed, nothing left to do" and to
+    /// be unmistakable beside the others.
+    /// </summary>
+    private static readonly (string Skill, string Emoji, string Meaning)[] SkillReactions =
+    [
+        ("bridge", "👨‍💻", "done — issue created"),
+        ("vikunja", "✍", "done — task created in Vikunja"),
+        ("wallabag", "👀", "done — saved to Wallabag to read later"),
+        ("paperless", "👌", "done — filed in Paperless"),
+    ];
+
+    /// <summary>The skills that have their own success emoji.</summary>
+    public static IReadOnlyList<string> KnownSkills { get; } = SkillReactions.Select(r => r.Skill).ToArray();
+
+    /// <summary>
+    /// One line per emoji the bot can react with, in the order a Capture meets them.
+    /// Emojis come from <see cref="EmojiFor"/> itself, so the legend cannot drift from it.
+    /// </summary>
+    public static IReadOnlyList<string> Legend { get; } =
+    [
+        $"{InFlightEmoji} received, processing",
+        .. SkillReactions.Select(r => $"{r.Emoji} {r.Meaning}"),
+        $"{CompletedFallbackEmoji} done — handled by another skill",
+        $"{EmojiFor(LifecycleStage.Withheld)} withheld on purpose — judged sensitive, sent nowhere",
+        $"{EmojiFor(LifecycleStage.Unhandled)} unhandled — no skill matched",
+        $"{EmojiFor(LifecycleStage.Orphan)} failed — the skill or integration errored",
+    ];
+
+    /// <summary>
     /// An unrecognised skill falls back rather than returning null: a skill added later
     /// must be wrong-but-visible, never silent.
     /// </summary>
-    private static string EmojiForSkill(string? matchedSkill) => matchedSkill?.ToLowerInvariant() switch
-    {
-        "bridge" => "👨‍💻",
-        "vikunja" => "✍",
-        "wallabag" => "👀",
-        // The allow-list has no paper, file or folder emoji; 👌 is chosen to read as
-        // "filed, nothing left to do" and to be unmistakable beside the others.
-        "paperless" => "👌",
-        _ => CompletedFallbackEmoji,
-    };
+    private static string EmojiForSkill(string? matchedSkill) =>
+        SkillReactions.FirstOrDefault(r => string.Equals(r.Skill, matchedSkill, StringComparison.OrdinalIgnoreCase)).Emoji
+        ?? CompletedFallbackEmoji;
 
     /// <summary>
     /// Applies the reaction for a resolved Capture. Idempotent and best-effort: an

@@ -23,6 +23,26 @@ internal static class TelegramMessageMapper
             File: MapFile(message));
     }
 
+    /// <summary>
+    /// Returns null for anything but a button tap on a message the bot can still see —
+    /// without the message there is no chat to reply into.
+    /// </summary>
+    public static TelegramCallback? MapCallback(Update update)
+    {
+        if (update.CallbackQuery is not { Message: { } message } callback)
+        {
+            return null;
+        }
+
+        return new TelegramCallback(
+            UpdateId: update.Id,
+            CallbackQueryId: callback.Id,
+            ChatId: message.Chat.Id,
+            MessageId: message.MessageId,
+            FromUserId: callback.From.Id,
+            Data: callback.Data);
+    }
+
     private static TelegramFile? MapFile(Message message) =>
         MapDocument(message)
         ?? MapVoice(message)

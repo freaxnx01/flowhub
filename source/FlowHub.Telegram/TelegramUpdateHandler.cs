@@ -60,6 +60,12 @@ public sealed partial class TelegramUpdateHandler
             return;
         }
 
+        if (message.File is null && IsCommand(message.Text))
+        {
+            await HandleCommandAsync(message, message.Text!, cancellationToken);
+            return;
+        }
+
         if (message.File is { DurationSeconds: > 0 } audio)
         {
             await HandleAudioAsync(message, audio, cancellationToken);
@@ -85,6 +91,30 @@ public sealed partial class TelegramUpdateHandler
         await RecordAsync(message, capture.Id, cancellationToken);
         await ReactIfAlreadyResolvedAsync(capture.Id, cancellationToken);
     }
+
+    /// <summary>
+    /// Anything starting with a slash is a bot command, never a Capture — a capture
+    /// starting with "/" is not expected, and a mistyped command must not be filed.
+    /// </summary>
+    private static bool IsCommand(string? text) => text is not null && text.StartsWith('/');
+
+    private async Task HandleCommandAsync(TelegramMessage message, string text, CancellationToken cancellationToken)
+    {
+        if (CommandName(text) is TelegramMenu.Command or TelegramMenu.StartCommand)
+        {
+            await _gateway.SendMenuAsync(message.ChatId, TelegramMenu.Text, TelegramMenu.Buttons, cancellationToken);
+        }
+        else
+        {
+            await _gateway.SendTextAsync(message.ChatId, TelegramMenu.UnknownCommandText, cancellationToken);
+        }
+
+        await RecordAsync(message, captureId: null, cancellationToken);
+    }
+
+    /// <summary>"/Menu@FlowHubBot extra" → "menu": group chats append the bot's name.</summary>
+    private static string CommandName(string text) =>
+        text[1..].Split(' ', '@')[0].ToLowerInvariant();
 
     private async Task HandleAudioAsync(TelegramMessage message, TelegramFile audio, CancellationToken cancellationToken)
     {

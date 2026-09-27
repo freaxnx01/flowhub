@@ -34,6 +34,7 @@ public static class TelegramServiceCollectionExtensions
         services.AddScoped<ITelegramGateway, TelegramGateway>();
         services.AddScoped<TelegramReactionService>();
         services.AddScoped<TelegramUpdateHandler>();
+        services.AddScoped<TelegramCallbackHandler>();
         services.AddHostedService<TelegramPollingService>();
 
         // No Scrutor in this repo — decorate ICaptureService manually, matching the
