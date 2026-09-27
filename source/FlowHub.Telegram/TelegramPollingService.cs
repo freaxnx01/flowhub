@@ -4,6 +4,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Telegram.Bot;
 using Telegram.Bot.Exceptions;
+using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 
 namespace FlowHub.Telegram;
@@ -35,6 +36,7 @@ public sealed partial class TelegramPollingService : BackgroundService
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         var offset = await RestoreOffsetAsync(stoppingToken);
+        await RegisterCommandsAsync(stoppingToken);
         var backoff = MinBackoff;
 
         while (!stoppingToken.IsCancellationRequested)
@@ -44,21 +46,13 @@ public sealed partial class TelegramPollingService : BackgroundService
                 var updates = await _client.GetUpdates(
                     offset: offset,
                     timeout: 50,
-                    allowedUpdates: [UpdateType.Message],
+                    allowedUpdates: [UpdateType.Message, UpdateType.CallbackQuery],
                     cancellationToken: stoppingToken);
 
                 foreach (var update in updates)
                 {
                     offset = update.Id + 1;
-                    var message = TelegramMessageMapper.Map(update);
-                    if (message is null)
-                    {
-                        continue;
-                    }
-
-                    using var scope = _scopes.CreateScope();
-                    var handler = scope.ServiceProvider.GetRequiredService<TelegramUpdateHandler>();
-                    await handler.HandleAsync(message, stoppingToken);
+                    await DispatchAsync(update, stoppingToken);
                 }
 
                 backoff = MinBackoff;
@@ -91,6 +85,40 @@ public sealed partial class TelegramPollingService : BackgroundService
         }
     }
 
+    private async Task DispatchAsync(Update update, CancellationToken cancellationToken)
+    {
+        if (TelegramMessageMapper.Map(update) is { } message)
+        {
+            using var scope = _scopes.CreateScope();
+            await scope.ServiceProvider.GetRequiredService<TelegramUpdateHandler>().HandleAsync(message, cancellationToken);
+            return;
+        }
+
+        if (TelegramMessageMapper.MapCallback(update) is { } callback)
+        {
+            using var scope = _scopes.CreateScope();
+            await scope.ServiceProvider.GetRequiredService<TelegramCallbackHandler>().HandleAsync(callback, cancellationToken);
+        }
+    }
+
+    /// <summary>
+    /// Lists /menu in the chat's "/" autocomplete. Best-effort: the command works
+    /// without it, so a failure here must not stop polling.
+    /// </summary>
+    private async Task RegisterCommandsAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _client.SetMyCommands(
+                [new BotCommand { Command = TelegramMenu.Command, Description = "Show the menu" }],
+                cancellationToken: cancellationToken);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or ApiRequestException)
+        {
+            LogRegisterCommandsFailed(ex);
+        }
+    }
+
     private async Task<int> RestoreOffsetAsync(CancellationToken cancellationToken)
     {
         using var scope = _scopes.CreateScope();
@@ -107,6 +135,10 @@ public sealed partial class TelegramPollingService : BackgroundService
     [LoggerMessage(EventId = 5031, Level = LogLevel.Critical,
         Message = "Telegram rejected the bot token as unauthorized. Check Telegram__BotToken. Polling stopped.")]
     private partial void LogUnauthorized(Exception ex);
+
+    [LoggerMessage(EventId = 5033, Level = LogLevel.Warning,
+        Message = "Could not register the bot's commands with Telegram; /menu still works when typed")]
+    private partial void LogRegisterCommandsFailed(Exception ex);
 
     [LoggerMessage(EventId = 5032, Level = LogLevel.Error,
         Message = "Telegram poll failed; retrying (backoff={Backoff})")]

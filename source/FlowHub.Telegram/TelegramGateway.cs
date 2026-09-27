@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using Telegram.Bot;
 using Telegram.Bot.Types;
+using Telegram.Bot.Types.ReplyMarkups;
 
 namespace FlowHub.Telegram;
 
@@ -18,6 +19,18 @@ public sealed partial class TelegramGateway : ITelegramGateway
 
     public Task SendTextAsync(long chatId, string text, CancellationToken cancellationToken = default) =>
         _client.SendMessage(chatId, text, cancellationToken: cancellationToken);
+
+    public Task SendMenuAsync(
+        long chatId, string text, IReadOnlyList<TelegramMenuButton> buttons, CancellationToken cancellationToken = default) =>
+        _client.SendMessage(
+            chatId,
+            text,
+            replyMarkup: new InlineKeyboardMarkup(
+                buttons.Select(b => InlineKeyboardButton.WithCallbackData(b.Label, b.CallbackData))),
+            cancellationToken: cancellationToken);
+
+    public Task AnswerCallbackAsync(string callbackQueryId, CancellationToken cancellationToken = default) =>
+        _client.AnswerCallbackQuery(callbackQueryId, cancellationToken: cancellationToken);
 
     public Task SetReactionAsync(long chatId, int messageId, string emoji, CancellationToken cancellationToken = default) =>
         _client.SetMessageReaction(
