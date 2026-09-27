@@ -96,13 +96,20 @@ One row per Capture, newest first:
 
 **Separate *misclassification* from *unwired skill* before asking the user.** A `FailureReason` of `no integration registered for skill '<X>'` means the classifier was probably right and the deployment simply has that Skill switched off (the CT runs with Skills partly disabled). Report those rows as **config**, not as classification errors — they belong in the deployment follow-up, not the ledger, unless the user disagrees. Same for `exhausted retries: … 404` — the routing target is wrong or gone, which is a Skill/config problem, not a classification one.
 
-A `⚠` is a *suggestion*, not a verdict — the user decides. Then ask:
+A `⚠` is a *suggestion*, not a verdict — the user decides.
 
-> Which rows were classified or routed wrong? (numbers, or `none`)
+**Ask about the rows you cannot judge — do not quietly mark them correct.** A Capture whose right destination depends on knowledge only the operator has (what a photo is for, whether a company link is a lead or reading material, what a bare measurement refers to) is **unclear**, not fine. A wrong `✓` is worse than an open question: it closes a row that was never reviewed.
 
-For each number, ask what it **should** have been (target skill / project / action) and a one-line reason. Keep it to one short exchange per row.
+#### Interview mode — one Capture per question
 
-**Ask about the rows you cannot judge — do not quietly mark them correct.** A Capture whose right destination depends on knowledge only the operator has (what a photo is for, whether a company link is a lead or reading material, what a bare measurement refers to) is **unclear**, not fine. Put those in their own short list — "these I can't call" — and ask, rather than leaving them off the table because they carry no error signal. A wrong `✓` is worse than an open question: it closes a row that was never reviewed.
+Verdicts are collected **one Capture at a time**, in the style of the superpowers brainstorming interview. No numbered question dump at the end of the table.
+
+- **Resolve what you can before asking.** Look up candidate targets yourself first: `gh repo list freaxnx01 --limit 300` for repo names (game notes map to `game-<name>`), the Bridge catalog, and the Vikunja project list. Ask the operator only about what lookups cannot settle.
+- **One question per message**, via `AskUserQuestion`. Each question names one Capture with its id prefix and content snippet, and says what FlowHub did with it.
+- **Multiple choice, recommendation first.** Offer 2–4 concrete destinations, such as `Bridge issue → game-kit-racer`, `ideas-lab`, `Vikunja Inbox`, or `correct as routed`. Mark the likeliest one `(Recommended)`. "Other" stays open for anything else.
+- **Order:** ⚠ rows first, then the rows you can't call, then one batched confirmation of the rows that look correct (`✓ rows 7, 8, 10 — all correct?`). A batch of clean rows is the only allowed batch.
+- The answer supplies the ledger's **expected** field. Ask for a **why** only when the choice doesn't already imply one.
+- The same interview runs in Step 6, one ledger entry per question: fix, issue or park, with the recommended action first.
 
 ### Step 5 — Append to the ledger
 
@@ -163,7 +170,7 @@ A missing mapping is a silent skip, never an error.
 
 ### Step 6 — Turn ledger entries into action
 
-For each `open` entry, propose one of three and ask the user to confirm per entry:
+For each `open` entry, propose one of three and ask the user to confirm per entry — interview mode (Step 4), one entry per `AskUserQuestion`, recommended action first:
 
 **a) Direct fix** — a small, obvious repo change. Where the fix usually belongs:
 
