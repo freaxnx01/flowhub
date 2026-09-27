@@ -102,60 +102,89 @@ Source of truth for the observed values: the `Captures` table on CT 136 (read-on
 - **got:** stage `Unhandled`, no `MatchedSkill` persisted, no trace, `FailureReason: bridge candidate — repo undetermined` (log: `bridge action undetermined (alias=)` — alias is `""`, not null, so the stored reason disagrees with the log)
 - **expected:** 3 Bridge issues on `freaxnx01/game-kit-racer`, one per `-` line. Operator-confirmed 2026-09-27.
 - **why:** `Kit racer` → `game-kit-racer` is a straight name match the resolver missed. Operator rule, stated 2026-09-27: **each top-level `-` line in a note is its own topic → its own issue.**
-- **status:** open
+- **status:** issues game-kit-racer#16, #17, #18 filed by hand; cause → evidence on flowhub#97 (header → repo name). Correction: the `alias=` log line is the fixed wording of `LogBridgeUndetermined`, not a stored/logged mismatch; the stored reason is right.
 
 ## 2026-09-27 — b7beee3c-5c92-4ed7-8b65-96c2ce6714bb  (Telegram, 2026-09-27 12:26)
 - **content:** `Barrel blast physics engine von kit racer?`
 - **got:** stage `Orphan`, no trace. Log: `AiClassifier fell back to keyword classifier (reason=schema_violation)`
 - **expected:** Bridge issue on `freaxnx01/game-barrel-shooter` — Barrel blast is a barrel-shooter feature; reuse Kit Racer's physics engine there (ref https://github.com/isaac-mason/crashcat). Operator-confirmed 2026-09-27.
 - **why:** the AI call threw `schema_violation`; the keyword fallback has no rule for it, so a real note became an Orphan with nothing recorded. The cross-repo reference (`kit racer` named, `barrel-shooter` meant) is a hard case even when the AI works.
-- **status:** open
+- **status:** issue game-barrel-shooter#9 filed by hand; cause → https://github.com/freaxnx01/flowhub/issues/134
 
 ## 2026-09-27 — b5c5f8d7-a30d-48b4-ad32-dc258aa2fcbe  (Telegram, 2026-09-27 12:17)
 - **content:** `Sky fury: / - vergrössern um faktor 1.5 / 2 / - modus unendliche viele bomben und unverwundbar / - zielhilfe bomben / - bombenteppich`
 - **got:** stage `Orphan`, no trace. Log: `schema_violation` → keyword fallback
 - **expected:** 4 Bridge issues on `freaxnx01/game-sky-fury`, one per `-` line. Operator-confirmed 2026-09-27.
 - **why:** same `schema_violation` fallback as `b7beee3c-…`.
-- **status:** open
+- **status:** issues game-sky-fury#2–#5 filed by hand; cause → https://github.com/freaxnx01/flowhub/issues/134 + #97
 
 ## 2026-09-27 — 9f25dcad-0efd-4370-8fc5-e6748a02f16f  (Telegram, 2026-09-27 12:14)
 - **content:** `All browser games: / Add symbol to enter fullscreen`
 - **got:** `Bridge`, `Completed`, Ai sonnet-5 10.2 s → `freaxnx01/ideas-lab/ideas.md`
 - **expected:** Bridge issue on **`freaxnx01/freaxnx01.github.io`** (the games hub, https://github.freaxnx01.ch/games/). Operator rule, stated 2026-09-27: **issues that apply to all games go to `freaxnx01.github.io`.**
 - **why:** the classifier treated a cross-game feature request as an idea. There is no rule mapping "all games" to the hub repo.
-- **status:** open
+- **status:** issue freaxnx01.github.io#25 filed by hand; fixed in repo by https://github.com/freaxnx01/flowhub/pull/135 (CT 136 still runs 0.9.0 until redeployed). The ideas-lab/ideas.md entry it produced is still there.
 
 ## 2026-09-27 — 9a495a4a-bad0-41e7-a0f1-f27477f49ab8  (Telegram, 2026-09-27 11:53)
 - **content:** `Wipfelkratzer / - Wohnungen anschreiben können: z. B. Musikzimmer / - Aussichtsturm: Bei Klick auf Tiere Text länger stehen lassen … / - wenn elster pool füllt macht es komisches geräusch … / - Hauptbutton für (Wald)karte`
 - **got:** stage `Orphan`, no trace. Log: `schema_violation` → keyword fallback
 - **expected:** 4 Bridge issues on `freaxnx01/game-wipfelkratzer`, one per `-` line. Operator-confirmed 2026-09-27.
 - **why:** same `schema_violation` fallback. Captures of the same shape minutes earlier (`ded34ec6-…`, `66e160f2-…`) routed fine, so the fallback is intermittent.
-- **status:** open
+- **status:** issues game-wipfelkratzer#103–#106 filed by hand; cause → https://github.com/freaxnx01/flowhub/issues/134
 
 ## 2026-09-27 — 272ffb23-da64-4e6e-ae44-19181d2c5cdd  (Telegram, 2026-09-27 11:46)
 - **content:** `Wipfelkratzer / - Hineingehen: Fenster soll Blick nach Aussen freigeben`
 - **got:** stage `Orphan`, no trace. Log: `schema_violation` → keyword fallback
 - **expected:** 1 Bridge issue on `freaxnx01/game-wipfelkratzer`. Operator-confirmed 2026-09-27.
 - **why:** same `schema_violation` fallback.
-- **status:** open
+- **status:** issue game-wipfelkratzer#102 filed by hand; cause → https://github.com/freaxnx01/flowhub/issues/134
 
 ## 2026-09-27 — 66e160f2-1b93-4071-b2ad-797b3ae9b7d5  (Telegram, 2026-09-27 11:40)
 - **content:** `Wipfelkratzer: / - Möbel um faktoren vergrößern, z.B. x1.5, x2 / - Tisch, Sofa in die Länge ziehen oder kürzen / - Harfe sieht komisch aus, auch keine Saiten`
 - **got:** `Bridge`, `Completed` → **one** issue `game-wipfelkratzer#92` bundling all three lines
 - **expected:** 3 issues on `game-wipfelkratzer`, one per `-` line. Operator rule, stated 2026-09-27.
 - **why:** right repo, wrong granularity. Bridge creates one issue per Capture; nothing splits a bullet list into topics.
-- **status:** open
+- **status:** split by hand into game-wipfelkratzer#99–#101, #92 closed; cause → https://github.com/freaxnx01/flowhub/issues/133
 
 ## 2026-09-27 — 48085662-f2b3-4bdd-9496-6d3937f10ef1  (Telegram, 2026-09-27 11:33)
 - **content:** photo `photo-406.jpg`, caption `Wipfelkratzer: / Tapete soll durchgängig sein und nicht so unterbrochen`
 - **got:** `MatchedSkill: Paperless`, stage `Unhandled`, `no integration registered for skill 'Paperless'`, no trace (attachment branch)
 - **expected:** Bridge issue on `game-wipfelkratzer` with the photo attached as a screenshot. Operator-confirmed 2026-09-27.
 - **why:** here the caption **does** carry the meaning — it names the repo outright — but the attachment branch returns to Paperless before the classifier ever sees it. This is the caption half of #113.
-- **status:** open
+- **status:** issue game-wipfelkratzer#98 filed by hand (photo not attachable via gh); evidence on flowhub#113
 
 ## 2026-09-27 — 9b0548d9-90f1-414e-aee6-5ca0ad8898ef  (Telegram, 2026-09-27 11:32)
 - **content:** `Wipfelkratzer / - fix: Sichern, mit fotos: Sichern hat nicht geklappt / - Hineingehen: Wände weg soll auch von innen funktionieren / - Hineingehen: Lücke zwischen wand und Decke / - Raum einrichten: /   - Alles entfernen, Wirklich sicher? /   - Zufällige Einrichtung (mit Fenstern)`
 - **got:** `Bridge`, `Completed` → **one** issue `game-wipfelkratzer#91`
 - **expected:** 4 issues on `game-wipfelkratzer`, one per **top-level** `-` line. The indented sub-bullets belong to `Raum einrichten`. Operator rule, stated 2026-09-27.
 - **why:** same granularity defect as `66e160f2-…`.
-- **status:** open
+- **status:** split by hand into game-wipfelkratzer#94–#97, #91 closed; cause → https://github.com/freaxnx01/flowhub/issues/133
+
+## 2026-09-27 — b6eb998e-f12e-429b-a554-3ec195ce7d87  (Telegram, 2026-09-27 10:52)
+- **content:** `Kit Racer: / - Sound aus dem geforkten Original fehlt / - Spiel gegen CPU: / (4 sub-bullets) / Tracks: / - Progress zeigen bei Laden … / - Kann Ladezeit verkürzt werden?`
+- **got:** stage `Orphan`, no trace. Log: `schema_violation` → keyword fallback
+- **expected:** 4 issues on `game-kit-racer`, one per top-level `-` line. `Tracks:` is a header for the two lines under it, and the CPU sub-bullets stay with their parent (operator rule 2026-09-27).
+- **why:** same `schema_violation` fallback as the entries above. It was outside the first `--limit 10` window and was picked up by the operator's "all captures from today" sweep.
+- **status:** issues game-kit-racer#12–#15 filed by hand; cause → https://github.com/freaxnx01/flowhub/issues/134 + #97
+
+## 2026-09-27 — 35e388a7-ed1c-4e54-bd79-d2e380c517de  (Telegram, 2026-09-27 22:15)
+- **content:** `Acronym quiz: / YAGNI`
+- **got:** stage `Unhandled`, no trace, `FailureReason: bridge candidate — repo undetermined`
+- **expected:** issue on `game-acronym-quiz`: add the acronym YAGNI
+- **why:** the header names the repo without its `game-` prefix, the same gap as `Kit racer:`.
+- **status:** issue game-acronym-quiz#4 filed by hand; cause → evidence on flowhub#97
+
+## 2026-09-27 — 17b04ec6-959a-4b58-a60a-13787b7ff9d6  (Telegram, 2026-09-27 07:58)
+- **content:** `Flowhub telegram: slash cmds, e.g. /legende (in english) for list with used Emojis`
+- **got:** `Bridge`, Ai sonnet-5, stage `Unhandled`, `exhausted retries: … 500 (Internal Server Error)`
+- **expected:** issue on `freaxnx01/flowhub`. Classification was right.
+- **why:** a routing failure (Bridge returned 500), not a misclassification. Recorded because the issue was never created.
+- **status:** issue https://github.com/freaxnx01/flowhub/issues/132 filed by hand; the Bridge 500 itself was not investigated
+
+## 2026-09-27 — 37d73359-b8ea-4a7c-a792-25cda0332b9b, 37679357-…, f998af0b-…  (Telegram, 2026-09-27 08:36)
+- **content:** photos `photo-401.jpg`–`photo-403.jpg`, no caption: cover of *Alles Liebe* (Barbara Schmutz, Kein & Aber) + two pages with red-bracketed passages (pp. 107, 278)
+- **got:** `MatchedSkill: Paperless`, stage `Unhandled`, `no integration registered for skill 'Paperless'`, no trace (attachment branch)
+- **expected:** **book notes**. Operator-confirmed 2026-09-27.
+- **why:** the meaning is in the pixels (#39, #113), and FlowHub has no book-notes destination (same family as #118, #121).
+- **recorded as one entry** by exception: same batch, same disposition.
+- **status:** parked: no destination exists; evidence on https://github.com/freaxnx01/flowhub/issues/39
