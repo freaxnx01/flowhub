@@ -4,6 +4,18 @@ User-friendly summary of changes in each version.
 
 ---
 
+## Version 0.9.1
+
+_Released 2026-09-27_
+
+A routing-fix release from the first two production routing reviews.
+
+### Bug Fixes
+- **A note for all games goes to the games hub.** A capture that opens with "All browser games:" / "Alle Games:" now becomes an issue on `freaxnx01.github.io` instead of an entry in `ideas-lab`. It is a concrete change with a wide scope, not an idea without a home.
+- **A header sent on its own is parked, not filed.** Telegram sends on Enter, so a lone "Tschau Sepp Bug Report:" used to become a real issue with an empty body. A single line ending in a colon now parks as Unhandled without an LLM call.
+
+---
+
 ## Version 0.9.0
 
 _Released 2026-09-21_

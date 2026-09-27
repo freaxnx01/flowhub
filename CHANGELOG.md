@@ -4,11 +4,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.1] - 2026-09-27
+
+### Documentation
+
+- **todo:** record v0.9.0 — the classifier runs on Claude, 4/10 with caveats
+- **ai-notes:** the ideas-lab fix is live on CT 136 in v0.9.0
+- **ai-notes:** two flagged captures from the 2026-09-21 review
+- **ai-notes:** nine flagged captures from the 2026-09-27 review
+- **ai-notes:** close out the 2026-09-27 review — 28 issues, 2 flowhub issues, 1 fix
+
+### Fixed
+
+- **pipeline:** park a header-only capture instead of classifying it (#130)
+- **ai:** an all-games issue routes to the games hub, not ideas-lab (#135)
+
+### Miscellaneous
+
+- **skills:** /flowhub-review asks one capture at a time (#131)
 ## [0.9.0] - 2026-09-21
 
 ### Added
 
 - **ui:** make capture outcomes legible — Withheld visibility and skill-coded reactions (#109)
+- **skills:** add /flowhub-review for classification & routing review (#125)
 
 ### CI/CD
 
@@ -27,11 +46,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **ai:** emit classifier entities as key/value pairs (#119)
+- **ai:** an idea always routes to ideas-lab, never a topic-matched repo (#124)
 
 ### Miscellaneous
 
 - untrack .claude/ session handoffs
 - ignore .claude/handoff-*.md session notes
+- **release:** cut v0.9.0 (#128)
 ## [0.8.0] - 2026-09-17
 
 ### Added
