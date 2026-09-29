@@ -4,6 +4,24 @@ User-friendly summary of changes in each version.
 
 ---
 
+## Version 0.10.0
+
+_Released 2026-09-29_
+
+This release explains the bot's reactions in the chat itself, and stops two kinds of capture from landing in the wrong place.
+
+### New Features
+- **`/menu` in the Telegram bot** — replies with an **Emojis** button that sends the reaction legend: what 🫡, 👨‍💻, ✍, 👀, 👌, 👍, 🙊, 🤔 and 💔 each mean. The legend is built from the same table the reactions use, so it cannot fall out of date. `/menu` also shows up in the chat's `/` autocomplete.
+
+### Bug Fixes
+- **A header sent on its own is parked, not filed.** Telegram sends on Enter, so a note like "Tschau Sepp Bug Report:" could arrive alone and become a real issue with an empty body. A single line ending in a colon is now parked as Unhandled before classification — still visible, nothing published. Short real captures ("Baldrian", "23 x 23 x 13") still classify.
+- **An issue for all browser games goes to the games hub.** "All browser games: …" was read as an idea and appended to ideas-lab; it now routes to freaxnx01.github.io.
+
+### Behaviour change
+- **Any Telegram message starting with `/` is a bot command and is no longer captured.** An unknown command gets a hint to use `/menu`.
+
+---
+
 ## Version 0.9.0
 
 _Released 2026-09-21_
