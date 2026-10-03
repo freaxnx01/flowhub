@@ -97,7 +97,7 @@ jobs:
       pipeline-author-allowlist: |
         github-actions[bot]
         freaxnx01-agent-pipeline[bot]
-      pre-preview: true
+      ai-review-human-merge: true
       # Self-fix (agent-workflow #81/#193, ADR-004 follow-up): when the first
       # review returns `request_changes`, the implementer's agent gets a fix →
       # re-review cycle before the block path. Opt-in, defaults to false — which
