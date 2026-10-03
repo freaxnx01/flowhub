@@ -188,3 +188,52 @@ Source of truth for the observed values: the `Captures` table on CT 136 (read-on
 - **why:** the meaning is in the pixels (#39, #113), and FlowHub has no book-notes destination (same family as #118, #121).
 - **recorded as one entry** by exception: same batch, same disposition.
 - **status:** parked: no destination exists; evidence on https://github.com/freaxnx01/flowhub/issues/39
+
+## 2026-09-28 — 8fac77ce-69d1-41a4-b0b9-2251e1440c1e  (Telegram, 2026-09-27 23:10)
+- **content:** `/menu`
+- **got:** stage `Orphan`, no trace, `no skill matched during classification`
+- **expected:** **not a Capture.** A Telegram bot command (a leading `/`) should be handled by the bot and never enter the pipeline. Operator-confirmed 2026-09-28.
+- **why:** the Telegram channel turns every message into a Capture, commands included. This is the input side of #132 (slash commands such as `/legend`).
+- **status:** fixed by #136 and live on CT 136 in v0.10.0: a `/`-message is a bot command and never a Capture. This one arrived while 0.9.0 was still deployed.
+
+## 2026-09-28 — a8d7fecc-303a-49e1-bf4d-d98ba1f92b01  (Telegram, 2026-09-24 13:33)
+- **content:** `Game idea: / Name: Poseidonia / Ship Anchor Simulator / Ein Arbeitskollege hat mir von Segeltrip … erzählt und wie es mit dem Ankern vor sich geht …`
+- **got:** `Vikunja`, `Completed`, project **Games Ideen**, task 2249
+- **expected:** **`ideas-lab`** (Bridge idea). Operator-confirmed 2026-09-28: the ideas-lab rule (2026-09-20) covers game ideas on the Vikunja path too, not only Bridge ideas that were picked for the wrong repo.
+- **why:** the classifier chose Vikunja, so the ideas-lab rule in `RepoResolver` (#124) never ran; it only applies once Bridge is chosen. A leading `Game idea:` should decide Bridge → idea before the Vikunja/Bridge choice is made.
+- **status:** issue https://github.com/freaxnx01/flowhub/issues/140
+
+## 2026-09-28 — 9b909a68-f924-4ff1-9b5c-4bc19b1081ee  (Telegram, 2026-09-24 13:51)
+- **content:** `Ergänzung poseidonia / Katamaran Segelboot / Und folgendes foto`
+- **got:** `Vikunja`, `Completed`, project **Names Ships**, a **new** task 2250
+- **expected:** an addition to the Poseidonia idea in `ideas-lab`, same entry as `a8d7fecc-…`. Operator-confirmed 2026-09-28.
+- **why:** two defects. `Ergänzung <name>` announces an addition to an existing item, and FlowHub has no notion of amending one. And "Names Ships" is a topic match on "Katamaran Segelboot", with no link to Poseidonia.
+- **status:** issue https://github.com/freaxnx01/flowhub/issues/142 (amend) + #140 (ideas-lab)
+
+## 2026-09-28 — a1478b64-7d41-499b-adcd-cfab108d47ce  (Telegram, 2026-09-24 13:52)
+- **content:** photo `photo-394.jpg`, no caption: a notepad titled "Ankermanöver" (`Ankerkette go / landleinen optional wenn eng oder andere bote / Bug in Wind beim Ankern / Ankerkette halt`)
+- **got:** `Paperless`, `Unhandled` (not wired), no trace (attachment branch)
+- **expected:** part of the Poseidonia idea in `ideas-lab`. It is the "folgendes foto" that the text capture one minute earlier announces. Operator-confirmed 2026-09-28.
+- **why:** the meaning is in the pixels (#39, #113) and in the capture one minute before it. Nothing links a photo to the message that announces it.
+- **status:** issue https://github.com/freaxnx01/flowhub/issues/142 (announced photo); evidence on #39
+
+## 2026-09-28 — afd4c8fc-dd50-4182-b0ba-a31adfa28137  (Telegram, 2026-09-25 19:55)
+- **content:** photo `photo-396.jpg`, no caption: Van Gogh "Sternennacht" 1000-piece puzzle (Eurographics) on a shop shelf, price 24.–
+- **got:** `Paperless`, `Unhandled` (not wired), no trace (attachment branch)
+- **expected:** Vikunja **Kaufen** / wish list. Operator-confirmed 2026-09-28.
+- **why:** the meaning is in the pixels (#39, #113).
+- **status:** evidence on https://github.com/freaxnx01/flowhub/issues/39 (vision path)
+
+## 2026-09-28 — 8e27b240-742c-4a20-a545-9b0c58a70c65  (Telegram, 2026-09-27 07:54)
+- **content:** `Supertoskana von Max Küng: E-Book kaufen | Ex Libris` + exlibris.ch product link
+- **got:** `Wallabag`, `Unhandled` (`no integration registered for skill 'Wallabag'`), Ai 3.9 s
+- **expected:** Vikunja **Kaufen**. Operator-confirmed 2026-09-28.
+- **why:** the unwired skill masked a misclassification (same pattern as `d482fd28-…`). "A URL means read-later" overrode an explicit `kaufen` and a shop link. This is the URL over-application `TODO.md` already notes for Claude Sonnet 5.
+- **status:** issue https://github.com/freaxnx01/flowhub/issues/141
+
+## 2026-09-28 — 26ef994e-8e55-4a68-b1ce-e9152c6740b7  (Telegram, 2026-09-23 18:50)
+- **content:** `Odysseus AI - Self-Hosted AI Workspace Setup Guide` + https://odysseusai.dev/
+- **got:** `Wallabag`, `Unhandled` (not wired), Ai 2.6 s
+- **expected:** a **homelab to-do** (something to self-host and try). Operator-confirmed 2026-09-28, the same call as the Vaultwarden article `d3db4580-…`.
+- **why:** "URL means read-later" again. The rule the operator applies is that a self-hosting guide is a homelab task, not reading material. That makes it the second instance of the same rule.
+- **status:** issue https://github.com/freaxnx01/flowhub/issues/141
