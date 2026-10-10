@@ -201,21 +201,21 @@ Source of truth for the observed values: the `Captures` table on CT 136 (read-on
 - **got:** `Vikunja`, `Completed`, project **Games Ideen**, task 2249
 - **expected:** **`ideas-lab`** (Bridge idea). Operator-confirmed 2026-09-28: the ideas-lab rule (2026-09-20) covers game ideas on the Vikunja path too, not only Bridge ideas that were picked for the wrong repo.
 - **why:** the classifier chose Vikunja, so the ideas-lab rule in `RepoResolver` (#124) never ran; it only applies once Bridge is chosen. A leading `Game idea:` should decide Bridge → idea before the Vikunja/Bridge choice is made.
-- **status:** issue https://github.com/freaxnx01/flowhub/issues/140
+- **status:** issue https://github.com/freaxnx01/flowhub/issues/140. Moved by hand 2026-10-10 to https://github.com/freaxnx01/ideas-lab/issues/4, and Vikunja 2249 marked done.
 
 ## 2026-09-28 — 9b909a68-f924-4ff1-9b5c-4bc19b1081ee  (Telegram, 2026-09-24 13:51)
 - **content:** `Ergänzung poseidonia / Katamaran Segelboot / Und folgendes foto`
 - **got:** `Vikunja`, `Completed`, project **Names Ships**, a **new** task 2250
 - **expected:** an addition to the Poseidonia idea in `ideas-lab`, same entry as `a8d7fecc-…`. Operator-confirmed 2026-09-28.
 - **why:** two defects. `Ergänzung <name>` announces an addition to an existing item, and FlowHub has no notion of amending one. And "Names Ships" is a topic match on "Katamaran Segelboot", with no link to Poseidonia.
-- **status:** issue https://github.com/freaxnx01/flowhub/issues/142 (amend) + #140 (ideas-lab)
+- **status:** issue https://github.com/freaxnx01/flowhub/issues/142 (amend) + #140 (ideas-lab). Merged by hand 2026-10-10 into https://github.com/freaxnx01/ideas-lab/issues/4, and Vikunja 2250 marked done.
 
 ## 2026-09-28 — a1478b64-7d41-499b-adcd-cfab108d47ce  (Telegram, 2026-09-24 13:52)
 - **content:** photo `photo-394.jpg`, no caption: a notepad titled "Ankermanöver" (`Ankerkette go / landleinen optional wenn eng oder andere bote / Bug in Wind beim Ankern / Ankerkette halt`)
 - **got:** `Paperless`, `Unhandled` (not wired), no trace (attachment branch)
 - **expected:** part of the Poseidonia idea in `ideas-lab`. It is the "folgendes foto" that the text capture one minute earlier announces. Operator-confirmed 2026-09-28.
 - **why:** the meaning is in the pixels (#39, #113) and in the capture one minute before it. Nothing links a photo to the message that announces it.
-- **status:** issue https://github.com/freaxnx01/flowhub/issues/142 (announced photo); evidence on #39
+- **status:** issue https://github.com/freaxnx01/flowhub/issues/142 (announced photo); evidence on #39. The notepad text is carried into https://github.com/freaxnx01/ideas-lab/issues/4 (the photo itself is lost, #117).
 
 ## 2026-09-28 — afd4c8fc-dd50-4182-b0ba-a31adfa28137  (Telegram, 2026-09-25 19:55)
 - **content:** photo `photo-396.jpg`, no caption: Van Gogh "Sternennacht" 1000-piece puzzle (Eurographics) on a shop shelf, price 24.–
@@ -271,7 +271,7 @@ Source of truth for the observed values: the `Captures` table on CT 136 (read-on
 - **got:** `Wallabag`, `Unhandled` (`no integration registered for skill 'Wallabag'`), Ai 5.3 s
 - **expected:** an outing idea for Juliska in the **Ideen Ausflüge** calendar. Operator-confirmed 2026-10-07.
 - **why:** the unwired skill masked a misclassification. "A URL means read-later" again (#141), and there is no destination for outing ideas (#118).
-- **status:** evidence on https://github.com/freaxnx01/flowhub/issues/118. The operator adds the calendar entry by hand.
+- **status:** evidence on https://github.com/freaxnx01/flowhub/issues/118. Operator correction 2026-10-10: the expected destination is a **Vikunja** task, not the calendar. The operator files it by hand.
 
 ## 2026-10-07 — 01b04b40-9de6-4f98-922c-e7d93e32da20  (Telegram, 2026-10-04 14:08)
 - **content:** photo `photo-432.jpg` (Authentik add-passkey QR dialog), caption `Add Passkey for authentik`
@@ -292,4 +292,4 @@ Source of truth for the observed values: the `Captures` table on CT 136 (read-on
 - **got:** `Vikunja`, `Completed`, project **Games Ideen**, task 2269, Ai 3.4 s
 - **expected:** `ideas-lab` (Bridge idea). Operator-confirmed 2026-10-07, following the 09-28 rule.
 - **why:** same defect as the Poseidonia capture: a leading `Game idea:` is decided as Vikunja before the ideas-lab rule can apply.
-- **status:** issue https://github.com/freaxnx01/flowhub/issues/140 (second instance)
+- **status:** issue https://github.com/freaxnx01/flowhub/issues/140 (second instance). Moved by hand 2026-10-10 to https://github.com/freaxnx01/ideas-lab/issues/5, and Vikunja 2269 marked done.
