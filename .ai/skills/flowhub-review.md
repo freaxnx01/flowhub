@@ -94,6 +94,20 @@ One row per Capture, newest first:
 
 **A null `ClassifierTrace` is not automatically a bug — check for an attachment first.** `CaptureEnrichmentConsumer` returns to Paperless on `HasAttachment` *before* calling `ClassifyAsync`, so every attachment capture shows `MatchedSkill: Paperless` with no trace, by design. Always pull `Attachment_ContentType` / `Attachment_FileName` alongside the trace columns; a photo caption reads exactly like a text capture in the review table and will otherwise be flagged as a misclassification that never happened. (This cost a wrongly-framed issue on the first run — see the correction on #113.) A null trace on a capture with **no** attachment is a different matter: it means the classifier path exited early (`Orphan`, `Withheld`), which is worth a look.
 
+**Read the OTel spans for every `Orphan`, `Unhandled` or no-trace Capture before calling it.** The database only shows the outcome; the cause is in `docker logs flowhub`, where the OTel console exporter writes one block per AI call. Pull a window around `CreatedAt` (logs are UTC, `CreatedAt` is local time, so subtract the offset) and filter to the fields that matter:
+
+```bash
+ssh -o BatchMode=yes cirrus-pve "pct exec 136 -- docker logs --since <utc-start> --until <utc-end> flowhub 2>&1" \
+  | grep -iE 'finish_reason|max_tokens|reasoning|fell back|schema|truncat|Orphan|status_code' | grep -v 'url.full'
+```
+
+- `finish_reasons: ["length"]` with `reasoning.output_tokens` close to `request.max_tokens` → the model spent its whole budget on reasoning and the JSON was truncated (#143). The capture was **never really classified**, so do not record it as a misclassification.
+- `finish_reasons: ["stop"]` followed by `classified as Orphan` → the model really chose no skill. That is a genuine verdict and can be judged.
+- `fell back to keyword classifier (reason=…)` → name the reason in the ledger.
+- A non-200 `http.response.status_code` on the OpenRouter call → provider error (e.g. 429), not classification.
+
+Write the cause you find into the ledger entry's `why`. **Review promptly:** docker logs are wiped whenever the container is recreated (every deploy), so the spans for anything older than the last recreate are gone. Always filter out `url.full`: it carries the Telegram bot token in plain text. Never print it, and never paste it anywhere.
+
 **Separate *misclassification* from *unwired skill* before asking the user.** A `FailureReason` of `no integration registered for skill '<X>'` means the classifier was probably right and the deployment simply has that Skill switched off (the CT runs with Skills partly disabled). Report those rows as **config**, not as classification errors — they belong in the deployment follow-up, not the ledger, unless the user disagrees. Same for `exhausted retries: … 404` — the routing target is wrong or gone, which is a Skill/config problem, not a classification one.
 
 A `⚠` is a *suggestion*, not a verdict — the user decides.
