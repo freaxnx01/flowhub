@@ -271,7 +271,7 @@ Source of truth for the observed values: the `Captures` table on CT 136 (read-on
 - **got:** `Wallabag`, `Unhandled` (`no integration registered for skill 'Wallabag'`), Ai 5.3 s
 - **expected:** an outing idea for Juliska in the **Ideen Ausflüge** calendar. Operator-confirmed 2026-10-07.
 - **why:** the unwired skill masked a misclassification. "A URL means read-later" again (#141), and there is no destination for outing ideas (#118).
-- **status:** evidence on https://github.com/freaxnx01/flowhub/issues/118. Operator correction 2026-10-10: the expected destination is a **Vikunja** task, not the calendar. The operator files it by hand.
+- **status:** evidence on https://github.com/freaxnx01/flowhub/issues/118. Operator correction 2026-10-10: the expected destination is Vikunja **Juliska Ausflüge**, not the calendar. Filed by hand as task 2272.
 
 ## 2026-10-07 — 01b04b40-9de6-4f98-922c-e7d93e32da20  (Telegram, 2026-10-04 14:08)
 - **content:** photo `photo-432.jpg` (Authentik add-passkey QR dialog), caption `Add Passkey for authentik`
