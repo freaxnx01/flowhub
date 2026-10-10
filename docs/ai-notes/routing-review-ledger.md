@@ -237,3 +237,59 @@ Source of truth for the observed values: the `Captures` table on CT 136 (read-on
 - **expected:** a **homelab to-do** (something to self-host and try). Operator-confirmed 2026-09-28, the same call as the Vaultwarden article `d3db4580-…`.
 - **why:** "URL means read-later" again. The rule the operator applies is that a self-hosting guide is a homelab task, not reading material. That makes it the second instance of the same rule.
 - **status:** issue https://github.com/freaxnx01/flowhub/issues/141
+
+## 2026-10-07 — 653fccc1-b38d-4e08-a8f8-58127988668e  (Telegram, 2026-09-29 09:39)
+- **content:** photo `photo-420.jpg`, no caption
+- **got:** `Paperless`, `Unhandled` (not wired), no trace (attachment branch)
+- **expected:** unknown. The file is gone, so the capture cannot be reviewed.
+- **why:** the 2026/09 attachment directory disappeared when the container was recreated on 2026-09-29 21:01, which is #117 in practice. Every September photo was lost.
+- **status:** issue https://github.com/freaxnx01/flowhub/issues/117 (evidence comment)
+
+## 2026-10-07 — e1c7a339-bfdf-4758-ae4d-7b67e4696136  (Telegram, 2026-10-02 09:23)
+- **content:** photo `photo-426.jpg`, no caption: a screenshot of a private chat (details deliberately left out)
+- **got:** `Paperless`, `Unhandled` (not wired), no trace (attachment branch)
+- **expected:** none. The operator deleted the message from the Telegram chat (`setMessageReaction` → `message to react not found`).
+- **why:** sent by accident and withdrawn at the source. Not a classification defect.
+- **status:** parked: deleted at the source
+
+## 2026-10-07 — 76dd309a-b298-4b4b-be80-bbc38f59e288  (Telegram, 2026-10-02 11:30)
+- **content:** `Rhyflitzer : / - B = blick zurück / - Rückspiegel möglich? / - neuer kameramodus: verfolgungsmodus drohne / - weitere jump orte: Bergsee, Hallenbad, sisslerfeld plattform`
+- **got:** `Bridge`, `Completed`, **one** issue game-rhyflitzer#24, Ai 10.2 s
+- **expected:** one issue per top-level `-` line (four issues). This is the operator rule from #133.
+- **why:** the bundling defect tracked in #133. A side note: the Telegram message was edited afterwards (`… smile kreisel` added), and the edit never reached FlowHub.
+- **status:** issue https://github.com/freaxnx01/flowhub/issues/133. Split by hand on 2026-10-03 (game-rhyflitzer#65, #92–#94; #24 closed).
+
+## 2026-10-07 — c877f619-741a-4b6b-92d6-68dd74b28563  (Telegram, 2026-10-02 15:21)
+- **content:** photo `photo-429.jpg`, no caption: LEGO Creator 31382 "Playful Puppy" on a shop shelf, 34.90 CHF
+- **got:** `Paperless`, `Unhandled` (not wired), no trace (attachment branch)
+- **expected:** Vikunja **J / Juliska kaufen**. Operator-confirmed 2026-10-07. A per-person wish list, not the general *Kaufen*.
+- **why:** the meaning is in the pixels (#39), and *for whom* it is cannot be read from them at all.
+- **status:** evidence on https://github.com/freaxnx01/flowhub/issues/39. The operator creates the Vikunja task by hand.
+
+## 2026-10-07 — 5f31baf6-bbc8-4999-b2c5-b9b9d0661f1f  (Telegram, 2026-10-04 09:52)
+- **content:** `Bernaqua | Erlebnisbad | Fitness | Wellness` + `share.google` link
+- **got:** `Wallabag`, `Unhandled` (`no integration registered for skill 'Wallabag'`), Ai 5.3 s
+- **expected:** an outing idea for Juliska in the **Ideen Ausflüge** calendar. Operator-confirmed 2026-10-07.
+- **why:** the unwired skill masked a misclassification. "A URL means read-later" again (#141), and there is no destination for outing ideas (#118).
+- **status:** evidence on https://github.com/freaxnx01/flowhub/issues/118. The operator adds the calendar entry by hand.
+
+## 2026-10-07 — 01b04b40-9de6-4f98-922c-e7d93e32da20  (Telegram, 2026-10-04 14:08)
+- **content:** photo `photo-432.jpg` (Authentik add-passkey QR dialog), caption `Add Passkey for authentik`
+- **got:** `Paperless`, `Unhandled` (not wired), no trace (attachment branch)
+- **expected:** Vikunja **IT Homelab**. Operator-confirmed 2026-10-05.
+- **why:** attachment captures skip classification, so a caption that plainly names a homelab to-do was never read (#113).
+- **status:** evidence on https://github.com/freaxnx01/flowhub/issues/113. The operator creates the Vikunja task by hand.
+
+## 2026-10-07 — b9000998-6f3e-4cff-a071-509f6009ea4b  (Telegram, 2026-10-05 21:22)
+- **content:** `rhyflitzer: Hallenbad Sissila: Rutschbahn aussen am Gebäude fehlt`
+- **got:** stage `Orphan`, `no skill matched during classification`, no trace
+- **expected:** Bridge → an issue on `game-rhyflitzer`. Operator-confirmed 2026-10-05.
+- **why:** never really classified. The OTel spans show the classification call with `max_tokens 300`, finish **`length`**, 299 of 300 tokens spent on reasoning (`anthropic/claude-sonnet-5`). The JSON was truncated, which surfaced as `schema_violation`, and the keyword fallback matched nothing. This is very likely the cause behind #134 and #115 as well.
+- **status:** issue https://github.com/freaxnx01/flowhub/issues/143 (cause). The game issue was filed by hand: https://github.com/freaxnx01/game-rhyflitzer/issues/234. Mitigation for CT 136: `Ai__MaxOutputTokens=1500`, applied by the operator.
+
+## 2026-10-07 — a6a94930-4126-40b7-9d60-20a2e9774bc0  (Telegram, 2026-10-07 08:56)
+- **content:** `Game idea: ABC SRF 3 Clone`
+- **got:** `Vikunja`, `Completed`, project **Games Ideen**, task 2269, Ai 3.4 s
+- **expected:** `ideas-lab` (Bridge idea). Operator-confirmed 2026-10-07, following the 09-28 rule.
+- **why:** same defect as the Poseidonia capture: a leading `Game idea:` is decided as Vikunja before the ideas-lab rule can apply.
+- **status:** issue https://github.com/freaxnx01/flowhub/issues/140 (second instance)

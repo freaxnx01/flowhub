@@ -1,4 +1,6 @@
-# FlowHub routing review — 2026-10-05 run (in progress)
+# FlowHub routing review — 2026-10-05 run (completed)
+
+**Completed 2026-10-07** — all rows judged, 8 ledger entries written, decisions 1–5 settled (#143, #144, skill updated, OpenRouter stays). This note is kept as the record of the diagnosis.
 
 State of the `/flowhub-review` run started 2026-10-05, interrupted mid-interview for a root-cause
 investigation. Resume from here; the ledger (`docs/ai-notes/routing-review-ledger.md`) has **no
