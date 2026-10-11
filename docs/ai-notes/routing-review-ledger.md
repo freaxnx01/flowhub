@@ -293,3 +293,45 @@ Source of truth for the observed values: the `Captures` table on CT 136 (read-on
 - **expected:** `ideas-lab` (Bridge idea). Operator-confirmed 2026-10-07, following the 09-28 rule.
 - **why:** same defect as the Poseidonia capture: a leading `Game idea:` is decided as Vikunja before the ideas-lab rule can apply.
 - **status:** issue https://github.com/freaxnx01/flowhub/issues/140 (second instance). Moved by hand 2026-10-10 to https://github.com/freaxnx01/ideas-lab/issues/5, and Vikunja 2269 marked done.
+
+## 2026-10-11 — 38b7a2e2-c9a8-4bd8-b13f-86e7d4232883  (Telegram, 2026-10-07 20:50)
+- **content:** `Rhyflitzer: / - licht ein / aus / - pannenblinker ein/aus`
+- **got:** stage `Orphan`, `no skill matched during classification`, no trace
+- **expected:** Bridge → two issues on `game-rhyflitzer`, one per bullet (#133). Operator-confirmed 2026-10-11.
+- **why:** never really classified. The spans show classification with `max_tokens 300`, finish `length`, 299 reasoning tokens, then `fell back (reason=schema_violation)`. The CT still runs without the `Ai__MaxOutputTokens` mitigation.
+- **status:** issue https://github.com/freaxnx01/flowhub/issues/143 (cause). Filed by hand as https://github.com/freaxnx01/game-rhyflitzer/issues/270 and https://github.com/freaxnx01/game-rhyflitzer/issues/271.
+
+## 2026-10-11 — 3e57342e-6a7e-4e51-ba77-98adc4c3e45e  (Telegram, 2026-10-09 19:43)
+- **content:** `Game idea: wordle auf deutsch`
+- **got:** `Vikunja`, `Completed`, project **Games Ideen**, task 2271, Ai 4.4 s
+- **expected:** `ideas-lab`. Operator-confirmed 2026-10-11.
+- **why:** #140, third instance.
+- **status:** issue https://github.com/freaxnx01/flowhub/issues/140. Moved by hand to https://github.com/freaxnx01/ideas-lab/issues/6, and Vikunja 2271 marked done.
+
+## 2026-10-11 — c13bfba9-ba04-4ff7-bc0b-7e76f6799364  (Telegram, 2026-10-10 10:53)
+- **content:** `UserManual_Cloud.pdf` + ofinto.ch link to the PDF (manual of an Ofinto "Cloud" office chair)
+- **got:** `Wallabag`, `Unhandled` (not wired), Ai 3.4 s
+- **expected:** the **inventory rule**: a Snipe-IT asset for the chair, the manual in Paperless, and the Paperless link on the asset. Operator rule, 2026-10-11.
+- **why:** "a URL means read-later" again (#141). FlowHub also has no Snipe-IT destination.
+- **status:** issue https://github.com/freaxnx01/flowhub/issues/146 (evidence on #141)
+
+## 2026-10-11 — 2ea8cfb0-09bd-4d47-abaa-4143720e9246  (Telegram, 2026-10-10 10:57)
+- **content:** PDF `10.10.2026_105145.pdf`: delivery note for the same Ofinto chair (personal details deliberately left out)
+- **got:** `Paperless`, `Unhandled` (not wired), no trace (attachment branch)
+- **expected:** the inventory rule: Paperless, linked from the chair's Snipe-IT asset. Operator-confirmed 2026-10-11.
+- **why:** Paperless is the right document destination, but the asset step is missing. It arrived four minutes after the manual for the same item.
+- **status:** issue https://github.com/freaxnx01/flowhub/issues/146
+
+## 2026-10-11 — ec59473d-1b3f-455b-b09f-20af199ddc54  (Telegram, 2026-10-10 14:11)
+- **content:** photo `photo-447.jpg`, no caption: product label of a LAKO Aquastop doormat (~60×75 cm, article number B0150471)
+- **got:** `Paperless`, `Unhandled` (not wired), no trace (attachment branch)
+- **expected:** the inventory rule: a Snipe-IT asset for the doormat, the photo in Paperless, and the link on the asset. Operator-confirmed 2026-10-11.
+- **why:** the meaning is in the pixels (#39), and there is no inventory destination.
+- **status:** issue https://github.com/freaxnx01/flowhub/issues/146
+
+## 2026-10-11 — 3a70ccf3-fa34-44be-80b6-ff791117e0aa  (Telegram, 2026-10-10 11:56)
+- **content:** `Docker-Container migrieren: Wechsel von Portainer zu Arcane` + heise.de link
+- **got:** `Wallabag`, `Unhandled` (not wired), Ai 2.6 s
+- **expected:** Vikunja **IT Homelab**. Operator-confirmed 2026-10-11.
+- **why:** a self-hosting guide is a homelab to-do (#141, the same rule as Odysseus and Vaultwarden).
+- **status:** issue https://github.com/freaxnx01/flowhub/issues/141. Filed by hand as Vikunja task 2273.
