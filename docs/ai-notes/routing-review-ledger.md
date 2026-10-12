@@ -313,21 +313,21 @@ Source of truth for the observed values: the `Captures` table on CT 136 (read-on
 - **got:** `Wallabag`, `Unhandled` (not wired), Ai 3.4 s
 - **expected:** the **inventory rule**: a Snipe-IT asset for the chair, the manual in Paperless, and the Paperless link on the asset. Operator rule, 2026-10-11.
 - **why:** "a URL means read-later" again (#141). FlowHub also has no Snipe-IT destination.
-- **status:** issue https://github.com/freaxnx01/flowhub/issues/146 (evidence on #141)
+- **status:** issue https://github.com/freaxnx01/flowhub/issues/146 (evidence on #141). Filed by hand 2026-10-12: Snipe-IT `HH-0006`, manual in Paperless 173, linked as `Handbuch`.
 
 ## 2026-10-11 — 2ea8cfb0-09bd-4d47-abaa-4143720e9246  (Telegram, 2026-10-10 10:57)
 - **content:** PDF `10.10.2026_105145.pdf`: delivery note for the same Ofinto chair (personal details deliberately left out)
 - **got:** `Paperless`, `Unhandled` (not wired), no trace (attachment branch)
 - **expected:** the inventory rule: Paperless, linked from the chair's Snipe-IT asset. Operator-confirmed 2026-10-11.
 - **why:** Paperless is the right document destination, but the asset step is missing. It arrived four minutes after the manual for the same item.
-- **status:** issue https://github.com/freaxnx01/flowhub/issues/146
+- **status:** issue https://github.com/freaxnx01/flowhub/issues/146. Filed by hand 2026-10-12: Paperless 174 (`Lieferschein`), linked from `HH-0006` alongside invoice 170.
 
 ## 2026-10-11 — ec59473d-1b3f-455b-b09f-20af199ddc54  (Telegram, 2026-10-10 14:11)
 - **content:** photo `photo-447.jpg`, no caption: product label of a LAKO Aquastop doormat (~60×75 cm, article number B0150471)
 - **got:** `Paperless`, `Unhandled` (not wired), no trace (attachment branch)
 - **expected:** the inventory rule: a Snipe-IT asset for the doormat, the photo in Paperless, and the link on the asset. Operator-confirmed 2026-10-11.
 - **why:** the meaning is in the pixels (#39), and there is no inventory destination.
-- **status:** issue https://github.com/freaxnx01/flowhub/issues/146
+- **status:** issue https://github.com/freaxnx01/flowhub/issues/146. Filed by hand 2026-10-12: Snipe-IT `HH-0007`, label photo in Paperless 175, linked as `Handbuch`.
 
 ## 2026-10-11 — 3a70ccf3-fa34-44be-80b6-ff791117e0aa  (Telegram, 2026-10-10 11:56)
 - **content:** `Docker-Container migrieren: Wechsel von Portainer zu Arcane` + heise.de link
