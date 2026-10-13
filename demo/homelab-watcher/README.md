@@ -73,7 +73,7 @@ Six HTTP(s) monitors, all probing the **public** VPS endpoints from outside
 
 Kuma pushes to homelab ntfy, **urgent priority** (breaks through DND):
 
-- **Server URL:** `https://ntfy.home.freaxnx01.ch`
+- **Server URL:** the homelab ntfy server — not published here; take it from the existing Kuma notification (Settings → Notifications)
 - **Topic:** `flowhub-demo-status` — granted **anonymous write-only** on the ntfy
   server (mirrors the app's existing `flowhub-demo-captures` topic), so Kuma needs
   no token. **Subscribe as the `freax` ntfy user to read it** (server is `deny-all`).
